@@ -1,6 +1,0 @@
-numpy
-vnoise
-trimesh
-gin-config
-tqdm
-psutil
