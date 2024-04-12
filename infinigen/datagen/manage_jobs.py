@@ -54,12 +54,6 @@ from infinigen.datagen.util.submitit_emulator import (
     ImmediateLocalExecutor, 
     LocalScheduleHandler
 )
-from infinigen.core import execute_tasks, surface, init
-
-debug = False
-if debug:
-    import pydevd_pycharm
-    pydevd_pycharm.settrace('localhost', port=52000, stdoutToServer=True, stderrToServer=True)
 
 from infinigen.datagen import job_funcs 
 from infinigen.datagen.job_funcs import (
@@ -776,7 +770,7 @@ if __name__ == "__main__":
                         dest="loglevel", const=logging.DEBUG, default=logging.INFO)
     parser.add_argument( '-v', '--verbose', action="store_const", 
                         dest="loglevel", const=logging.INFO)
-    args = init.parse_args_blender(parser)
+    args = parser.parse_args()
 
     using_upload = any('upload' in x for x in args.pipeline_configs)
 
