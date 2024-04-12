@@ -16,9 +16,14 @@ from einops import pack, rearrange, repeat
 from imageio.v3 import imread, imwrite
 from numba.types import bool_
 
-from ..compress_masks import recover
-from ..dataset_loader import get_frame_path
+from infinigen.tools.compress_masks import recover
+from infinigen.tools.dataset_loader import get_frame_path
+from infinigen.core import execute_tasks, surface, init
 
+debug = True
+if debug:
+    import pydevd_pycharm
+    pydevd_pycharm.settrace('localhost', port=52000, stdoutToServer=True, stderrToServer=True)
 """
 Usage: python -m tools.ground_truth.segmentation_lookup <scene-folder> <frame-index> [--query <query>] [--boxes]
 Output:
@@ -66,16 +71,17 @@ def arr2color(e):
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('folder', type=Path)
-    parser.add_argument('frame', type=int)
+    parser.add_argument('--folder', type=Path)
+    parser.add_argument('--frame', type=int)
     parser.add_argument('--query', type=str, default=None)
     parser.add_argument('--boxes', action='store_true')
     parser.add_argument('--output', type=Path, default=Path("testbed"))
-    args = parser.parse_args()
+    #args = parser.parse_args()
+    args = init.parse_args_blender(parser)
 
     # Load images & masks
-    object_segmentation_mask = recover(np.load(get_frame_path(args.folder, 0, args.frame, 'ObjectSegmentation_npz')))
-    instance_segmentation_mask = recover(np.load(get_frame_path(args.folder, 0, args.frame, 'InstanceSegmentation_npz')))
+    object_segmentation_mask = np.load(get_frame_path(args.folder, 0, args.frame, 'ObjectSegmentation_npy'))
+    instance_segmentation_mask = np.load(get_frame_path(args.folder, 0, args.frame, 'InstanceSegmentation_npy'))
     image = imread(get_frame_path(args.folder, 0, args.frame, "Image_png"))
     object_json = json.loads(get_frame_path(args.folder, 0, args.frame, 'Objects_json').read_text())
     H, W = object_segmentation_mask.shape
@@ -83,10 +89,10 @@ if __name__ == "__main__":
 
     # Identify objects visible in the image
     unique_object_idxs = set(np.unique(object_segmentation_mask))
-    present_objects = [obj for obj in object_json if (obj['object_index'] in unique_object_idxs)]
+    present_objects = [obj for obj in object_json.items() if (obj[1]['object_index'] in unique_object_idxs)]
 
     # Complain if the query isn't valid/present
-    unique_names = sorted({q['name'] for q in present_objects})
+    unique_names = sorted({q[0] for q in present_objects})
     if args.query is None:
         print('`--query` not specified. Choices are:')
         for qn in unique_names:
@@ -99,8 +105,8 @@ if __name__ == "__main__":
         sys.exit(0)
 
     # Mask the pixels with any relevant object
-    objects_to_highlight = [obj for obj in present_objects if (args.query.lower() in obj['name'].lower())]
-    highlighted_pixels = should_highlight_pixel(object_segmentation_mask, np.array([o['object_index'] for o in objects_to_highlight]))
+    objects_to_highlight = [obj for obj in present_objects if (args.query.lower() in obj[0].lower())]
+    highlighted_pixels = should_highlight_pixel(object_segmentation_mask, np.array([o[1]['object_index'] for o in objects_to_highlight]))
     assert highlighted_pixels.dtype == bool
 
     # Assign unique colors to each object instance
@@ -124,7 +130,7 @@ if __name__ == "__main__":
         colors_for_instances = unique_colors[indices].reshape((H, W, 3))
         canvas = np.zeros((H, W, 3), dtype=np.uint8)
         for obj in objects_to_highlight:
-            m = repeat(object_segmentation_mask == obj['object_index'], 'H W -> H W 3')
+            m = repeat(object_segmentation_mask == obj[1]['object_index'], 'H W -> H W 3')
             canvas[m] = colors_for_instances[m]
 
     args.output.mkdir(exist_ok=True)
