@@ -1,3 +1,7 @@
 iterate_scene_tasks.frame_range=[1,4]
 iterate_scene_tasks.render_frame_range=[1,4]
 iterate_scene_tasks.cam_block_size = 8
+
+sample_scene_spec.config_distribution = [
+    ("coral_reef", 3),
+]
