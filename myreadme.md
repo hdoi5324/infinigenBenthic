@@ -8,16 +8,25 @@ cd infinigen
 
 
 ```bash
-# on Ubuntu / Debian / WSL / etc
+# on Ubuntu / Debian / WSL / etc.  Updates local version.  Not necessary if using conda
 sudo apt-get install wget cmake g++ libgles2-mesa-dev libglew-dev libglfw3-dev libglm-dev
 
-# on an Mac ARM (M1/M2/...)
-arch -arm64 brew install wget cmake llvm open-mpi libomp glm glew
-
-# on  Mac x86_64 (Intel)
-brew install wget cmake llvm open-mpi libomp glm glew
+# on Conda. Updates conda python 
+conda install conda-forge::gxx=11.4.0 mesalib glew glm menpo::glfw3
 
 ```
+
+Run every time for python version
+
+```commandline
+export C_INCLUDE_PATH=$CONDA_PREFIX/include:$C_INCLUDE_PATH
+export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include:$CPLUS_INCLUDE_PATH
+export LIBRARY_PATH=$CONDA_PREFIX/lib:$LIBRARY_PATH
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib:$LD_LIBRARY_PATH
+```
+
+* Check that infinigen/infinigen_gpl is a copy of released version of https://github.com/princeton-vl/infinigen_gpl/
+
 
 launch blender
 ```commandline
@@ -58,13 +67,12 @@ rm -fr outputs/reefv5;
 python -m infinigen.launch_blender -m infinigen.datagen.manage_jobs -- --output_folder outputs/reefv7 --num_scenes 1 --specific_seed 777 --configs coral_reef_hd.gin --pipeline_configs local_16GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin
 
 ```
-
-### Install python modules in blender python
+### Blender Python
+#### Install python modules in blender python
 
 ```commandline
 ~/GitHub/infinigen/blender/3.6/python/bin/python3.10 -m pip install module
 ```
-### Extract bbox
 
 
 ```commandline
