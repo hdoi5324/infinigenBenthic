@@ -20,6 +20,18 @@ Run every time for python version
 
 ```commandline
 export C_INCLUDE_PATH=$CONDA_PREFIX/include
+export CMAKE_INCLUDE_PATH=$CONDA_PREFIX/include
+
+export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include
+export LIBRARY_PATH=$CONDA_PREFIX/lib
+export LD_LIBRARY_PATH=$CONDA_PREFIX/lib
+```
+
+```commandline
+export BLENDER_INCLUDE="./Blender.app/Contents/Resources/3.6/python/include/python3.10"
+export C_INCLUDE_PATH=$BLENDER_INCLUDE/include:$C_INCLUDE_PATH
+export CMAKE_INCLUDE_PATH=$BLENDER_INCLUDE/include
+
 export CPLUS_INCLUDE_PATH=$CONDA_PREFIX/include
 export LIBRARY_PATH=$CONDA_PREFIX/lib
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib
