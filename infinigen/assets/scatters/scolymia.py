@@ -13,24 +13,25 @@ from infinigen.core.placement.factory import AssetFactory, make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 
-def apply(obj, n=5, selection=None):
-    n_species = np.random.randint(2, 3)
+def apply(obj, n=8, selection=None):
+    n_species = np.random.randint(2, 5)
     factories = list(ScolymiaFactory(np.random.randint(1e5)) for i in range(n_species))
     scolymia = make_asset_collection(factories, name='scolymia',
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
 
 
-    scale = U(0.03, 0.3) # scale of urchins
+    scale = U(0.1, 0.2) # scale of scolymia
 
     def ground_offset(nw: NodeWrangler):
-        return nw.uniform(.4 * scale, .8 * scale)
+        return nw.uniform(-.2 * scale, 0.2 * scale)
 
     scatter_obj = scatter_instances(
         base_obj=obj, collection=scolymia,
         vol_density=U(0.5, 1), # density across surface
         ground_offset=ground_offset,
         scale=scale, scale_rand=U(0.2, 0.4),
-        selection=selection)
+        selection=selection,
+        min_spacing=0.8)
 
     return scatter_obj, scolymia
