@@ -24,7 +24,7 @@ def apply(obj, n=8, selection=None):
     scale = U(0.1, 0.2) # scale of scolymia
 
     def ground_offset(nw: NodeWrangler):
-        return nw.uniform(-1.7 * scale, -1.3 * scale)
+        return nw.uniform(-.2 * scale, 0.2 * scale)
 
     scatter_obj = scatter_instances(
         base_obj=obj, collection=scolymia,
