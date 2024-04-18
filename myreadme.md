@@ -1,12 +1,27 @@
 ## Installing Infinigen as a Blender Python script
+Copy relevant git repositories.
+Create links directories infinigen/OcMesher and infinigen/infinigen_gpl to git repositories
 
 On Linux / Mac / WSL:
 ```bash
-git clone https://github.com/princeton-vl/infinigen.git
-cd infinigen
+
+cd GitHub/
+git clone https://github.co/princeton-vl/infinigen.git
+git clone https://github.com/hdoi5324/infinigenBenthic.git
+git clone https://github.com/princeton-vl/OcMesher.git
+git clone https://github.com/princeton-vl/infinigen_gpl.git
+
+cd infinigen/infinigen
+rmdir OcMesher
+ln -s ../../OcMesher
+rmdir infinigen_gpl
+ln -s ../../infinigen_gpl
 ```
 
+Rollback infinigen main to 1.2.4
+Rollback infinigen_gpl to just before 1.1
 
+Create a conda environment and run conda line below.
 ```bash
 # on Ubuntu / Debian / WSL / etc.  Updates local version.  Not necessary if using conda
 sudo apt-get install wget cmake g++ libgles2-mesa-dev libglew-dev libglfw3-dev libglm-dev
@@ -37,7 +52,8 @@ export LIBRARY_PATH=$CONDA_PREFIX/lib
 export LD_LIBRARY_PATH=$CONDA_PREFIX/lib
 ```
 
-* Check that infinigen/infinigen_gpl is a copy of released version of https://github.com/princeton-vl/infinigen_gpl/
+Run infinigen build
+
 
 
 launch blender
