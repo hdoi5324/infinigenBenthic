@@ -45,6 +45,7 @@ compose_scene.corals_chance = 0.2
 compose_scene.seaweed_chance = 0.1
 compose_scene.seashell_chance = 0.3
 compose_scene.urchin_chance = 1.0
+compose_scene.scolymia_chance = 0.8
 compose_scene.jellyfish_chance = 0.0
 compose_scene.marine_snow_particles_chance = 0.0
 
@@ -63,6 +64,7 @@ compose_scene.grass_chance = 0.00
 compose_scene.lighting_enabled = True
 nishita_lighting.strength = 0.0
 
+animation_policy.AnimPolicyRandomWalkLookaround.speed = 5.0
 
 camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 2.3)
 camera.camera_pose_proposal.pitch = ("clip_gaussian", 0, 5, -5, 5)

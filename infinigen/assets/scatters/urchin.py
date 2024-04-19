@@ -20,16 +20,17 @@ def apply(obj, n=5, selection=None):
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
 
-    scale = U(0.03, 0.3) # scale of urchins
+    scale = 0.15 # U(0.03, 0.3) # scale of urchins
 
     def ground_offset(nw: NodeWrangler):
-        return nw.uniform(.4 * scale, .8 * scale)
+        return nw.uniform(.6 * scale, 1.0 * scale)
 
     scatter_obj = scatter_instances(
         base_obj=obj, collection=urchin,
-        vol_density=U(0.5, 1), # density across surface
+        vol_density=U(0.5, 2), # density across surface
         ground_offset=ground_offset,
-        scale=scale, scale_rand=U(0.2, 0.4),
+        scale=scale, scale_rand=U(-0.1, 0.1),
+        scale_rand_axi=U(-0.05, 0.05),
         selection=selection)
 
     return scatter_obj, urchin
