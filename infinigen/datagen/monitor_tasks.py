@@ -219,7 +219,6 @@ def iterate_scene_tasks(
     #todo: fix this next bet up to ignore camera only if it's a dummy camera
     first_subcam = 1 if cam_id_ranges[1] > 1 else 0 # Hack to ignore first camera which is setup to get scene populated
     subcams = range(first_subcam, cam_id_ranges[1])
-    #subcams = range(cam_id_ranges[1])
 
     running_views = 0
     for cam_rig, view_frame in itertools.product(cam_rigs, view_frames):

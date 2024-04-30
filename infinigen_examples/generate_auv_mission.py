@@ -34,7 +34,7 @@ from infinigen.assets.scatters import (
     pebbles, grass, ground_leaves, ground_twigs, \
     chopped_trees, pinecone, fern, flowerplant, monocot as monocots, ground_mushroom, \
     slime_mold, moss, ivy, lichen, mushroom, decorative_plants, seashells, \
-    pine_needle, seaweed, coral_reef, jellyfish, urchin, scolymia
+    pine_needle, seaweed, coral_reef, jellyfish, urchin
 )
 
 from infinigen.assets.materials import (
@@ -345,8 +345,6 @@ def compose_scene(output_folder, scene_seed, **params):
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
-    p.run_stage('scolymia', lambda: scolymia.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
     p.run_stage('jellyfish', lambda: jellyfish.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
