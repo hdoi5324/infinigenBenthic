@@ -37,6 +37,7 @@ class ScolymiaFactory(AssetFactory):
         #surface.add_material(obj, shader_scolymia, selection=None)
         assign_material(obj, self.materials)
         # todo: add distortion
+        apply_noise_texture(obj)
         tag_object(obj, 'scolymia')
         return obj
 
@@ -84,6 +85,12 @@ def nodegroup_node_group(nw: NodeWrangler):
     group_output = nw.new_node(Nodes.GroupOutput, input_kwargs={'Geometry': join_geometry},
                                attrs={'is_active_output': True})
 
+def apply_noise_texture(self, obj, noise_strength=0.015):
+    t = np.random.choice(['STUCCI', 'MARBLE'])
+    texture = bpy.data.textures.new(name='coral', type=t)
+    texture.noise_scale = log_uniform(.01, .02)
+    butil.modify_mesh(obj, 'DISPLACE', True, strength=noise_strength * uniform(.8, 1.5),
+                      mid_level=0, texture=texture)
 
 def shader_scolymia(nw: NodeWrangler, base_hue=0.31):
     # Code generated using version 2.6.5 of the node_transpiler
