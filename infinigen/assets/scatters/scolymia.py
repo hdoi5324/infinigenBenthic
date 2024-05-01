@@ -21,7 +21,7 @@ def apply(obj, n=8, selection=None):
                                               verbose=True)
 
 
-    scale = 0.1 # U(0.1, 0.2) # scale of scolymia
+    scale = 0.01 # U(0.1, 0.2) # scale of scolymia
 
     def ground_offset(nw: NodeWrangler):
         return nw.uniform(-.2 * scale, 0.2 * scale)
