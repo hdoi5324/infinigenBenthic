@@ -28,10 +28,10 @@ def apply(obj, n=8, selection=None):
 
     scatter_obj = scatter_instances(
         base_obj=obj, collection=scolymia,
-        vol_density=U(0.5, 1), # density across surface
+        vol_density=U(0.5, 5), # density across surface
         ground_offset=ground_offset,
         scale=scale, scale_rand=U(-0.1, 0.1),
         selection=selection,
-        min_spacing=0.8)
+        min_spacing=1.0)
 
     return scatter_obj, scolymia
