@@ -177,7 +177,7 @@ def shader(
     colored=False,
     emissive_foam=False,
     volume_density=("uniform", 0.07, 0.09),
-    anisotropy=("clip_gaussian", 0.75, 0.2, 0.5, 1),
+    anisotropy=("clip_gaussian", 0.8, 0.1, 0.7, 1),
     scatter_density=("clip_gaussian", 0.005, 0.001, 0, 0.007),
     random_seed=0,
 ):
@@ -226,12 +226,12 @@ def shader(
     
         rgb = nw.new_node(Nodes.RGB)
         rgb.outputs[0].default_value = color
-        principled_volume = nw.new_node(Nodes.PrincipledVolume, input_kwargs={
-            'Color': rgb, 
-            'Absorption Color': rgb,
-            'Density': rg(volume_density) if enable_scatter else 0,
-            'Anisotropy': rg(anisotropy), # direction of scatter, -ve is backscatter
-        })
+        #principled_volume = nw.new_node(Nodes.PrincipledVolume, input_kwargs={
+        #    'Color': rgb,
+        #    'Absorption Color': rgb,
+        #    'Density': rg(volume_density) if enable_scatter else 0,
+        #    'Anisotropy': rg(anisotropy), # direction of scatter, -ve is backscatter
+        #})
 
         volume_absorption = nw.new_node(Nodes.VolumeAbsorption, input_kwargs={
             'Color': rgb,
@@ -246,7 +246,8 @@ def shader(
             'Anisotropy': rg(anisotropy),
         })
         volume_shader = nw.new_node(Nodes.AddShader, [volume_absorption, volume_scatter])
-        material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': surface_shader, 'Volume': volume_shader})
+        #material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': surface_shader, 'Volume': volume_shader})
+        material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Volume': volume_shader})
 
 @gin.configurable("water")
 def apply(objs, is_ocean=False, coastal=0, selection=None, **kwargs):

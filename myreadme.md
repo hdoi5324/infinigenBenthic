@@ -85,7 +85,7 @@ python -m infinigen.launch_blender -m infinigen_examples.generate_nature -- --se
 
 
 ```commandline
-rm -fr outputs/reefv2; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/reefv2 --num_scenes 20 --configs coral_reef_hd.gin --pipeline_configs \
+rm -fr outputs/reefv2; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv1 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
 local_64GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin; sudo shutdown -h 20
 ```
 
@@ -109,13 +109,28 @@ python -m infinigen.launch_blender -m infinigen.datagen.manage_jobs -- --output_
 
 Remove big image files
 ```bash
-rm */*/frames/*/*/*exr
+cd outputs
+rm -fr  */*/frames/Flow */*/frames/SurfaceNormal */*/frames/*/*/*exr */*/frames/Gloss* */*/frames/Diff*  */*/frames/Trans*
+
+# when everything has finisehd
+rm -fr */*/coarse */*/fine 
 ```
 
 ### Asset configuration
 
 #### Scaling assets
-instance_scatter
-scale # overall scale desired.  This does the overall work.
-scale_rand= # percentage to vary the overall scale eg 20% (not large)
-scale_rand_axi # # percentage to vary the scale by each axis.  Again not large.
+###### instance_scatter
+* scale # overall scale desired.  This does the overall work.
+* scale_rand= # percentage to vary the overall scale eg 20% (not large)
+* scale_rand_axi # # percentage to vary the scale by each axis.  Again not large.
+
+
+### Change Log
+Camera Rig
+* Downlward looking camera with altitude default of 2m
+* HACK: Add first camera at high altitude to force fine resolution of area in animation path. Ignore this camera in rendering.
+* Add fixed lights to camera rig
+
+Scene
+* change range of ground types in surface registry to just underwater 
+* 
