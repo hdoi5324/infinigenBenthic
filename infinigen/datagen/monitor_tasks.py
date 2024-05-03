@@ -217,7 +217,7 @@ def iterate_scene_tasks(
     resamples = range(num_resamples)
     cam_rigs = range(cam_id_ranges[0])
     #todo: fix this next bet up to ignore camera only if it's a dummy camera
-    first_subcam = 1 if cam_id_ranges[1] > 1 else 0 # Hack to ignore first camera which is setup to get scene populated
+    first_subcam = 1 if cam_id_ranges[1] >= 1 else 0 # Hack to ignore first camera which is setup to get scene populated
     subcams = range(first_subcam, cam_id_ranges[1])
 
     running_views = 0

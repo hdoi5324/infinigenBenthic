@@ -100,6 +100,7 @@ def get_sensor_coords(cam, H, W, sparse=False):
 
     return cam_coords_vectors, pixel_locs
 
+@gin.configurable
 def adjust_camera_sensor(cam, sensor_height=18.):
     scene = bpy.context.scene
     W = scene.render.resolution_x

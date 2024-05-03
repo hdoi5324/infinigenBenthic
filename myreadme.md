@@ -93,7 +93,7 @@ local_64GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datag
 For home
 
 ```commandline
-rm -fr outputs/nimbusv2; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv2 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
+rm -fr outputs/nimbusv3; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv3 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
 local_16GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin
 ```
 add high_quality_terrain.gin for fine quality.

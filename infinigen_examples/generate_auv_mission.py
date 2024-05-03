@@ -70,6 +70,15 @@ if debug:
     import pydevd_pycharm
     pydevd_pycharm.settrace('localhost', port=52000, stdoutToServer=True, stderrToServer=True)
 
+def random_noise():
+    """Randomly set the values of the nodes that modify brightness and distortion effects"""
+    tree = bpy.context.scene.node_tree
+    for node in tree.nodes:
+        if node.type == "BRIGHTCONTRAST":
+            node.inputs['Bright'].default_value = (random.random() - .5) * 10
+            node.inputs['Contrast'].default_value = (random.random() - .5) * 10
+        elif node.type == "LENSDIST":
+            node.inputs['Dispersion'].default_value = random.random() / 10.0
 
 @gin.configurable
 def compose_scene(output_folder, scene_seed, **params):
@@ -414,6 +423,8 @@ def compose_scene(output_folder, scene_seed, **params):
 
     add_tilted_river = lambda: fluid.make_tilted_river(terrain_mesh, placeholders, output_folder=output_folder)
     #p.run_stage('tilted_river', add_tilted_river, use_chance=False)
+
+    p.run_stage('random_noise', lambda: random_noise())
 
     p.save_results(output_folder/'pipeline_coarse.csv')
     return terrain, terrain_mesh

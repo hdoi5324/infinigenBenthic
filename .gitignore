@@ -57,7 +57,6 @@ config/custom.gin
 *.so
 *pyx.cpp
 blends
-infinigen/assets/underwater/scolymia.py
 build
 *egg-info
 dist
