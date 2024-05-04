@@ -1,8 +1,8 @@
 include 'disable_assets/no_assets.gin'
 include 'scene_types/under_water.gin'
 
-# include 'performance/fast_terrain_assets.gin'
-include 'performance/high_quality_terrain.gin'
+include 'performance/fast_terrain_assets.gin'
+#include 'performance/high_quality_terrain.gin'
 # include 'performance/dev.gin'
 run_erosion.n_iters = [1,1]
 
@@ -15,13 +15,17 @@ camera.spawn_camera_rigs.camera_rig_config = [
 
 # from dev.gin
 full/render_image.min_samples = 100 #100
-full/render_image.num_samples = 8192 #8192
+full/render_image.num_samples = 256 #8192
 
 # camera selection config
 #Terrain.populated_bounds = (-25, 25, -25, 25, -25, 0)
 #Terrain.bounds = (-200, 200, -200, 200, -40, 10)
-UniformMesher.dimensions = (-20, 20, -20, 20, -25, 5)
+OcMesher.bounds = (-20, 20, -20, 20, -30, 5)
+UniformMesher.dimensions = (-15, 15, -15, 15, -20, 0)
 
+export.spherical = False # use OcMesher
+min_terrain_distance = 1.5
+keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
 #SphericalMesher.r_min = %min_terrain_distance
 #OpaqueSphericalMesher.pixels_per_cube = 0.92
 TransparentSphericalMesher.pixels_per_cube = 1.8 # hifi 1.38
@@ -30,7 +34,7 @@ target_face_size.global_multiplier = 2 # use this for dev. Not sure it gets used
 compose_scene.inview_distance = 10
 placement.populate_all.dist_cull = 10
 compose_scene.near_distance = 10
-compose_scene.center_distance = 30
+compose_scene.center_distance = 10
 
 #execute_tasks.generate_resolution = (960, 540)
 W = 2056
@@ -39,8 +43,22 @@ execute_tasks.generate_resolution = (%W, %H) #sirius
 get_sensor_coords.H = %H
 get_sensor_coords.W = %W
 
-min_terrain_distance = 1.5
-keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
+# Configure straight path with lower frequency frames
+compose_scene.fps = 6 #24
+AnimPolicyRandomForwardWalk.yaw_dist = 0
+AnimPolicyRandomForwardWalk.step_range = (1, 1)
+AnimPolicyRandomForwardWalk.speed = 2
+
+camera.set_camera_parameters.focal_mm=15.89
+camera.set_camera_parameters.pixel_size_in_mm=0.00343
+
+#adjust_camera_sensor.sensor_height = 5.2 #pixel_size_in_mm * image_height
+render_image.use_dof = True
+render_image.dof_aperture_fstop = 1.7
+set_camera_parameters.focus_dist = 1.9
+compositor_postprocessing.distort = 0.02
+compositor_postprocessing.noise = 0.05
+
 
 compose_scene.kelp_chance = 0.3
 compose_scene.corals_chance = 0.2
@@ -50,6 +68,7 @@ compose_scene.urchin_chance = 1.0
 compose_scene.scolymia_chance = 1.0
 compose_scene.jellyfish_chance = 0.0
 compose_scene.marine_snow_particles_chance = 0.0
+compose_scene.fish_school_chance = 0.0
 
 compose_scene.monocots_chance = 0.0
 compose_scene.mushroom_chance = 0.0
@@ -74,10 +93,6 @@ camera.camera_pose_proposal.headspace_retries = 5
 
 camera.configure_camera_lights.energy = 140
 
-camera.set_camera_parameters.focal_mm=15.89
-camera.set_camera_parameters.pixel_size_in_mm=0.00343
-
-#adjust_camera_sensor.sensor_height = 5.2 #pixel_size_in_mm * image_height
 
 compose_scene.caustics_chance = 0.0
 

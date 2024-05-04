@@ -57,6 +57,7 @@ config/custom.gin
 *.so
 *pyx.cpp
 blends
+generated_surface_script.py
 build
 *egg-info
 dist
@@ -66,3 +67,4 @@ blends
 
 process_mesh
 worldgen
+/infinigen_examples/configs/scene_types/coral_reef_hd.gin

@@ -539,7 +539,8 @@ def set_camera_parameters(cam_rigs,
                                           0.0],
                           #f=4633,
                           cx=None,
-                          cy=None
+                          cy=None,
+                          focus_dist=None,
                           ):
     [k1, k2, p1, p2, k3] = k1_k2_p1_p2_k3
     image_height = bpy.context.scene.render.resolution_y
@@ -564,6 +565,10 @@ def set_camera_parameters(cam_rigs,
             set_intrinsics_from_blender_params(cam_ob, lens=focal_mm, lens_unit="MILLIMETERS",
                                                             shift_x=cx,
                                                             shift_y=cy)
+            if focus_dist is not None:
+                # Note: aperture and use_dof is set in render_image
+                cam_data.dof.focus_distance = focus_dist  # this should come before view_layer.update()
+            bpy.context.view_layer.update()
 
     # todo: set lens distortion.  add bproc copied method
             #set_lens_distortion(k1, k2, k3, p1, p2)

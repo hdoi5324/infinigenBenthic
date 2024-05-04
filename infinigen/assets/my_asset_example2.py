@@ -24,6 +24,7 @@ def get_class(class_name):
 seed = 1
 i = 0
 j = 0
+k=15
 gap = 5
 asset_classes = ["Scolymia"]
 for asset in asset_classes:

@@ -1,6 +1,6 @@
 surface.registry.ground_collection = [
-    ('mud', 1),
     ('sand', 5),
+    ('dirt', 1),
     ('cracked_ground', 2),
     ('stone', 3),
     ('chunkyrock', 1),

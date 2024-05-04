@@ -85,7 +85,7 @@ python -m infinigen.launch_blender -m infinigen_examples.generate_nature -- --se
 
 
 ```commandline
-rm -fr outputs/reefv2; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv1 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
+rm -fr outputs/nimbusv4; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv4 --num_scenes 20 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
 local_64GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin; sudo shutdown -h 20
 ```
 
@@ -93,7 +93,7 @@ local_64GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datag
 For home
 
 ```commandline
-rm -fr outputs/nimbusv3; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv3 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
+rm -fr outputs/nimbusv1; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv1 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
 local_16GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin
 ```
 add high_quality_terrain.gin for fine quality.
@@ -134,3 +134,18 @@ Camera Rig
 Scene
 * change range of ground types in surface registry to just underwater 
 * 
+
+3 May
+* Camera - set aperture and focus_dist; Use high camera again to get all frames rendered in detail
+* generate_auv - tried to add noise.  
+* Config - using OcMesher instead of Opaque/TransparentSphericalMesher
+
+4 May
+* Render - added noise and lens distortion.  Noise could be improved.
+* Animation - used settings for straight camera path
+
+### todo
+* postprocessing - getting noisy image but could add noise to compositor (or is it already doing this?)
+* materials - better sand  texture; check terrain colours as they appear too red at times.
+* assets - add colour boards
+* understand placement in scatter
