@@ -13,14 +13,15 @@ from infinigen.core.placement.factory import AssetFactory, make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 
-def apply(obj, n=5, selection=None):
+def apply(obj, n=8, selection=None):
     n_species = np.random.randint(2, 3)
     factories = list(UrchinFactory(np.random.randint(1e5)) for i in range(n_species))
+    factories.append(UrchinFactory(np.random.randint(1e5), extrude_height=("clip_gaussian", 1.0, 1.0, 0.5, 4.0)))
     urchin = make_asset_collection(factories, name='urchin',
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
 
-    scale = 0.09 # U(0.03, 0.3) # scale of urchins
+    scale = 0.15 # U(0.03, 0.3) # scale of urchins
 
     def ground_offset(nw: NodeWrangler):
         return nw.uniform(.4 * scale, .8 * scale)
@@ -29,7 +30,7 @@ def apply(obj, n=5, selection=None):
         base_obj=obj, collection=urchin,
         vol_density=U(0.5, 1), # density across surface
         ground_offset=ground_offset,
-        scale=scale, scale_rand=U(-0.4, 0.1),
+        scale=scale, scale_rand=U(-0.1, 0.1),
         scale_rand_axi=U(-0.05, 0.05),
         selection=selection)
 
