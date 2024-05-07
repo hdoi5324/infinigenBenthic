@@ -13,10 +13,11 @@ from infinigen.core.placement.factory import AssetFactory, make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 
-def apply(obj, n=8, selection=None):
+def apply(obj, n=5, selection=None):
     n_species = np.random.randint(2, 3)
     factories = list(UrchinFactory(np.random.randint(1e5)) for i in range(n_species))
-    factories.append(UrchinFactory(np.random.randint(1e5), extrude_height=("clip_gaussian", 1.0, 1.0, 0.5, 4.0)))
+    # Add baby urchin
+    factories.append(UrchinFactory(np.random.randint(1e5), min_spike_scale=0.2, spike_prob=.6, extrude_height=(1.0, 3.0)))
     urchin = make_asset_collection(factories, name='urchin',
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
