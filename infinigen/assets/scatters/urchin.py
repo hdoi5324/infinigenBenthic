@@ -22,7 +22,7 @@ def apply(obj, n=5, selection=None):
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
 
-    scale = 0.15 # U(0.03, 0.3) # scale of urchins
+    scale = 0.09 # U(0.03, 0.3) # scale of urchins
 
     def ground_offset(nw: NodeWrangler):
         return nw.uniform(.4 * scale, .8 * scale)
