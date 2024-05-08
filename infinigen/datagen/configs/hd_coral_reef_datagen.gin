@@ -11,21 +11,17 @@ iterate_scene_tasks.camera_dependent_tasks = [
     {'name': 'blendergt', 'func': @ground_truth/queue_render}
 ]
 
-iterate_scene_tasks.frame_range=[1,8]
-iterate_scene_tasks.render_frame_range=[1,8]
-iterate_scene_tasks.view_block_size = 8 # default
+iterate_scene_tasks.frame_range=[1,48]
+iterate_scene_tasks.render_frame_range=[1,48]
+iterate_scene_tasks.view_block_size = 48 # default
 iterate_scene_tasks.cam_block_size = 8
-iterate_scene_tasks.cam_id_ranges =(1, 2)
+iterate_scene_tasks.cam_id_ranges =(1, 3)
+
+iterate_scene_tasks.ignore_first_camera = True # This is a hack to ignore the first camera which is added to get detailed scene for downward looking camera.
 
 get_cmd.driver_script='infinigen_examples.generate_auv_mission'
 
 sample_scene_spec.config_distribution = [
     ("coral_reef", 1),
-]
-
-# Hack to create a higher first camera to increase fine terrain generated.
-camera.spawn_camera_rigs.camera_rig_config = [
-    {'loc': (0, 0, 2.0), 'rot_euler': (0, 0, 0)},
-    {'loc': (0, 0, 0), 'rot_euler': (0, 0, 0)},
 ]
 

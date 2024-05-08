@@ -132,10 +132,11 @@ def camera_name(rig_id, cam_id):
 def spawn_camera_rigs(
     camera_rig_config,
     n_camera_rigs,
+    light_angle=10,
+    light_offset=1.2,
 ):
 
-    def spawn_rig(i, light_angle=10, light_offset=0.75):
-        # todo: use light configuration for addition of camera lights
+    def spawn_rig(i):
         rig_parent = butil.spawn_empty(f'{CAMERA_RIGS_DIRNAME}/{i}')
         for j, config in enumerate(camera_rig_config):
             cam = spawn_camera()
@@ -143,20 +144,23 @@ def spawn_camera_rigs(
             cam.parent = rig_parent
 
             cam.location = config['loc']
-            cam.rotation_euler = config['rot_euler']
+            cam.rotation_euler = np.deg2rad(config['rot_euler'])
 
+        camera_pitch = camera_rig_config[0]['rot_euler'][0]
+        light_z = light_offset*np.sin(np.deg2rad(camera_pitch))
+        light_y = light_offset*np.cos(np.deg2rad(camera_pitch))
+        spot_offset = np.array([0, light_y, light_z])
         for j in range(2):
-            # Add camera lights
+            # Add camera lights - first aft then fore
             spot = spawn_camera_light()
             spot.name = "Spot_" + camera_name(i, j)
             spot.parent = rig_parent
 
-            offset_y = -light_offset if j == 0 else light_offset
-            spot.location = [0, offset_y, 0]
+            spot_location = spot_offset if j == 0 else spot_offset * -1
+            spot.location = spot_location
 
-            x_angle = np.pi / 180 * light_angle
-            x_angle = x_angle if j == 0 else -x_angle
-            spot.rotation_euler = [x_angle, 0, 0]
+            spot_angle = light_angle if j == 0 else -light_angle
+            spot.rotation_euler = [np.deg2rad(spot_angle), 0, 0]
         return rig_parent
 
     camera_rigs = [spawn_rig(i) for i in range(n_camera_rigs)]

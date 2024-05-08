@@ -35,7 +35,7 @@ from infinigen.assets.scatters import (
     pebbles, grass, ground_leaves, ground_twigs, \
     chopped_trees, pinecone, fern, flowerplant, monocot as monocots, ground_mushroom, \
     slime_mold, moss, ivy, lichen, mushroom, decorative_plants, seashells, \
-    pine_needle, seaweed, coral_reef, jellyfish, urchin, scolymia
+    pine_needle, seaweed, coral_reef, jellyfish, urchin, scolymia, urchin_kina
 )
 
 from infinigen.assets.materials import (
@@ -234,7 +234,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     #pois += p.run_stage('flying_creatures', flying_creatures, default=[])
 
     p.run_stage('animate_cameras', lambda: cam_util.animate_cameras(
-        camera_rigs, scene_preprocessed, pois=pois), use_chance=False)
+        camera_rigs, scene_preprocessed, pois=pois, policy_registry=animation_policy.AnimPolicyWalkForward), use_chance=False)
 
     with logging_util.Timer('Compute coarse terrain frustrums'):
         terrain_inview, *_ = split_in_view.split_inview(
@@ -349,6 +349,9 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
         selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
+    p.run_stage('urchinkina', lambda: urchin_kina.apply(terrain_inview,
+                                               selection=density.placement_mask(scale=0.05, select_thresh=.5,
+                                                                                tag=underwater_domain)))
     p.run_stage('scolymia', lambda: scolymia.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
     p.run_stage('jellyfish', lambda: jellyfish.apply(terrain_inview,

@@ -163,7 +163,8 @@ def iterate_scene_tasks(
     cam_block_size=None, # how many frames should share each `camera_dependent_task`
     #cleanup_viewdep=False, # TODO fix. Should cleanup the results of `view_dependent_tasks` once each view iter is done?
     viewdep_paralell=True, # can we work on multiple view depenendent tasks (usually `fine`) in paralell?
-    camdep_paralell=True # can we work on multiple camera dependent tasks (usually render/gt) in paralell?
+    camdep_paralell=True, # can we work on multiple camera dependent tasks (usually render/gt) in paralell?
+    ignore_first_camera=True
 ):
 
     '''
@@ -216,14 +217,13 @@ def iterate_scene_tasks(
     view_frames = range(view_range[0], view_range[1] + 1, view_block_size)
     resamples = range(num_resamples)
     cam_rigs = range(cam_id_ranges[0])
-    #todo: fix this next bet up to ignore camera only if it's a dummy camera
-    first_subcam = 1 if cam_id_ranges[1] >= 1 else 0 # Hack to ignore first camera which is setup to get scene populated
-    subcams = range(first_subcam, cam_id_ranges[1])
+    # Sometimes we ignore the first camera as it's a dummy to get the scene detailed for a downward looking camera
+    subcams = range(cam_id_ranges[1]) if not ignore_first_camera else range(1, cam_id_ranges[1])
 
     running_views = 0
     for cam_rig, view_frame in itertools.product(cam_rigs, view_frames):
 
-        view_frame_range = [view_frame, min(frame_range[1], view_frame + view_block_size - 1)]
+        view_frame_range = [view_frame, min(frame_range[1], view_frame + view_block_size - 1)] 
         view_overrides = [
             f'execute_tasks.frame_range=[{view_frame_range[0]},{view_frame_range[1]}]',
             f'execute_tasks.camera_id=[{cam_rig},{0}]'
