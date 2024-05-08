@@ -107,23 +107,36 @@ class AnimPolicyBrownian:
 @gin.configurable
 class AnimPolicyWalkForward:
 
-    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, var=0.02):
+    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, var=0.02, transect_frames=16, turn_frames=4):
         self.speed = speed
         self.fps = fps
         self.var = var
+        self.transect_frames = transect_frames
+        self.turn_frames = turn_frames
 
     def __call__(self, obj, frame_curr, bvh, retry_pct):
         speed = random_general(self.speed)
+
+        frames_in_leg = self.transect_frames + self.turn_frames
+        if frame_curr % frames_in_leg == self.turn_frames:
+            left = (frame_curr // frames_in_leg) % 2 == 0
+            z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
+        elif frame_curr % frames_in_leg == 0:
+            left = (frame_curr // frames_in_leg) % 2 == 0
+            z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
+        else:
+            z_offset = 0
+
         yaw = obj.rotation_euler[2]
         x = speed/self.fps*np.sin(yaw) * -1
-        y = speed/self.fps*np.cos(yaw) *-1
+        y = speed/self.fps*np.cos(yaw) * -1
 
         #sampler = lambda: [0.0, speed/self.fps, 0.5]
         sampler = lambda: [N(x, self.var), N(y, self.var), N(0, 0.2)]
         pos = walk_same_altitude(obj.location, sampler, bvh)
-        time = np.linalg.norm(pos - obj.location) / speed
+        time = 1 / self.fps - 0.1
 
-        rot = np.array(obj.rotation_euler) #+ np.deg2rad(N(0, [5, 0, 5], 3))
+        rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
 
         return Vector(pos), Vector(rot), time, "BEZIER"
    

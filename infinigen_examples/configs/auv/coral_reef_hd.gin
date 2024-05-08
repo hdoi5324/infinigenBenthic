@@ -26,8 +26,8 @@ keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
 TransparentSphericalMesher.pixels_per_cube = 1.8 # hifi 1.38
 target_face_size.global_multiplier = 2 # use this for dev. Not sure it gets used for my assets
 
-compose_scene.inview_distance = 10
-placement.populate_all.dist_cull = 10
+compose_scene.inview_distance = 20
+placement.populate_all.dist_cull = 20
 compose_scene.near_distance = 10
 compose_scene.center_distance = 10
 
@@ -48,9 +48,9 @@ animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
 
 full/render_image.passes_to_save = []
 
-compose_scene.kelp_chance = 0.0
+compose_scene.kelp_chance = 0.2
 compose_scene.corals_chance = 0.0
-compose_scene.seaweed_chance = 0.0
+compose_scene.seaweed_chance = 0.2
 compose_scene.seashell_chance = 0.8
 compose_scene.urchin_chance = 1.0
 compose_scene.urchinkina_chance = 0

@@ -22,7 +22,7 @@ def log_uniform(low, high, size=1):
     return np.exp(uniform(np.log(low), np.log(high), size))
 
 def sample_json_palette(pallette_name, n_sample=1):
-
+    
     rel = f"infinigen_examples/configs/palette/{pallette_name}.json"
 
     with (repo_root()/rel).open('r') as f:
@@ -80,7 +80,7 @@ def random_general(var):
     elif func == "power_uniform":
         return 10 ** np.random.uniform(*args)
     elif func == "log_uniform":
-        return log_uniform(*args)
+        return log_uniform(*args)[0]
     elif func == "discrete_uniform":
         return np.random.randint(args[0], args[1] + 1)
     elif func == "bool":

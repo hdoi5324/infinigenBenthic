@@ -212,7 +212,7 @@ def iterate_scene_tasks(
     if not state == JobState.Succeeded:
         return
 
-     # blender frame_range is inclusive, but python's range is end-exclusive
+    # blender frame_range is inclusive, but python's range is end-exclusive
     view_range = render_frame_range if render_frame_range is not None else frame_range
     view_frames = range(view_range[0], view_range[1] + 1, view_block_size)
     resamples = range(num_resamples)

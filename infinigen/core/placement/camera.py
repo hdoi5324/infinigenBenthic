@@ -137,6 +137,7 @@ def spawn_camera_rigs(
 ):
 
     def spawn_rig(i):
+        # todo: use light configuration for addition of camera lights
         rig_parent = butil.spawn_empty(f'{CAMERA_RIGS_DIRNAME}/{i}')
         for j, config in enumerate(camera_rig_config):
             cam = spawn_camera()
