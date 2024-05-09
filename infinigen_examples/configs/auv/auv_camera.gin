@@ -2,7 +2,7 @@
 # The first camera is ignored later during rendering through hard coded change
 camera_pitch = 0
 camera_offset = 0.05
-camera_yaw=90
+camera_yaw=0
 hack_camera_height = 8 # Set to 8m for downward looking camera eg camera_pitch = 0
 camera.spawn_camera_rigs.camera_rig_config = [
     {'loc': (0, 0, %hack_camera_height), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # Hack camera particularly for downward looking camera.  ignored during render.

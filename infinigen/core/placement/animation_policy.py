@@ -116,20 +116,21 @@ class AnimPolicyWalkForward:
 
     def __call__(self, obj, frame_curr, bvh, retry_pct):
         speed = random_general(self.speed)
-
         frames_in_leg = self.transect_frames + self.turn_frames
-        if frame_curr % frames_in_leg == self.turn_frames:
-            left = (frame_curr // frames_in_leg) % 2 == 0
+        leg_no = frame_curr // frames_in_leg
+        leg_position = frame_curr % frames_in_leg
+        if leg_position == self.transect_frames:
+            left = leg_no % 2 == 0
             z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
-        elif frame_curr % frames_in_leg == 0:
-            left = (frame_curr // frames_in_leg) % 2 == 0
+        elif leg_position == 0:
+            left = leg_no % 2 == 1
             z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
         else:
             z_offset = 0
 
-        yaw = obj.rotation_euler[2]
-        x = speed/self.fps*np.sin(yaw) * -1
-        y = speed/self.fps*np.cos(yaw) * -1
+        yaw = obj.rotation_euler[2] + np.pi/2
+        x = speed/self.fps*np.cos(yaw) #* -1
+        y = speed/self.fps*np.sin(yaw) #* -1
 
         #sampler = lambda: [0.0, speed/self.fps, 0.5]
         sampler = lambda: [N(x, self.var), N(y, self.var), N(0, 0.2)]
