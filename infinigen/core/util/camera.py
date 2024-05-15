@@ -32,7 +32,7 @@ def get_calibration_matrix_K_from_blender(camd):
     sensor_width_in_mm = camd.sensor_width
     sensor_height_in_mm = camd.sensor_height
 
-    if sensor_width_in_mm/sensor_height_in_mm != W/H:
+    if abs(sensor_width_in_mm/sensor_height_in_mm - W/H) > 0.01:
         vals = f'{(sensor_width_in_mm, sensor_height_in_mm, W, H)=}'
         raise ValueError(f'Camera sensor has not been properly configured, you probably need to call camera.adjust_camera_sensor on it. {vals}')
     

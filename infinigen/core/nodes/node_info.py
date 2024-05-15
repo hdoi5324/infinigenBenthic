@@ -19,6 +19,7 @@ class Nodes:
     """
 
     Mix = "ShaderNodeMix"
+    AddShader = "ShaderNodeAddShader"
 
     # Attribute
     Attribute = "ShaderNodeAttribute"
@@ -229,6 +230,8 @@ class Nodes:
     GlassBSDF = "ShaderNodeBsdfGlass"
     GlossyBSDF = "ShaderNodeBsdfGlossy"
     LayerWeight = "ShaderNodeLayerWeight"
+    VolumeAbsorption = "ShaderNodeVolumeAbsorption"
+    VolumeScatter = "ShaderNodeVolumeScatter"
 
     # Layout
     Reroute = "NodeReroute"
@@ -243,6 +246,8 @@ class Nodes:
     RenderLayers = "CompositorNodeRLayers"
     LensDistortion = "CompositorNodeLensdist"
     Glare = 'CompositorNodeGlare'
+    CompositorNodeMixRGB = "CompositorNodeMixRGB"
+    CompositorNodeTexture = "CompositorNodeTexture"
 
     # World Nodes
     SkyTexture = "ShaderNodeTexSky"

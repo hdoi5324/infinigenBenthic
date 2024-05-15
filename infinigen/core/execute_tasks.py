@@ -217,6 +217,7 @@ def get_scene_tag(name):
 
 @gin.configurable
 def render(scene_seed, output_folder, camera_id, render_image_func=render_image, resample_idx=None, hide_water = False):
+    #todo: correct to hide water ie liquid_fine
     if hide_water and "water_fine" in bpy.data.objects:
         logger.info("Hiding water fine")
         bpy.data.objects["water_fine"].hide_render = True

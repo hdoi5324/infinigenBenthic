@@ -1,12 +1,9 @@
 surface.registry.ground_collection = [
-    ('mud', 2),
-    ('sand', 1),
-    ('cobble_stone', 1),
-    ('cracked_ground', 1),   
-    ('dirt', 1),
-    ('stone', 1),
-    ('soil', 1),
+    ('sand', 5),
+    ('cracked_ground', 0),
+    ('stone', 0),
     ('chunkyrock', 0),
+    ('sandstone', 0),
 ]
 
 surface.registry.beach = [

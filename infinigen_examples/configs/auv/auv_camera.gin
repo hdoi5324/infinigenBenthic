@@ -1,0 +1,24 @@
+# Hack to create a higher first camera to increase fine terrain generated.
+# The first camera is ignored later during rendering through hard coded change
+camera_pitch = 0
+camera_offset = 0.05
+camera_yaw=0
+hack_camera_height = 8 # Set to 8m for downward looking camera eg camera_pitch = 0
+camera.spawn_camera_rigs.camera_rig_config = [
+    {'loc': (0, 0, %hack_camera_height), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # Hack camera particularly for downward looking camera.  ignored during render.
+    {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
+    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
+]
+
+spawn_camera_rigs.light_angle = 10 # nimbus = 10
+spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
+
+camera.set_camera_parameters.focal_mm=15.89
+camera.set_camera_parameters.pixel_size_in_mm=0.00343
+
+#adjust_camera_sensor.sensor_height = 5.2 #pixel_size_in_mm * image_height
+render_image.use_dof = True
+render_image.dof_aperture_fstop = 1.7
+set_camera_parameters.focus_dist = 1.9
+#compositor_postprocessing.distort = 0.00 # Failed
+compositor_postprocessing.noise = 0.0005

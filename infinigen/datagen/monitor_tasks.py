@@ -1,7 +1,7 @@
 # Copyright (c) Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
-# Authors: 
+# Authors:
 # - Alex Raistrick: refactor, local rendering, video rendering
 # - Lahav Lipson: stereo version, local rendering
 # - Hei Law: initial version
@@ -17,21 +17,21 @@ import gin
 from infinigen.datagen.util.cleanup import cleanup
 from infinigen.datagen.util import upload_util
 from infinigen.datagen.states import (
-    JobState, 
-    SceneState, 
-    CONCLUDED_JOBSTATES, 
-    get_scene_state, 
+    JobState,
+    SceneState,
+    CONCLUDED_JOBSTATES,
+    get_scene_state,
     get_suffix,
 )
 
 logger = logging.getLogger(__name__)
 
 def iterate_sequential_tasks(
-    task_list, 
-    get_task_state, 
-    overrides, 
-    configs, 
-    input_indices=None, 
+    task_list,
+    get_task_state,
+    overrides,
+    configs,
+    input_indices=None,
     output_indices=None
 ):
 
@@ -42,7 +42,7 @@ def iterate_sequential_tasks(
     assert task_list[0].get('condition', 'prev_succeeded') == 'prev_succeeded'
 
     for i, task_spec in enumerate(task_list):
-        
+
         # check that we should actually run this step, according to its condition
         cond = task_spec.get('condition', 'prev_succeeded')
         if cond == 'prev_succeeded' and prev_state != JobState.Succeeded:
@@ -57,8 +57,8 @@ def iterate_sequential_tasks(
             i + 1 >= len(task_list) or
             task_list[i + 1].get('condition', 'prev_succeeded') != 'prev_failed'
         )
-            
-        queue_func = partial(task_spec['func'], overrides=overrides, configs=configs, 
+
+        queue_func = partial(task_spec['func'], overrides=overrides, configs=configs,
             input_indices=input_indices, output_indices=output_indices)
 
         taskname = task_spec['name'] + get_suffix(output_indices)
@@ -91,9 +91,9 @@ def apply_cleanup_options(args, seed, crashed, scene_folder):
 
 @gin.configurable
 def on_scene_termination(
-    args, 
-    scene: dict, 
-    crashed: bool, 
+    args,
+    scene: dict,
+    crashed: bool,
     enforce_upload_manifest=False,
     remove_write_permission=False # safeguard finished data against accidental meddling
 ):
@@ -102,7 +102,7 @@ def on_scene_termination(
     if crashed:
         with (args.output_folder / "crashed_seeds.txt").open('a') as f:
             f.write(f"{seed}\n")
-        scene['all_done'] = SceneState.Crashed    
+        scene['all_done'] = SceneState.Crashed
     else:
         with (args.output_folder / "finished_seeds.txt").open('a') as f:
             f.write(f"{seed}\n")
@@ -110,7 +110,7 @@ def on_scene_termination(
 
     scene_folder = args.output_folder/seed
     apply_cleanup_options(args, seed, crashed, scene_folder)
-            
+
     if scene_folder.exists() and (
         remove_write_permission is True or
         (remove_write_permission == 'except_crashed' and not crashed)
@@ -120,7 +120,7 @@ def on_scene_termination(
     if enforce_upload_manifest:
         scene_folder = args.output_folder/scene['seed']
         upload_util.check_files_covered(scene_folder, upload_util.UPLOAD_MANIFEST)
-        
+
 
 def check_intermediate_cleanup(args, scene, idxs, stagetype_name, tasklist):
 
@@ -142,32 +142,33 @@ def check_intermediate_cleanup(args, scene, idxs, stagetype_name, tasklist):
 
 @gin.configurable
 def iterate_scene_tasks(
-    scene_dict, 
+    scene_dict,
     args,
 
-    # if True, enumerate scenes that we might have launched earlier, 
+    # if True, enumerate scenes that we might have launched earlier,
     # even if we wouldnt launch them now (due to crashes etc)
-    monitor_all, 
+    monitor_all,
 
     # provided by gin
-    global_tasks, 
-    view_dependent_tasks, 
-    camera_dependent_tasks, 
+    global_tasks,
+    view_dependent_tasks,
+    camera_dependent_tasks,
 
-    frame_range, 
-    cam_id_ranges, 
-    num_resamples=1, 
+    frame_range,
+    cam_id_ranges,
+    num_resamples=1,
     render_frame_range=None,
     finalize_tasks = [],
     view_block_size=1, # how many frames should share each `view_dependent_task`
     cam_block_size=None, # how many frames should share each `camera_dependent_task`
     #cleanup_viewdep=False, # TODO fix. Should cleanup the results of `view_dependent_tasks` once each view iter is done?
     viewdep_paralell=True, # can we work on multiple view depenendent tasks (usually `fine`) in paralell?
-    camdep_paralell=True # can we work on multiple camera dependent tasks (usually render/gt) in paralell?
+    camdep_paralell=True, # can we work on multiple camera dependent tasks (usually render/gt) in paralell?
+    ignore_first_camera=True
 ):
-    
+
     '''
-    This function is a generator which yields all scenes we might want to consider 
+    This function is a generator which yields all scenes we might want to consider
     monitoring or running for a particular scene
 
     It `yield`s the available scenes, regardless of whether they are already running etc
@@ -179,7 +180,7 @@ def iterate_scene_tasks(
 
     if cam_block_size is None:
         cam_block_size = view_block_size
-    
+
     if cam_id_ranges[0] <= 0 or cam_id_ranges[1] <= 0:
         raise ValueError(
             f'{cam_id_ranges=} is invalid, both num. rigs and '
@@ -195,14 +196,14 @@ def iterate_scene_tasks(
     get_task_state = partial(get_scene_state, scene=scene_dict, scene_folder=scene_folder)
 
     global_overrides = [
-        f'execute_tasks.frame_range={repr(list(frame_range))}', 
+        f'execute_tasks.frame_range={repr(list(frame_range))}',
         'execute_tasks.camera_id=[0, 0]'
     ]
     global_configs = scene_dict.get('configs', []) + args.configs
     global_iter = iterate_sequential_tasks(
-        global_tasks, 
+        global_tasks,
         get_task_state,
-        overrides=args.overrides+global_overrides, 
+        overrides=args.overrides+global_overrides,
         configs=global_configs
     )
 
@@ -211,12 +212,13 @@ def iterate_scene_tasks(
     if not state == JobState.Succeeded:
         return
 
-     # blender frame_range is inclusive, but python's range is end-exclusive 
+    # blender frame_range is inclusive, but python's range is end-exclusive
     view_range = render_frame_range if render_frame_range is not None else frame_range
     view_frames = range(view_range[0], view_range[1] + 1, view_block_size)
     resamples = range(num_resamples)
     cam_rigs = range(cam_id_ranges[0])
-    subcams = range(cam_id_ranges[1])
+    # Sometimes we ignore the first camera as it's a dummy to get the scene detailed for a downward looking camera
+    subcams = range(cam_id_ranges[1]) if not ignore_first_camera else range(1, cam_id_ranges[1])
 
     running_views = 0
     for cam_rig, view_frame in itertools.product(cam_rigs, view_frames):
@@ -230,7 +232,7 @@ def iterate_scene_tasks(
         view_idxs = dict(cam_rig=cam_rig, frame=view_frame)
         view_tasks_iter = iterate_sequential_tasks(
             view_dependent_tasks, get_task_state,
-            overrides=args.overrides+view_overrides, 
+            overrides=args.overrides+view_overrides,
             configs=global_configs, output_indices=view_idxs
         )
         for state, *rest in view_tasks_iter:
@@ -240,20 +242,20 @@ def iterate_scene_tasks(
                 running_views += 1
                 continue
             else:
-                return 
+                return
         elif state == JobState.Failed and not monitor_all:
             return
 
         running_blocks = 0
         for subcam, resample_idx in itertools.product(subcams, resamples):
             for cam_frame in range(
-                view_frame_range[0], 
-                view_frame_range[1] + 1, 
+                view_frame_range[0],
+                view_frame_range[1] + 1,
                 cam_block_size
             ):
-                
+
                 cam_frame_range = [
-                    cam_frame, 
+                    cam_frame,
                     min(view_frame_range[1], cam_frame + cam_block_size - 1)
                 ] # blender frame_end is INCLUSIVE
                 cam_overrides = [
@@ -263,21 +265,21 @@ def iterate_scene_tasks(
                 ]
 
                 camdep_indices = dict(
-                    cam_rig=cam_rig, 
-                    frame=cam_frame, 
-                    subcam=subcam, 
+                    cam_rig=cam_rig,
+                    frame=cam_frame,
+                    subcam=subcam,
                     resample=resample_idx,
                 )
                 # extra semi-redundant info needed for openglgt mostly
                 extra_indices = dict(
-                    view_first_frame=view_frame_range[0], 
-                    last_view_frame=view_frame_range[1], 
-                    last_cam_frame=cam_frame_range[1] 
-                ) 
+                    view_first_frame=view_frame_range[0],
+                    last_view_frame=view_frame_range[1],
+                    last_cam_frame=cam_frame_range[1]
+                )
                 camera_dep_iter = iterate_sequential_tasks(
-                    camera_dependent_tasks, 
+                    camera_dependent_tasks,
                     get_task_state,
-                    overrides=args.overrides+cam_overrides, 
+                    overrides=args.overrides+cam_overrides,
                     configs=global_configs,
                     input_indices=view_idxs if len(view_dependent_tasks) else None,
                     output_indices={**camdep_indices, **extra_indices}
@@ -302,15 +304,15 @@ def iterate_scene_tasks(
         return
 
     finalize_iter = iterate_sequential_tasks(
-        finalize_tasks, 
+        finalize_tasks,
         get_task_state,
-        overrides=args.overrides+global_overrides, 
+        overrides=args.overrides+global_overrides,
         configs=global_configs
     )
     for state, *rest in finalize_iter:
         yield state, *rest
     if not state == JobState.Succeeded:
         return
-    
+
     if scene_dict['all_done'] == SceneState.NotDone:
         on_scene_termination(args, scene_dict, crashed=False)

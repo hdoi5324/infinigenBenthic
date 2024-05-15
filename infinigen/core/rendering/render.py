@@ -96,19 +96,30 @@ def make_clay():
 					mat_slot.material = clay_material
 
 @gin.configurable
-def compositor_postprocessing(nw, source, show=True, autoexpose=False, autoexpose_level=-2, color_correct=True, distort=0, glare=False):
+def compositor_postprocessing(nw, source, show=True, autoexpose=False, autoexpose_level=-2, color_correct=True, distort=0, glare=False, noise=0,
+                saving_ground_truth=True):
 
     if autoexpose:
         source = nw.new_node(nodegroup_auto_exposure().name, input_kwargs={'Image': source, 'EV Comp': autoexpose_level})
 
     if distort > 0:
         source = nw.new_node(Nodes.LensDistortion,
-            input_kwargs={'Image': source, 'Dispersion': distort})
+            input_kwargs={'Image': source, 'Distort': distort})
+        source.use_fit = True
     
     if color_correct:
         source = nw.new_node(Nodes.BrightContrast,
             input_kwargs={'Image': source, 'Bright': 1.0, 'Contrast': 4.0})
-    
+
+    if noise > 0 and not saving_ground_truth:
+        noise_texture = bpy.data.textures.new( "TEXTURE", "NOISE")
+        #noise.noise_scale = 0.025
+        noise_texture_node = nw.new_node(Nodes.CompositorNodeTexture)
+        noise_texture_node.texture = noise_texture
+
+        source = nw.new_node(Nodes.CompositorNodeMixRGB, [noise, source, noise_texture_node])
+        source.blend_type = "SCREEN"
+
     if glare:
         source = nw.new_node(
             Nodes.Glare,
@@ -180,7 +191,7 @@ def global_flat_shading():
     for obj in bpy.context.scene.view_layers['ViewLayer'].objects:
         if 'fire_system_type' in obj and obj['fire_system_type'] == 'volume':
             continue
-        if obj.name.lower() in {"atmosphere", "atmosphere_fine"}:
+        if obj.name.lower() in {"atmosphere", "atmosphere_fine", "liquid", "liquid_fine"}:
             bpy.data.objects.remove(obj)
         elif obj.active_material is not None:
             nw = obj.active_material.node_tree
@@ -291,7 +302,7 @@ def render_image(
         bpy.context.scene.render.use_motion_blur = motion_blur
         bpy.context.scene.render.motion_blur_shutter = motion_blur_shutter
 
-        bpy.context.scene.cycles.use_denoising = True
+        #bpy.context.scene.cycles.use_denoising = True
         try:
             bpy.context.scene.cycles.denoiser = 'OPTIX'
         except Exception as e:
@@ -320,8 +331,10 @@ def render_image(
             nw = NodeWrangler(compositor_node_tree)
 
             render_layers        = nw.new_node(Nodes.RenderLayers)
-            final_image_denoised = compositor_postprocessing(nw, source=render_layers.outputs["Image"])
-            final_image_noisy    = compositor_postprocessing(nw, source=render_layers.outputs["Noisy Image"], show=False)
+            final_image_denoised = compositor_postprocessing(nw, source=render_layers.outputs["Image"],
+                saving_ground_truth=flat_shading)
+            final_image_noisy    = compositor_postprocessing(nw, source=render_layers.outputs["Noisy Image"], show=False,
+                saving_ground_truth=flat_shading)
 
             compositor_nodes = configure_compositor_output(
                 nw,

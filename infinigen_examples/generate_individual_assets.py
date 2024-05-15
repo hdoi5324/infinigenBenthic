@@ -2,7 +2,7 @@
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this
 # source tree.
 
-# Authors: 
+# Authors:
 # - Lingjie Mei
 # - Alex Raistrick
 # - Karhan Kayan - add fire option
@@ -36,7 +36,7 @@ from infinigen.assets.utils.tag import tag_object, tag_nodegroup, tag_system
 from infinigen.assets.lighting import sky_lighting
 
 from infinigen.core import surface, init
-from infinigen.core.placement import density, factory 
+from infinigen.core.placement import density, factory
 from infinigen.core.rendering.render import enable_gpu
 from infinigen.core.util.math import FixedSeed
 from infinigen.core.util.camera import get_3x4_P_matrix_from_blender
@@ -45,7 +45,7 @@ from infinigen.core.util import blender as butil
 
 from infinigen.tools.results import strip_alpha_background as strip_alpha_background
 
-from . import generate_nature  # to load most/all factory.AssetFactory subclasses
+import generate_nature  # to load most/all factory.AssetFactory subclasses
 
 def build_scene_asset(factory_name, idx):
     factory = None
@@ -262,7 +262,7 @@ def setup_camera(args):
         cam_info_ng.nodes['Object Info'].inputs['Object'].default_value = camera
     return camera, camera.parent
 
-    
+
 
 
 def subclasses(cls):
@@ -271,7 +271,7 @@ def subclasses(cls):
 
 def main(args):
     bpy.context.window.workspace = bpy.data.workspaces['Geometry Nodes']
-    
+
     init.apply_gin_configs('infinigen_examples/configs')
     surface.registry.initialize_from_gin()
 

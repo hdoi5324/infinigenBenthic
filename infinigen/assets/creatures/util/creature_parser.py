@@ -33,27 +33,31 @@ def parse_nurbs_data(obj, i=0):
 
     TODO: Read out knotvector. Function should yield all data necessary to define that NURBS
     '''
-    
+
     assert obj.type == 'SURFACE'
-    
+
     spline = obj.data.splines[i]
     m, n = spline.point_count_u, spline.point_count_v
-    
+
     points = np.array([p.co for p in spline.points])
     points = points.reshape(n, m, -1)
 
     return points
 
 def parse_part(nurbs_part, mesh_part, profiles_folder):
-    
+
     name = basename(nurbs_part)
 
     part_genome_kwargs = {}
     handles = parse_nurbs_data(nurbs_part)
-    skeleton, ts, rads, profiles_norm = lofting.factorize_nurbs_handles(handles[..., :-1])
+    path = Path(profiles_folder) / f'handles_{name}.npy'
+    print(f'Saving {path}')
+    np.save(path, handles)
+    #skeleton, ts, rads, profiles_norm = lofting.factorize_nurbs_handles(handles[..., :-1])
+    skeleton, ts, profiles_norm = lofting.factorize_nurbs_handles(handles[..., :-1])
 
     part_genome_kwargs['skeleton'] = repr_np_array(skeleton)
-    part_genome_kwargs['rads'] = repr_np_array(rads.reshape(-1))
+    #part_genome_kwargs['rads'] = repr_np_array(rads.reshape(-1))
 
     path = Path(profiles_folder)/f'profile_{name}.npy'
     np.save(path, profiles_norm)
@@ -106,7 +110,7 @@ def repr_function_call(funcname, kwargs, spacing='\n', multiline=True):
     return f'{funcname}({paren_sep}{indent(kwargs_str)}{paren_sep})'
 
 def parse_creature(nurbs_root, mesh_root, profiles_folder):
-    
+
     assert nurbs_root.type == 'SURFACE'
     assert mesh_root.type == 'MESH'
 
@@ -119,7 +123,7 @@ def parse_creature(nurbs_root, mesh_root, profiles_folder):
     names = []
     atts = {}
     for nurbs_part, mesh_part in zip(nurbs_parts, mesh_parts):
-        
+
         assert basename(nurbs_part) == basename(mesh_part)
         print(f'Processing {basename(nurbs_part)}')
 

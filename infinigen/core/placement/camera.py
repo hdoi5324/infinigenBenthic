@@ -43,6 +43,8 @@ from infinigen.core.util.random import random_general
 
 from infinigen.tools.suffixes import get_suffix
 
+from infinigen.core.placement.bproc_camera_utility import set_intrinsics_from_K_matrix, set_intrinsics_from_blender_params
+
 logger = logging.getLogger(__name__)
 
 CAMERA_RIGS_DIRNAME = 'CameraRigs'
@@ -98,14 +100,15 @@ def get_sensor_coords(cam, H, W, sparse=False):
 
     return cam_coords_vectors, pixel_locs
 
-def adjust_camera_sensor(cam):
+@gin.configurable
+def adjust_camera_sensor(cam, sensor_height=18.):
     scene = bpy.context.scene
     W = scene.render.resolution_x
     H = scene.render.resolution_y
-    sensor_width = 18 * (W/H)
-    assert sensor_width.is_integer(), (18, W, H)
-    cam.data.sensor_height = 18
-    cam.data.sensor_width = int(sensor_width)
+    sensor_width = sensor_height * (W/H)
+    #assert sensor_width.is_integer(), (18, W, H)
+    cam.data.sensor_height = sensor_height
+    cam.data.sensor_width = sensor_width
 
 def spawn_camera():
     bpy.ops.object.camera_add()
@@ -114,6 +117,14 @@ def spawn_camera():
     adjust_camera_sensor(cam)
     return cam
 
+
+@gin.configurable
+def spawn_camera_light():
+    bpy.ops.object.light_add(type='SPOT')
+    spot = bpy.context.active_object
+    return spot
+
+
 def camera_name(rig_id, cam_id):
     return f'{CAMERA_RIGS_DIRNAME}/{rig_id}/{cam_id}'
 
@@ -121,9 +132,12 @@ def camera_name(rig_id, cam_id):
 def spawn_camera_rigs(
     camera_rig_config,
     n_camera_rigs,
+    light_angle=10,
+    light_offset=1.2,
 ):
 
     def spawn_rig(i):
+        # todo: use light configuration for addition of camera lights
         rig_parent = butil.spawn_empty(f'{CAMERA_RIGS_DIRNAME}/{i}')
         for j, config in enumerate(camera_rig_config):
             cam = spawn_camera()
@@ -131,8 +145,23 @@ def spawn_camera_rigs(
             cam.parent = rig_parent
 
             cam.location = config['loc']
-            cam.rotation_euler = config['rot_euler']
+            cam.rotation_euler = np.deg2rad(config['rot_euler'])
 
+        camera_pitch = camera_rig_config[0]['rot_euler'][0]
+        light_z = light_offset*np.sin(np.deg2rad(camera_pitch))
+        light_y = light_offset*np.cos(np.deg2rad(camera_pitch))
+        spot_offset = np.array([0, light_y, light_z])
+        for j in range(2):
+            # Add camera lights - first aft then fore
+            spot = spawn_camera_light()
+            spot.name = "Spot_" + camera_name(i, j)
+            spot.parent = rig_parent
+
+            spot_location = spot_offset if j == 0 else spot_offset * -1
+            spot.location = spot_location
+
+            spot_angle = light_angle if j == 0 else -light_angle
+            spot.rotation_euler = [np.deg2rad(spot_angle), 0, 0]
         return rig_parent
 
     camera_rigs = [spawn_rig(i) for i in range(n_camera_rigs)]
@@ -146,9 +175,13 @@ def get_cameras_ids() -> list[tuple]:
     col = bpy.data.collections[CAMERA_RIGS_DIRNAME]
     for i, root in enumerate(col.objects):
         for j, subcam in enumerate(root.children):
-            assert subcam.name == camera_name(i, j)
-            res.append((i, j))
-                       
+            # Updated to allow for lights being in camera rig collection too.  Use name to get i, j
+            if subcam.type == 'CAMERA':
+                split_name = subcam.name.split('/')
+                i_split = split_name[-2]
+                j_split = split_name[-1]
+                assert subcam.name == camera_name(i_split, j_split)
+                res.append((i_split, j_split))
     return res
 
 def get_camera(rig_id, subcam_id, checkonly=False):
@@ -245,21 +278,24 @@ def camera_pose_proposal(
         if alt is None: 
             return None
 
-        headspace = animation_policy.get_altitude(loc, terrain_bvh, dir=Vector((0, 0, 1)))
-        for headspace_retry in range(headspace_retries):
-            desired_alt = random_general(altitude)
-            if desired_alt is None:
-                zoff = 0
-                break
+        # todo: change this to check whether camera is downward facing.  If not, check headspace.
+        # Note: Changed this bit because this is a downward looking camera.  Not worried about headspace
+        # headspace = animation_policy.get_altitude(loc, terrain_bvh, dir=Vector((0, 0, 1)))
+        # for headspace_retry in range(headspace_retries):
+        desired_alt = random_general(altitude)
+        if desired_alt is None:
+            zoff = 0
+        else:
             zoff = desired_alt - alt
-            if headspace is None:
-                break
-            if desired_alt < headspace:
-                break
-            logger.debug(f'camera_pose_proposal failed {headspace_retry=} due to {headspace=} {desired_alt=} {alt=}')
-        else: # for-else triggers if no break, IE no acceptable voffset was found
-            logger.warning(f'camera_pose_proposal found no zoff for {loc=} after {headspace_retries=}')
-            return None
+            # if headspace is None:
+            #    break
+            # HD Ignore headspace for downward looking camera
+            # if desired_alt < headspace:
+            #    break
+            # logger.debug(f'camera_pose_proposal failed {headspace_retry=} due to {headspace=} {desired_alt=} {alt=}')
+        # else: # for-else triggers if no break, IE no acceptable voffset was found
+        #    logger.warning(f'camera_pose_proposal found no zoff for {loc=} after {headspace_retries=}')
+        #    return None
 
         loc[2] = loc[2] + zoff
         if loc[2] > terrain_bbox[1][2] or loc[2] < terrain_bbox[0][2]: 
@@ -291,7 +327,7 @@ def keep_cam_pose_proposal(
         terrain_sdf = terrain.compute_camera_space_sdf(np.array(cam.location).reshape((1, 3)))
         
     if not cam.type == 'CAMERA':
-        cam = cam.children[0]
+        cam = [c for c in cam.children if c.type == 'CAMERA'][0]
     if not cam.type == 'CAMERA':
         raise ValueError(f'{cam.name=} had {cam.type=}')
 
@@ -473,11 +509,76 @@ def configure_cameras(
         cam_rig.rotation_euler = rot
 
         if focus_dist is not None:
-            for cam in cam_rig.children:
-                if not cam.type =='CAMERA': continue
-                cam.data.dof.focus_distance = focus_dist
+            for r in cam_rig.children:
+                for c in r.children:
+                    if not c.type =='CAMERA': continue
+                    c.data.dof.focus_distance = focus_dist
 
     butil.delete(dummy_camera)
+
+@gin.configurable
+def configure_camera_lights(
+        camera_rigs,
+        energy = 70,
+        spot_size=2.6,
+        spot_blend=.2):
+    for i, rig in enumerate(camera_rigs):
+        rig.location = camera_rigs[i].location
+        rig.rotation_euler = camera_rigs[i].rotation_euler
+        for light in [c for c in rig.children if c.type == "LIGHT"]:
+            light.data.energy = energy
+            light.data.spot_size = spot_size
+            light.data.spot_blend = spot_blend
+
+
+
+
+@gin.configurable
+def set_camera_parameters(cam_rigs,
+                          focal_mm=15.89,
+                          pixel_size_in_mm=0.00343,
+                          k1_k2_p1_p2_k3=[0.08294964878778682,
+                                          0.3280632761758799,
+                                          -0.004615317367818974,
+                                          0.001986514143891786,
+                                          0.0],
+                          #f=4633,
+                          cx=None,
+                          cy=None,
+                          focus_dist=None,
+                          ):
+    [k1, k2, p1, p2, k3] = k1_k2_p1_p2_k3
+    image_height = bpy.context.scene.render.resolution_y
+    #K = np.array([
+    #    [f, 0, cx],
+    #    [0, f, cy],
+    #    [0, 0, 1]
+    #])
+
+    for rig in cam_rigs:
+        for cam in rig.children:
+            if not cam.type == 'CAMERA': continue
+
+            cam_ob = cam
+            cam_data = cam_ob.data
+            cam_data.lens = focal_mm
+            cam_data.sensor_fit = "HORIZONTAL"
+            adjust_camera_sensor(cam, pixel_size_in_mm * image_height)
+            #cam_data.sensor_width = pixel_size_in_mm * image_width
+
+            # Set intrinsics
+            set_intrinsics_from_blender_params(cam_ob, lens=focal_mm, lens_unit="MILLIMETERS",
+                                                            shift_x=cx,
+                                                            shift_y=cy)
+            if focus_dist is not None:
+                # Note: aperture and use_dof is set in render_image
+                cam_data.dof.focus_distance = focus_dist  # this should come before view_layer.update()
+            bpy.context.view_layer.update()
+
+    # todo: set lens distortion.  add bproc copied method
+            #set_lens_distortion(k1, k2, k3, p1, p2)
+
+
 
 @gin.configurable
 def animate_cameras(

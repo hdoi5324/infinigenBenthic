@@ -13,7 +13,7 @@
    - mode='make_script' will create a new script in your blender UI, which you can open
     and run to apply the node code to an object of your choice
    - mode='write_file' will write the script to a new file called 'generated_surface_script.py.
-        Make sure not to rename / move the script before committing it to git.     
+        Make sure not to rename / move the script before committing it to git.
 5. Select an object which has some materials and/or geometry nodes on it
 6. Click the play button at the top of this script to run it!
 7. You should see one python function printed for each material/geonodes on your object
@@ -60,8 +60,8 @@ elif mode == 'make_script':
     script = bpy.data.texts.new('generated_surface_script')
     script.from_string(res_debug)
 elif mode == 'write_file':
-    
-    filename = 'generated_surface_script.py'
+
+    filename = '/scolymia.py'
     print(f'Writing generated script to {filename}')
     with Path(filename).open('w') as f:
         f.write(res)

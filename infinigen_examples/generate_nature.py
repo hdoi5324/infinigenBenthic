@@ -65,6 +65,11 @@ from infinigen.core.util.organization import Tags
 from infinigen.core.util.random import sample_registry, random_general
 from infinigen.core.util.math import FixedSeed, int_hash
 from infinigen.core import execute_tasks, surface, init
+debug = False
+if debug:
+    import pydevd_pycharm
+    pydevd_pycharm.settrace('localhost', port=52000, stdoutToServer=True, stderrToServer=True)
+
 
 @gin.configurable
 def compose_scene(output_folder, scene_seed, **params):
@@ -178,6 +183,21 @@ def compose_scene(output_folder, scene_seed, **params):
         lambda: cam_util.configure_cameras(camera_rigs, bbox, scene_preprocessed), 
         use_chance=False
     )
+
+    p.run_stage(
+        'configure_camera_parameters',
+        lambda: cam_util.set_camera_parameters(camera_rigs),
+        use_chance=False
+    )
+
+    #todo: use configuration for setting up lights
+    # Set location/rotation of lights to the same as the camera rig and configure lights
+    p.run_stage(
+        'setup_camera_lights',
+        lambda: cam_util.configure_camera_lights(camera_rigs),
+        use_chance=False
+    )
+
     cam = cam_util.get_camera(0, 0)
 
     p.run_stage('lighting', lighting.sky_lighting.add_lighting, cam, use_chance=False)
