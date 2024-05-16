@@ -107,10 +107,10 @@ class AnimPolicyBrownian:
 @gin.configurable
 class AnimPolicyWalkForward:
 
-    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, var=0.02, transect_frames=16, turn_frames=4):
+    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, percent_var=0.1, transect_frames=16, turn_frames=4):
         self.speed = speed
         self.fps = fps
-        self.var = var
+        self.percent_var = percent_var
         self.transect_frames = transect_frames
         self.turn_frames = turn_frames
 
@@ -131,11 +131,13 @@ class AnimPolicyWalkForward:
         yaw = obj.rotation_euler[2] + np.pi/2
         x = speed/self.fps*np.cos(yaw) #* -1
         y = speed/self.fps*np.sin(yaw) #* -1
+        var_x = np.abs(x * self.percent_var)
+        var_y = np.abs(y * self.percent_var)
 
         #sampler = lambda: [0.0, speed/self.fps, 0.5]
-        sampler = lambda: [N(x, self.var), N(y, self.var), N(0, 0.2)]
+        sampler = lambda: [N(x, var_x), N(y, var_y), N(0, 0.2)]
         pos = walk_same_altitude(obj.location, sampler, bvh)
-        time = 1 / self.fps - 0.1
+        time = 1 / self.fps - 0.001 # Make the time slightly less than one frame so that it always moves forward one frame.
 
         rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
 

@@ -342,3 +342,22 @@ def geometry_nodes(nw: NodeWrangler):
 def apply(obj, selection=None, **kwargs):
     surface.add_geomod(obj, geometry_nodes, selection=selection, attributes=[])
     surface.add_material(obj, shader_cb_36, selection=selection)
+
+
+from infinigen.core.placement.placement import points_near_camera
+
+
+def place_colourboard(cam, terrain_bvh, n, alt, dist_range):
+    if n is None:
+        n = 3
+    if alt is None:
+        alt = 2.0
+    if dist_range is None:
+        dist_range = (0, 1)
+    points = points_near_camera(cam, terrain_bvh, n, alt, dist_range)
+    alt_offset = 0
+    for p in points:
+        p[-1] += alt_offset
+        obj = ColourboardFactory(1).create_asset()
+        obj.location = p
+        alt_offset += alt

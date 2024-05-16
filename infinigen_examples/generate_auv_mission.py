@@ -56,6 +56,7 @@ from infinigen.assets import (
     weather
 )
 from infinigen.terrain import Terrain
+from infinigen.assets.underwater.colourboard import place_colourboard
 
 from infinigen.core.util import (
     blender as butil,
@@ -359,6 +360,9 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     p.run_stage('seashells', lambda: seashells.apply(terrain_near,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag='landscape,', return_scalar=True)))
+
+    p.run_stage('colourboard', lambda: place_colourboard(cam.parent, terrain_bvh, n=1, alt=20, dist_range=(0, 1)))
+
     #p.run_stage('pinecone', lambda: pinecone.apply(terrain_near,
     #    selection=density.placement_mask(scale=.1, select_thresh=.63, tag=land_domain)))
     #p.run_stage('pine_needle', lambda: pine_needle.apply(terrain_near,
