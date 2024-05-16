@@ -351,7 +351,7 @@ def place_colourboard(cam, terrain_bvh, n, alt, dist_range):
     if n is None:
         n = 3
     if alt is None:
-        alt = 2.0
+        alt = 0.01
     if dist_range is None:
         dist_range = (0, 1)
     points = points_near_camera(cam, terrain_bvh, n, alt, dist_range)

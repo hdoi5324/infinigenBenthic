@@ -40,10 +40,10 @@ get_sensor_coords.W = %W
 
 # Configure straight path with lower frequency frames. Based on AUV Nimbus
 compose_scene.fps = 24 #24
-animation_policy.AnimPolicyRandomForwardWalk.speed = 0.5
-animation_policy.AnimPolicyRandomForwardWalk.yaw_dist = 0
-animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
-animation_policy.AnimPolicyWalkForward.speed = 1
+#animation_policy.AnimPolicyRandomForwardWalk.speed = 0.5
+#animation_policy.AnimPolicyRandomForwardWalk.yaw_dist = 0
+#animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
+animation_policy.AnimPolicyWalkForward.speed = 2
 animation_policy.AnimPolicyWalkForward.fps = 24
 
 
