@@ -346,6 +346,8 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     #    selection=density.placement_mask(scale=.1, select_thresh=.65, return_scalar=True, tag=land_domain),
     #    density=params.get('mushroom_density', 2)))
 
+    p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
+        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
