@@ -31,7 +31,7 @@ def apply(obj, n=5, selection=None):
 
     scatter_obj = scatter_instances(
         base_obj=obj, collection=urchin,
-        vol_density=U(0.5, 1), # density across surface
+        vol_density=U(0.3, .7), # density across surface
         ground_offset=ground_offset,
         scale=scale, scale_rand=U(-0.2, 0.2),
         scale_rand_axi=U(-0.05, 0.05),

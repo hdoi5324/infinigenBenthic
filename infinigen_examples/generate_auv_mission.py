@@ -159,9 +159,9 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     def add_kelp(terrain_mesh):
         fac = monocot.KelpMonocotFactory(int_hash((scene_seed, 0)), coarse=True)
-        selection = density.placement_mask(scale=0.05, tag=underwater_domain)
+        selection = density.placement_mask(scale=0.01, tag=underwater_domain)
         placement.scatter_placeholders_mesh(terrain_mesh, fac, altitude=-0.05,
-            overall_density=params.get('kelp_density', uniform(.2, 1)),
+            overall_density=params.get('kelp_density', uniform(.2, .5)),
             selection=selection, distance_min=3)
     p.run_stage('kelp', add_kelp, terrain_mesh)
 
@@ -347,6 +347,8 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     #    density=params.get('mushroom_density', 2)))
 
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
+        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
+    p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
