@@ -44,10 +44,10 @@ get_sensor_coords.W = %W
 #animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
 fps = 2
 compose_scene.fps = %fps #24
-animation_policy.AnimPolicyWalkForward.speed = 0.5
-animation_policy.AnimPolicyWalkForward.fps = %fps
-animation_policy.AnimPolicyWalkForward.transect_multiple = 5
-animation_policy.AnimPolicyWalkForward.turn_frames = 4
+animation_policy.AnimPolicyMowTheLawn.speed = 0.5
+animation_policy.AnimPolicyMowTheLawn.fps = %fps
+animation_policy.AnimPolicyMowTheLawn.transect_multiple = 5
+animation_policy.AnimPolicyMowTheLawn.turn_frames = 4
 
 
 full/render_image.passes_to_save = []

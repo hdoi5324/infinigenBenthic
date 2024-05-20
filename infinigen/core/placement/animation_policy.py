@@ -105,7 +105,7 @@ class AnimPolicyBrownian:
 
 
 @gin.configurable
-class AnimPolicyWalkForward:
+class AnimPolicyMowTheLawn:
 
     def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, percent_var=0.1, turn_frames=4, transect_multiple=5):
         self.speed = speed
@@ -137,8 +137,6 @@ class AnimPolicyWalkForward:
         #sampler = lambda: [0.0, speed/self.fps, 0.5]
         sampler = lambda: [N(x, var_x), N(y, var_y), N(0, 0.2)]
         pos = walk_same_altitude(obj.location, sampler, bvh)
-
-        # Increment frames by number of turn frames
         time = 1 / self.fps - 0.001 # Make the time slightly less than one frame so that it always moves forward one frame.
 
         rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
