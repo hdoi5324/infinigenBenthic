@@ -65,6 +65,9 @@ compose_scene.scolymia_chance = 0.0
 compose_scene.jellyfish_chance = 0.0
 compose_scene.marine_snow_particles_chance = 0.0
 
+populate_scene.slime_mold_chance = 0.5
+populate_scene.lichen_chance = 0.6
+populate_scene.moss_chance = 0.8
 
 compose_scene.monocots_chance = 0.0
 compose_scene.mushroom_chance = 0.0

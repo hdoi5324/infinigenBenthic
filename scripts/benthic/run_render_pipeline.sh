@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/bin/bash
 
 frames=24
 output_dir="/media/data/hdoi5324/phd_data/infinigen/outputs/trench_video"
