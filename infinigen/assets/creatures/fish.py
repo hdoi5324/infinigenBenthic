@@ -132,22 +132,44 @@ def handfish_genome():
     # Smaller front fin
     pectoral_fin = parts.ridged_fin.FishFin(fin_params((0.04, 0.5, 0.20)))
     coord = (0.9, -0.6, -0.9)
-    for side in [1, -1]:
-        genome.attach(genome.part(pectoral_fin), body, coord=coord,
-            joint=Joint(rest=(80, 15, 15)), side=side)
+    #for side in [1, -1]:
+    #    genome.attach(genome.part(pectoral_fin), body, coord=coord,
+    #        joint=Joint(rest=(80, 15, 15)), side=side)
 
-    hand_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.20)))
-    coord = (0.7, 0.8, 0.5)
-    for side in [-1]:
-        genome.attach(genome.part(hand_fin), body, coord=coord,
-            joint=Joint(rest=(-80, 20, 85)), side=side)
+    #hand_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.20)))
+    coord = (0.5, 0.6, 0.4)
+    #for side in [-1]:
+    #    genome.attach(genome.part(hand_fin), body, coord=coord,
+    #        joint=Joint(rest=(-80, 20, 85)), side=side)
 
+    splay = clip_gaussian(130, 7, 90, 130) / 180
+    shoulder_t = clip_gaussian(0.12, 0.05, 0.08, 0.12)
+
+    params = {
+            'length_rad1_rad2': np.array((0.1, 0.02, 0.02)) * N(1, (0.2, 0, 0), 3),
+            'angles_deg': np.array((40.0, -120.0, 100)),
+            'fullness': 5.0,
+            'aspect': 1.0,
+            'Thigh Rad1 Rad2 Fullness': np.array((0.33, 0.15, 2.5), ) * N(1, 0.1, 3),
+            'Calf Rad1 Rad2 Fullness': np.array((0.17, 0.07, 2.5), ) * N(1, 0.1, 3),
+            'Thigh Height Tilt1 Tilt2': np.array((0.6, 0.0, 0.0), ) + N(0, [0.05, 2, 10]),
+            'Calf Height Tilt1 Tilt2': np.array((0.8, 0.0, 0.0)) + N(0, [0.05, 10, 10])
+        }
+
+    params = parts.leg.FishHand().sample_params()
+    foot_fac = parts.foot.Foot()
+    fish_hand = parts.leg.FishHand(params=params)
+    for side in [-1, 1]:
+        #back_leg = genome.attach(genome.part(foot_fac), genome.part(backleg_fac), coord=(0.9, 0, 0), joint=Joint(rest=(0, 20, 50)))
+        genome.attach(genome.part(fish_hand), body, coord=coord,
+            joint=Joint(rest=(100, 30, 120)), #, bounds=shoulder_bounds),
+            rotation_basis='global', side=side)#, smooth_rad=0.06)#, bridge_rad=0.1)
     # not on red handfish
-    if 1 < 0.8:
-        pelvic_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.25)))
-        coord = (U(0.5, 0.65), U(8, 15)/180, .8)
-        for side in [-1, 1]:
-            genome.attach(genome.part(pelvic_fin), body, coord=coord, joint=Joint(rest=rot(28)), side=side)
+    #if 1 < 0.8:
+    #    pelvic_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.25)))
+    #    coord = (U(0.5, 0.65), U(8, 15)/180, .8)
+    #    for side in [-1, 1]:
+    #        genome.attach(genome.part(pelvic_fin), body, coord=coord, joint=Joint(rest=rot(28)), side=side)
 
     # Small towards the back
     if 0.2 < 0.8:
