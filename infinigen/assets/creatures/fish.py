@@ -388,7 +388,7 @@ class FishSchoolFactory(BoidSwarmFactory):
 
         return dict(
             particle_size=U(0.3, 1),
-            size_random=U(0.1, 0.7),
+            size_random=U(0.1, 0.4),
 
             use_rotation_instance=True,
 
@@ -410,7 +410,7 @@ class FishSchoolFactory(BoidSwarmFactory):
             factory_seed, child_col=col,
             collider_col=bpy.data.collections.get('colliders'),
             settings=settings, bvh=bvh,
-            volume=("uniform", 3, 10),
+            volume=("uniform", 2, 5),
             coarse=coarse
         )
 

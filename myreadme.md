@@ -86,14 +86,14 @@ python -m infinigen.launch_blender -m infinigen_examples.generate_nature -- --se
 
 ```commandline
 rm -fr outputs/nimbusv4; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv4 --num_scenes 20 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
-local_64GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin; sudo shutdown -h 20
+local_16GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin; sudo shutdown -h 20
 ```
 
 
 For home
-
+--cleanup big_files 
 ```commandline
-rm -fr outputs/nimbusv3; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv3 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
+rm -fr outputs/test_video; python -m infinigen.datagen.manage_jobs -- --cleanup big_files --output_folder outputs/test_video --num_scenes 5 --configs coral_reef_hd.gin --pipeline_configs \
 local_16GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin
 ```
 add high_quality_terrain.gin for fine quality.

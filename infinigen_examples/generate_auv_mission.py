@@ -56,6 +56,7 @@ from infinigen.assets import (
     weather
 )
 from infinigen.terrain import Terrain
+from infinigen.assets.underwater.colourboard import place_colourboard
 
 from infinigen.core.util import (
     blender as butil,
@@ -158,9 +159,9 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     def add_kelp(terrain_mesh):
         fac = monocot.KelpMonocotFactory(int_hash((scene_seed, 0)), coarse=True)
-        selection = density.placement_mask(scale=0.05, tag=underwater_domain)
+        selection = density.placement_mask(scale=0.01, tag=underwater_domain)
         placement.scatter_placeholders_mesh(terrain_mesh, fac, altitude=-0.05,
-            overall_density=params.get('kelp_density', uniform(.2, 1)),
+            overall_density=params.get('kelp_density', uniform(.2, .5)),
             selection=selection, distance_min=3)
     p.run_stage('kelp', add_kelp, terrain_mesh)
 
@@ -234,7 +235,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     #pois += p.run_stage('flying_creatures', flying_creatures, default=[])
 
     p.run_stage('animate_cameras', lambda: cam_util.animate_cameras(
-        camera_rigs, scene_preprocessed, pois=pois, policy_registry=animation_policy.AnimPolicyWalkForward), use_chance=False)
+        camera_rigs, scene_preprocessed, pois=pois, policy_registry=animation_policy.AnimPolicyMowTheLawn), use_chance=False)
 
     with logging_util.Timer('Compute coarse terrain frustrums'):
         terrain_inview, *_ = split_in_view.split_inview(
@@ -335,23 +336,31 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     def add_corals(target):
         vertical_faces = density.placement_mask(scale=0.15, select_thresh=uniform(.44, .48))
         coral_reef.apply(target, selection=vertical_faces, tag=underwater_domain,
-                         density=params.get('coral_density', 2.5))
+                         density=params.get('coral_density', 1.5))
         horizontal_faces = density.placement_mask(scale=.15, normal_thresh=-.4, normal_thresh_high=.4)
         coral_reef.apply(target, selection=horizontal_faces, n=5, horizontal=True, tag=underwater_domain,
-                         density=params.get('horizontal_coral_density', 2.5))
+                         density=params.get('horizontal_coral_density', 1.5))
     p.run_stage('corals', add_corals, terrain_inview)
 
     #p.run_stage('mushroom', lambda: ground_mushroom.Mushrooms().apply(terrain_near,
     #    selection=density.placement_mask(scale=.1, select_thresh=.65, return_scalar=True, tag=land_domain),
     #    density=params.get('mushroom_density', 2)))
 
+    p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
+        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain),
+                                               density=1e3))
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
+
+    urchin_density = random_general(('uniform', 0.1, 0.7))
+    urchin_select_threshold = 0.3
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
+        selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold, tag=underwater_domain),
+                                               density=urchin_density))
     p.run_stage('urchinkina', lambda: urchin_kina.apply(terrain_inview,
-                                               selection=density.placement_mask(scale=0.05, select_thresh=.5,
-                                                                                tag=underwater_domain)))
+                                               selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold,
+                                                                                tag=underwater_domain),
+                                                        density=urchin_density))
     p.run_stage('scolymia', lambda: scolymia.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
     p.run_stage('jellyfish', lambda: jellyfish.apply(terrain_inview,
@@ -359,6 +368,9 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     p.run_stage('seashells', lambda: seashells.apply(terrain_near,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag='landscape,', return_scalar=True)))
+
+    p.run_stage('colourboard', lambda: place_colourboard(cam.parent, terrain_bvh, n=3, alt=0.02, dist_range=(0, 2)))
+
     #p.run_stage('pinecone', lambda: pinecone.apply(terrain_near,
     #    selection=density.placement_mask(scale=.1, select_thresh=.63, tag=land_domain)))
     #p.run_stage('pine_needle', lambda: pine_needle.apply(terrain_near,
