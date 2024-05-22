@@ -13,7 +13,7 @@ from infinigen.core.placement.factory import AssetFactory, make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 
-def apply(obj, n=5, selection=None):
+def apply(obj, n=5, selection=None, density=U(0.3, .7)):
     n_species = np.random.randint(2, 5)
     factories = list(UrchinFactory(np.random.randint(1e5),
                                    z_scale=(0.6, 0.9),
@@ -31,7 +31,7 @@ def apply(obj, n=5, selection=None):
 
     scatter_obj = scatter_instances(
         base_obj=obj, collection=urchin,
-        vol_density=U(0.3, .7), # density across surface
+        vol_density=density, # density across surface
         ground_offset=ground_offset,
         scale=scale, scale_rand=U(-0.2, 0.2),
         scale_rand_axi=U(-0.05, 0.05),

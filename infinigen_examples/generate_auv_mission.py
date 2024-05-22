@@ -336,10 +336,10 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     def add_corals(target):
         vertical_faces = density.placement_mask(scale=0.15, select_thresh=uniform(.44, .48))
         coral_reef.apply(target, selection=vertical_faces, tag=underwater_domain,
-                         density=params.get('coral_density', 2.5))
+                         density=params.get('coral_density', 1.5))
         horizontal_faces = density.placement_mask(scale=.15, normal_thresh=-.4, normal_thresh_high=.4)
         coral_reef.apply(target, selection=horizontal_faces, n=5, horizontal=True, tag=underwater_domain,
-                         density=params.get('horizontal_coral_density', 2.5))
+                         density=params.get('horizontal_coral_density', 1.5))
     p.run_stage('corals', add_corals, terrain_inview)
 
     #p.run_stage('mushroom', lambda: ground_mushroom.Mushrooms().apply(terrain_near,
@@ -347,16 +347,20 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     #    density=params.get('mushroom_density', 2)))
 
     p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
+        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain),
+                                               density=1e3))
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
-    p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
+
+    urchin_density = random_general(('uniform', 0.1, 0.7))
+    urchin_select_threshold = 0.3
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
+        selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold, tag=underwater_domain),
+                                               density=urchin_density))
     p.run_stage('urchinkina', lambda: urchin_kina.apply(terrain_inview,
-                                               selection=density.placement_mask(scale=0.05, select_thresh=.5,
-                                                                                tag=underwater_domain)))
+                                               selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold,
+                                                                                tag=underwater_domain),
+                                                        density=urchin_density))
     p.run_stage('scolymia', lambda: scolymia.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
     p.run_stage('jellyfish', lambda: jellyfish.apply(terrain_inview,

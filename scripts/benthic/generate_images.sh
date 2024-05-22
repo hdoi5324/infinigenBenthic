@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/bin/bash
 
 
 overwrite="--overwrite" #--overwrite
@@ -7,9 +7,9 @@ outputfolder="trench_video"
 num_scenes=3
 pipeline_overrides=""
 
-options=("compose_scene.seaweed_chance=1.0" "compose_scene.kelp_chance=1.0")
+options=("compose_scene.seaweed_chance=0.8 compose_scene.fish_school_chance=0.5" "compose_scene.corals_chance=1.0" "compose_scene.kelp_chance=1.0")
 #rm -fr outputs/${outputfolder}
-for i in 1
+for i in 0 1
 do
   option=${options[i]}
   n=${#option}
