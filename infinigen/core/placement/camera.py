@@ -160,7 +160,7 @@ def spawn_camera_rigs(
             spot_location = spot_offset if j == 0 else spot_offset * -1
             spot.location = spot_location
 
-            spot_angle = light_angle if j == 0 else -light_angle
+            spot_angle = (light_angle if j == 1 else -light_angle) + camera_pitch
             spot.rotation_euler = [np.deg2rad(spot_angle), 0, 0]
         return rig_parent
 

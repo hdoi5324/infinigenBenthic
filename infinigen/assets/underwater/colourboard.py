@@ -23,6 +23,7 @@ class ColourboardFactory(AssetFactory):
 
     def create_asset(self, **kwargs) -> bpy.types.Object:
         obj = new_cube()
+        obj.name = "colourboard"
         surface.add_geomod(obj, geometry_nodes, selection=None, attributes=[])
         #surface.add_material(obj, shader_cb_36)
         #assign_material(obj, self.materials)

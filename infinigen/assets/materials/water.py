@@ -176,9 +176,9 @@ def shader(
     enable_scatter=True,
     colored=False,
     emissive_foam=False,
-    volume_density=("uniform", 0.07, 0.09),
-    anisotropy=("clip_gaussian", 0.8, 0.1, 0.7, 1),
-    scatter_density=("clip_gaussian", 0.01, 0.005, 0, 0.015),
+    volume_density=("uniform", 0.2, 0.8),
+    anisotropy=("clip_gaussian", 0.3, 0.1, 0.1, 0.5),
+    scatter_density=("clip_gaussian", 0.1, 0.05, 0, 0.2),
     random_seed=0,
 ):
     nw.force_input_consistency()
