@@ -347,10 +347,10 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     #    density=params.get('mushroom_density', 2)))
 
     p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain),
-                                               density=1e3))
+        selection=density.placement_mask(scale=0.05, select_thresh=.6, normal_thresh=0.4, tag=underwater_domain),
+                                               density=1e2))
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.4, tag=underwater_domain)))
+        selection=density.placement_mask(scale=0.05, select_thresh=.55, normal_thresh=0.4, tag=underwater_domain)))
 
     urchin_density = random_general(('uniform', 0.1, 0.7))
     urchin_select_threshold = 0.3

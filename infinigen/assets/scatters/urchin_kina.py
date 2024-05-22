@@ -17,7 +17,7 @@ def apply(obj, n=5, selection=None, density=U(0.3, .7)):
     n_species = np.random.randint(2, 5)
     factories = list(UrchinFactory(np.random.randint(1e5),
                                    z_scale=(0.6, 0.9),
-                                   extrude_height=(0.6, 0.8),
+                                   extrude_height=("log_uniform", 0.6, 0.8),
                                    min_spike_scale=0.8,
                                    spike_hue=U(0.365, 0.38)) for i in range(n_species))
     urchin = make_asset_collection(factories, name='kina',

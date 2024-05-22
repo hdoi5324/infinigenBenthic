@@ -176,9 +176,9 @@ def shader(
     enable_scatter=True,
     colored=False,
     emissive_foam=False,
-    volume_density=("uniform", 0.07, 0.09),
-    anisotropy=("clip_gaussian", 0.8, 0.1, 0.7, 1),
-    scatter_density=("clip_gaussian", 0.01, 0.005, 0, 0.015),
+    volume_density=("uniform", 0.07, 0.5),
+    anisotropy=("clip_gaussian", 0.5, 0.1, 0.3, 1),
+    scatter_density=("uniform", 0.01, 0.12),
     random_seed=0,
 ):
     nw.force_input_consistency()
@@ -223,7 +223,7 @@ def shader(
                 weight = 1
             foam = nw.scalar_multiply(foam, weight)
             surface_shader = nw.new_node(Nodes.MixShader, input_kwargs={'Fac': foam, 1: surface_shader, 2: foam_bsdf})
-    
+
         rgb = nw.new_node(Nodes.RGB)
         rgb.outputs[0].default_value = color
         #principled_volume = nw.new_node(Nodes.PrincipledVolume, input_kwargs={

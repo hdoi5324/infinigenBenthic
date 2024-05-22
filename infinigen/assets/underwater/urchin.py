@@ -26,7 +26,7 @@ from infinigen.core.util.random import random_general as rg
 class UrchinFactory(AssetFactory):
 
     def __init__(self, factory_seed, coarse=False, spike_hue=("uniform", -0.25, 0.15),
-                 z_scale=(0.8, 1.0), spike_prob=0.98, min_spike_scale=0.5, extrude_height=(1.0, 5.0)):
+                 z_scale=(0.8, 1.0), spike_prob=0.98, min_spike_scale=0.5, extrude_height=("log_uniform", 1.0, 5.0)):
         super().__init__(factory_seed, coarse)
         with FixedSeed(factory_seed):
             self.factory_seed = factory_seed
@@ -49,7 +49,8 @@ class UrchinFactory(AssetFactory):
         obj.scale[-1] = uniform(*self.z_scale)
         butil.apply_transform(obj)
         butil.modify_mesh(obj, 'BEVEL', offset_type='PERCENT', width_pct=25, angle_limit=0)
-        surface.add_geomod(obj, self.geo_extrude, apply=True, input_kwargs={'extrude_height': self.extrude_height,
+        extrude_height = rg(self.extrude_height)
+        surface.add_geomod(obj, self.geo_extrude, apply=True, input_kwargs={'extrude_height': extrude_height,
                                                                             'spike_prob': self.spike_prob,
                                                                             'min_spike_scale': self.min_spike_scale},
                            attributes=['spike', 'girdle'],
@@ -76,10 +77,10 @@ class UrchinFactory(AssetFactory):
         driver.expression = repeated_driver(-.1, .1, self.freq)
 
     @staticmethod
-    def geo_extrude(nw: NodeWrangler, extrude_height=(1.0, 5.0), spike_prob=0.98, min_spike_scale=0.5):
+    def geo_extrude(nw: NodeWrangler, extrude_height=2.0, spike_prob=0.98, min_spike_scale=0.5):
         face_prob = spike_prob
         girdle_size = uniform(.6, 1.0)
-        extrude_height = log_uniform(*extrude_height)
+        #extrude_height = rg(extrude_height)
         girdle_height = 0.1
         perturb = .1
         geometry = nw.new_node(Nodes.GroupInput, expose_input=[('NodeSocketGeometry', 'Geometry', None)])

@@ -144,13 +144,27 @@ Scene
 * Render - added noise and lens distortion.  Noise could be improved.
 * Animation - used settings for straight camera path
 
+21 May
+* Terrain - update surface registry so that 'mountain' uses more surface types.  Mountain used a lot in underwater.
+* Assets - adjust selection of where assets are 'scattered' by lowering select_thresh.  
+* Assets - added handfish body and arm.
+* Assets - added colourboards
+* Animation - mow the lawn animation path
+* Camera - can use as downward looking with depth of field and aperture OR in ROV with no DOF
+* Script for running variations
+
+
+
 ### todo
-* postprocessing - getting noisy image but could add noise to compositor (or is it already doing this?)
+* handfish - first cut handfish
 * materials - better sand  texture; check terrain colours as they appear too red at times.
-* assets - add colour boards
-* understand placement in scatter
+* assets - place assets along camera path
+* assets - add other assets to cause some difficulty eg lichen.  pebbles?
+* Annotations - update renaming of images to combo of directory names.
 
-
+### Issues
+* Render - lense disortion causes issues with flat render used for ground truth.
+* High quality terrain or complex assets (eg kelp) - runs out of memory
 
 #### Collate examples
   
