@@ -7,6 +7,19 @@ include 'performance/fast_terrain_assets.gin'
 # include 'performance/dev.gin'
 run_erosion.n_iters = [1,1]
 
+surface.registry.mountain_collection = [
+    ('mountain', 10),
+    ("sandstone", 2),
+    ("sand", 10),
+    ('dirt', 1),
+]
+surface.registry.ground_collection = [
+    ('sand', 5),
+    ('cracked_ground', 1),
+    ('stone', 1),
+    ('chunkyrock', 0),
+    ('sandstone', 1),
+]
 
 # from dev.gin
 full/render_image.min_samples = 100 #100
