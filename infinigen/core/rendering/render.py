@@ -1,7 +1,7 @@
 # Copyright (c) Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
-# Authors: 
+# Authors:
 # - Lahav Lipson - Render, flat shading, etc
 # - Alex Raistrick - Compositing
 # - Hei Law - Initial version
@@ -106,7 +106,7 @@ def compositor_postprocessing(nw, source, show=True, autoexpose=False, autoexpos
         source = nw.new_node(Nodes.LensDistortion,
             input_kwargs={'Image': source, 'Distort': distort})
         source.use_fit = True
-    
+
     if color_correct:
         source = nw.new_node(Nodes.BrightContrast,
             input_kwargs={'Image': source, 'Bright': 1.0, 'Contrast': 4.0})
@@ -133,10 +133,10 @@ def compositor_postprocessing(nw, source, show=True, autoexpose=False, autoexpos
     return source.outputs[0]
 
 @gin.configurable
-def configure_compositor_output(nw, frames_folder, image_denoised, image_noisy, passes_to_save, saving_ground_truth, use_denoised=False):
+def configure_compositor_output(nw, frames_folder, image_denoised, image_noisy, passes_to_save, saving_ground_truth, use_denoised=False, image_type='PNG'):
     file_output_node = nw.new_node(Nodes.OutputFile, attrs={
         "base_path": str(frames_folder),
-        "format.file_format": 'OPEN_EXR' if saving_ground_truth else 'PNG',
+        "format.file_format": 'OPEN_EXR' if saving_ground_truth else image_type,
         "format.color_mode": 'RGB'
     })
     file_slot_list = []
@@ -279,6 +279,7 @@ def render_image(
     motion_blur_shutter=0.5,
     render_resolution_override=None,
     excludes=[],
+    image_type='PNG'
 ):
     tic = time.time()
 
@@ -297,12 +298,14 @@ def render_image(
         bpy.context.scene.cycles.adaptive_min_samples = min_samples
         bpy.context.scene.cycles.adaptive_threshold = adaptive_threshold # i.e. noise threshold
         bpy.context.scene.cycles.time_limit = time_limit
-    
+
         bpy.context.scene.cycles.film_exposure = exposure
         bpy.context.scene.render.use_motion_blur = motion_blur
         bpy.context.scene.render.motion_blur_shutter = motion_blur_shutter
+        #bpy.context.scene.render.image_settings.color_mode = 'RGB'
+        #bpy.context.scene.render.image_settings.file_format = 'JPEG'
 
-        #bpy.context.scene.cycles.use_denoising = True
+        bpy.context.scene.cycles.use_denoising = True
         try:
             bpy.context.scene.cycles.denoiser = 'OPTIX'
         except Exception as e:
@@ -342,7 +345,8 @@ def render_image(
                 image_denoised=final_image_denoised,
                 image_noisy=final_image_noisy,
                 passes_to_save=passes_to_save,
-                saving_ground_truth=flat_shading
+                saving_ground_truth=flat_shading,
+                image_type=image_type
             )
 
     indices = dict(cam_rig=camera_rig_id, resample=0, subcam=subcam_id)
@@ -382,7 +386,7 @@ def render_image(
                     frame=frame
                 )
 
-    for file in tmp_dir.glob('*.png'):
+    for file in list(tmp_dir.glob('*png')) + list(tmp_dir.glob('*jpg')):
         file.unlink()
 
     reorganize_old_framesfolder(frames_folder)

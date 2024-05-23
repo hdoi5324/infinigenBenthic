@@ -11,9 +11,9 @@ iterate_scene_tasks.camera_dependent_tasks = [
     {'name': 'blendergt', 'func': @ground_truth/queue_render}
 ]
 
-iterate_scene_tasks.frame_range=[1,24]
-iterate_scene_tasks.render_frame_range=[1,24]
-iterate_scene_tasks.view_block_size = 48 # default
+iterate_scene_tasks.frame_range=[1,48]
+iterate_scene_tasks.render_frame_range=[1,48]
+iterate_scene_tasks.view_block_size = 12 # default
 iterate_scene_tasks.cam_block_size = 12
 iterate_scene_tasks.cam_id_ranges =(1, 2)
 

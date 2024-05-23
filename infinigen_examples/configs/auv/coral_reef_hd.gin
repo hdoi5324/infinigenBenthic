@@ -25,7 +25,6 @@ surface.registry.ground_collection = [
 full/render_image.min_samples = 100 #100
 full/render_image.num_samples = 128 #8192
 
-# camera selection config
 #Terrain.populated_bounds = (-25, 25, -25, 25, -25, 0)
 #Terrain.bounds = (-200, 200, -200, 200, -40, 10)
 #OcMesher.bounds = (-40, 40, -40, 40, -30, 5) # not used on trench
@@ -45,14 +44,13 @@ compose_scene.near_distance = 10
 compose_scene.center_distance = 10
 
 
-
 # Configure straight path with lower frequency frames. Based on AUV Nimbus
 #animation_policy.AnimPolicyRandomForwardWalk.speed = 0.5
 #animation_policy.AnimPolicyRandomForwardWalk.yaw_dist = 0
 #animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
 fps = 2
 compose_scene.fps = %fps #24
-animation_policy.AnimPolicyMowTheLawn.speed = 0.5
+animation_policy.AnimPolicyMowTheLawn.speed = 1.0
 animation_policy.AnimPolicyMowTheLawn.fps = %fps
 animation_policy.AnimPolicyMowTheLawn.transect_multiple = 5
 animation_policy.AnimPolicyMowTheLawn.turn_frames = 4
@@ -72,6 +70,7 @@ compose_scene.seashell_chance = 0.4
 compose_scene.scolymia_chance = 0.0
 compose_scene.jellyfish_chance = 0.0
 compose_scene.marine_snow_particles_chance = 0.0
+compose_scene.boulders_chance = 0.2
 
 populate_scene.slime_mold_chance = 0.5
 populate_scene.lichen_chance = 0.6
@@ -81,7 +80,6 @@ compose_scene.monocots_chance = 0.0
 compose_scene.mushroom_chance = 0.0
 compose_scene.pinecone_chance = 0.0
 compose_scene.pine_needle_chance = 0.0
-compose_scene.boulders_chance = 0.0
 compose_scene.glowing_rocks_chance = 0.00
 compose_scene.ground_leaves_chance = 0.00
 compose_scene.ground_twigs_chance = 0.00
@@ -92,14 +90,6 @@ compose_scene.grass_chance = 0.00
 compose_scene.lighting_enabled = True
 nishita_lighting.strength = 0.0
 
-
-camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 2.3)
-camera.camera_pose_proposal.pitch = ("clip_gaussian", 0, 5, -5, 5)
-camera.camera_pose_proposal.headspace_retries = 5
-
-camera.configure_camera_lights.energy = 140
-
-
 compose_scene.caustics_chance = 0.0
 
 water.geo.water_detail = 0
@@ -107,7 +97,7 @@ water.geo.water_height = ("uniform", 0.05, 0.15)
 water.geo.with_ripples = 0
 water.geo.with_waves=False
 #Absorption
-water.shader.volume_density = ("clip_gaussian", 0.5, 0.2, 0.3, 1.0)
+water.shader.volume_density = ("clip_gaussian", 0.8, 0.2, 0.3, 1.1)
 water.shader.color = ("color_category", 'seawater')
 #Scattering
 water.shader.scatter_color = ("color_category", 'seawater_scatter')

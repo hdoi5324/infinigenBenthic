@@ -10,22 +10,29 @@ camera.spawn_camera_rigs.camera_rig_config = [
 #    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 ]
 
-spawn_camera_rigs.light_angle = 10 # nimbus = 10
-spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
+camera.configure_camera_lights.energy = 140
+spawn_camera_rigs.light_angle = 5 # nimbus = 10
+spawn_camera_rigs.light_offset = 0.2 # nimbus 1.2
 
-camera.set_camera_parameters.focal_mm=15.89
-camera.set_camera_parameters.pixel_size_in_mm=0.00434
+camera.set_camera_parameters.focal_mm=13.89 # Sirius 15.89 Nimbus 13.89
+camera.set_camera_parameters.pixel_size_in_mm=0.00454 # Sirius 0.00345 Nimbus 0.00454
 
-#adjust_camera_sensor.sensor_height = 13.05 #pixel_size_in_mm * image_height
+render_image.image_type='JPEG'
 render_image.use_dof = True
-render_image.dof_aperture_fstop = 2.0
-set_camera_parameters.focus_dist = 1.9
+render_image.dof_aperture_fstop = 1.4 # 2.0
+set_camera_parameters.focus_dist = 3.0 # 1.9
 #compositor_postprocessing.distort = 0.00 # Failed
-compositor_postprocessing.noise = 0.0005
 
-#execute_tasks.generate_resolution = (960, 540)
-W = 4112
-H = 3008
+compositor_postprocessing.noise = 0.0001
+
+W = 1250 # Sirius 4112 Nimbus 2752
+H = 1000 # Sirius 3008 Nimbus 2200
 execute_tasks.generate_resolution = (%W, %H)
 get_sensor_coords.H = %H
 get_sensor_coords.W = %W
+
+# Camera rig
+camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 2.3)
+camera.camera_pose_proposal.pitch = 40
+camera.camera_pose_proposal.headspace_retries = 5
+

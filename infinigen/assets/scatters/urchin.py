@@ -35,6 +35,6 @@ def apply(obj, n=5, selection=None, density=U(0.2, 0.8)):
         scale=scale, scale_rand=U(-0.1, 0.1),
         scale_rand_axi=U(-0.05, 0.05),
         selection=selection,
-        min_spacing=0.05)
+        min_spacing=0.08)
 
     return scatter_obj, urchin
