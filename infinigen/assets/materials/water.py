@@ -178,8 +178,8 @@ def shader(
     enable_scatter=True,
     colored=False,
     emissive_foam=False,
-    volume_density=("uniform", 0.1, 1.0),
-    anisotropy=("clip_gaussian", 0.5, 0.1, 0.3, 1),
+    volume_density=("uniform", 0.1, 0.8),
+    anisotropy=("clip_gaussian", 0.4, 0.1, 0.3, 1),
     scatter_density=("uniform", 0.01, 0.12),
     random_seed=0,
 ):
