@@ -110,34 +110,48 @@ def fish_fin_cloth_sim_params():
     return res
 
 def handfish_genome():
-    temp_dict = defaultdict(lambda: 0.001, {'body_fish_handfish': 0.95})
+    temp_dict = defaultdict(lambda: 0.001, {'body_handfish': 0.95})
     body_params = parts.generic_nurbs.NurbsBody(
-        prefix='body_fish', tags=['body'], var=U(0.3, 1),
+        prefix='body_handfish', tags=['body'], var=U(0.3, 1),
         temperature=temp_dict,
         shoulder_ik_ts=[0.0, 0.4, 0.7, 1.0],
         n_bones=15,
         rig_reverse_skeleton=True)
     body = genome.part(body_params)
 
+    # Positions (u, v, radius)
+    dorsal_fin_coord = (U(0.4, 0.7), 1.0, 0.6)
+    pectoral_fin_coord = (0.9, 0.3, 0.9) # Front fin
+    hind_fin_coord = (U(0.3, 0.4), N(36, 1)/180, .6) #(U(0.2, 0.3), N(36, 5)/180, .9)
+    hand_fin_coord = (0.60, 75/180, 0.6)
+    eye_coord = (0.9, 0.6, 0.9)
 
-    # Fin on back
+    # Dorsal Fins
     n_dorsal = 1 #if U() < 0.6 else randint(1, 4)
-    coord = (U(0.4, 0.7), 1, 0.7)
     for i in range(n_dorsal):
-        dorsal_fin = parts.ridged_fin.FishFin(fin_params((U(0.8, 0.9), 0.5, 0.2), dorsal=True), rig=False)
-        genome.attach(genome.part(dorsal_fin), body, coord=coord, joint=Joint(rest=(0, -100, 0)))
+        dorsal_fin = parts.ridged_fin.FishFin(fin_params((U(0.6, 0.8), 0.5, 0.2), dorsal=True), rig=False)
+        genome.attach(genome.part(dorsal_fin), body, coord=dorsal_fin_coord, joint=Joint(rest=(0, -100, 0)))
 
     rot = lambda r: np.array((20, r, -205)) # todo: add this back. + N(0, 7, 3)
 
-    # Smaller front fin
-    pectoral_fin = parts.ridged_fin.FishFin(fin_params((0.04, 0.5, 0.20)))
-    coord = (0.9, -0.6, -0.9)
-    #for side in [1, -1]:
-    #    genome.attach(genome.part(pectoral_fin), body, coord=coord,
-    #        joint=Joint(rest=(80, 15, 15)), side=side)
+    # Pectoral Fins - front fin
+    pectoral_fin = parts.ridged_fin.FishFin(fin_params((0.09, 0.08, 0.08))) #(0.07, 0.1, 0.20)))
+    for side in [1, -1]:
+        genome.attach(genome.part(pectoral_fin), body, coord=pectoral_fin_coord,
+            joint=Joint(rest=(60, 35, 45)), side=side)
+
+    # Hind Fin - Small towards the back
+    hind_fin = parts.ridged_fin.FishFin(fin_params((0.07, 0.35, 0.3))) #(0.1, 0.5, 0.3)
+    for side in [-1, 1]:
+        genome.attach(genome.part(hind_fin), body, coord=hind_fin_coord, joint=Joint(rest=(-30, 120, -15)), side=side) #(20, r, -205)
+
+    # Tail Fin
+    angle = U(140, 170)
+    tail_fin = parts.ridged_fin.FishFin(fin_params((0.1, 0.1, 0.35)), rig=False)
+    for vdir in [-1, 1]:
+        genome.attach(genome.part(tail_fin), body, coord=(0.05, .1, 0), joint=Joint((0, -angle * vdir, 0)))
 
     #hand_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.20)))
-    coord = (0.5, 0.6, 0.4)
     #for side in [-1]:
     #    genome.attach(genome.part(hand_fin), body, coord=coord,
     #        joint=Joint(rest=(-80, 20, 85)), side=side)
@@ -157,41 +171,18 @@ def handfish_genome():
         }
 
     params = parts.leg.FishHand().sample_params()
-    foot_fac = parts.foot.Foot()
+    #foot_fac = parts.foot.Foot()
     fish_hand = parts.leg.FishHand(params=params)
     for side in [-1, 1]:
         #back_leg = genome.attach(genome.part(foot_fac), genome.part(backleg_fac), coord=(0.9, 0, 0), joint=Joint(rest=(0, 20, 50)))
-        genome.attach(genome.part(fish_hand), body, coord=coord,
-            joint=Joint(rest=(100, 30, 120)), #, bounds=shoulder_bounds),
+        genome.attach(genome.part(fish_hand), body, coord=hand_fin_coord,
+            joint=Joint(rest=(120, 40, 120)), #, bounds=shoulder_bounds),
             rotation_basis='global', side=side)#, smooth_rad=0.06)#, bridge_rad=0.1)
-    # not on red handfish
-    #if 1 < 0.8:
-    #    pelvic_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.25)))
-    #    coord = (U(0.5, 0.65), U(8, 15)/180, .8)
-    #    for side in [-1, 1]:
-    #        genome.attach(genome.part(pelvic_fin), body, coord=coord, joint=Joint(rest=rot(28)), side=side)
-
-    # Small towards the back
-    if 0.2 < 0.8:
-        hind_fin = parts.ridged_fin.FishFin(fin_params((0.1, 0.5, 0.3)))
-        coord = (U(0.2, 0.3), N(36, 5)/180, .9)
-        for side in [-1, 1]:
-            genome.attach(genome.part(hind_fin), body, coord=coord, joint=Joint(rest=rot(28)), side=side)
-
-    angle = U(140, 170)
-    tail_fin = parts.ridged_fin.FishFin(fin_params((0.12, 0.5, 0.35)), rig=False)
-    for vdir in [-1, 1]:
-        genome.attach(genome.part(tail_fin), body, coord=(0.05, 0, 0), joint=Joint((0, -angle * vdir, 0)))
 
     eye_fac = parts.eye.MammalEye({'Eyelids': False, 'Radius': N(0.036, 0.01)})
-    coord = (0.9, 0.6, 0.9)
     for side in [-1, 1]:
-        genome.attach(genome.part(eye_fac), body, coord=coord,
+        genome.attach(genome.part(eye_fac), body, coord=eye_coord,
             joint=Joint(rest=(0,0,0)), side=side, rotation_basis='normal')
-
-    if False:
-        jaw = genome.part(parts.head.CarnivoreJaw({'length_rad1_rad2': (0.2, 0.1, 0.06)}))
-        genome.attach(jaw, body, coord=(0.8, 0, 0.7), joint=Joint(rest=(0, U(-30, -80), 0)), rotation_basis="normal")
 
     return genome.CreatureGenome(
         parts=body,
