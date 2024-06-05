@@ -270,6 +270,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
             placement.populate_collection(fac, col)
     p.run_stage('fish_school', add_fish_school, default=[])
 
+
     def add_bug_swarm():
         n = randint(1, params.get("max_bug_swarms", 3) + 1)
         selection = density.placement_mask(0.1, select_thresh=0, tag=land_domain)
@@ -335,10 +336,10 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     def add_corals(target):
         vertical_faces = density.placement_mask(scale=0.15, select_thresh=uniform(.44, .48))
-        coral_reef.apply(target, selection=vertical_faces, tag=underwater_domain,
+        coral_reef.apply(target, n=3, selection=vertical_faces, tag=underwater_domain,
                          density=params.get('coral_density', 1.5))
         horizontal_faces = density.placement_mask(scale=.15, normal_thresh=-.4, normal_thresh_high=.4)
-        coral_reef.apply(target, selection=horizontal_faces, n=5, horizontal=True, tag=underwater_domain,
+        coral_reef.apply(target, selection=horizontal_faces, n=3, horizontal=True, tag=underwater_domain,
                          density=params.get('horizontal_coral_density', 1.5))
     p.run_stage('corals', add_corals, terrain_inview)
 
@@ -361,13 +362,23 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                                                selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold,
                                                                                 tag=underwater_domain),
                                                         density=urchin_density))
+
+    def add_handfish():
+        selection = density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold, tag=underwater_domain)
+        fac = creatures.HandfishSchoolFactory(randint(1e7), bvh=terrain_inview_bvh)
+        col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
+                                                  overall_density=1, num_placeholders=1, altitude=.1)
+        placement.populate_collection(fac, col)
+
+    p.run_stage('handfish', add_handfish, default=[])
+
     p.run_stage('scolymia', lambda: scolymia.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
     p.run_stage('jellyfish', lambda: jellyfish.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.5, tag=underwater_domain)))
 
     p.run_stage('seashells', lambda: seashells.apply(terrain_near,
-        selection=density.placement_mask(scale=0.05, select_thresh=.5, tag='landscape,', return_scalar=True)))
+        selection=density.placement_mask(scale=0.05, select_thresh=.5, tag='underwater_domain,', return_scalar=True)))
 
     p.run_stage('colourboard', lambda: place_colourboard(cam.parent, terrain_bvh, n=3, alt=0.02, dist_range=(0, 2)))
 

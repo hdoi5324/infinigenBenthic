@@ -8,13 +8,15 @@ include 'performance/fast_terrain_assets.gin'
 run_erosion.n_iters = [1,1]
 
 surface.registry.mountain_collection = [
-    ('mountain', 10),
+    ('sandcomplex', 1),
+    ('mountain', 5),
     ("sandstone", 2),
-    ("sand", 10),
+    ("sand", 1),
     ('dirt', 1),
 ]
 surface.registry.ground_collection = [
-    ('sand', 5),
+    ('sandcomplex', 2),
+    ('sand', 1),
     ('cracked_ground', 1),
     ('stone', 1),
     ('chunkyrock', 0),
@@ -60,6 +62,7 @@ full/render_image.passes_to_save = []
 
 compose_scene.urchin_chance = 1.0
 compose_scene.urchinkina_chance = 0.0
+compose_scene.handfish_chance = 1.0
 compose_scene.fish_school_chance = 0.4
 compose_scene.colourboard_chance = 1.0
 compose_scene.seaweed_chance = 0.5

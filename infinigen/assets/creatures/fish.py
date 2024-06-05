@@ -73,7 +73,7 @@ def fin_params(scale=(1, 1, 1), dorsal=False):
         'Freq': Freq
     }
 
-def fish_postprocessing(body_parts, extras, params):
+def fish_postprocessing(body_parts, extras, params, handfish=False):
 
     get_extras = lambda k: [o for o in extras if k in o.name]
     main_template = surface.registry.sample_registry(params['surface_registry'])
@@ -82,10 +82,14 @@ def fish_postprocessing(body_parts, extras, params):
     mat = body_parts[0].active_material
     gold = (mat is not None and 'gold' in mat.name)
     body_parts[0].active_material.name.lower() or U() < 0.1
-    fishfin.apply(get_extras('Fin'), shader_kwargs={'goldfish': gold })
+
+    if handfish:
+        fishfin.apply_handfish(get_extras('Fin'))
+    else:
+        fishfin.apply(get_extras('Fin'), shader_kwargs={'goldfish': gold })
 
     fish_eye_shader.apply(get_extras('Eyeball'))
-    #eyeball.apply(get_extras('Eyeball'), shader_kwargs={"coord": "X"})
+    eyeball.apply(get_extras('Eyeball'), shader_kwargs={"coord": "X"})
 
 def fish_fin_cloth_sim_params():
 
@@ -108,93 +112,6 @@ def fish_fin_cloth_sim_params():
         res[k] = clip_gaussian(1, 0.2, 0.2, 3) * v
 
     return res
-
-def handfish_genome():
-    temp_dict = defaultdict(lambda: 0.001, {'body_handfish': 0.95})
-    body_params = parts.generic_nurbs.NurbsBody(
-        prefix='body_handfish', tags=['body'], var=U(0.3, 1),
-        temperature=temp_dict,
-        shoulder_ik_ts=[0.0, 0.4, 0.7, 1.0],
-        n_bones=15,
-        rig_reverse_skeleton=True)
-    body = genome.part(body_params)
-
-    # Positions (u, v, radius)
-    dorsal_fin_coord = (U(0.4, 0.7), 1.0, 0.6)
-    pectoral_fin_coord = (0.9, 0.3, 0.9) # Front fin
-    hind_fin_coord = (U(0.3, 0.4), N(36, 1)/180, .6) #(U(0.2, 0.3), N(36, 5)/180, .9)
-    hand_fin_coord = (0.60, 75/180, 0.6)
-    eye_coord = (0.9, 0.6, 0.9)
-
-    # Dorsal Fins
-    n_dorsal = 1 #if U() < 0.6 else randint(1, 4)
-    for i in range(n_dorsal):
-        dorsal_fin = parts.ridged_fin.FishFin(fin_params((U(0.6, 0.8), 0.5, 0.2), dorsal=True), rig=False)
-        genome.attach(genome.part(dorsal_fin), body, coord=dorsal_fin_coord, joint=Joint(rest=(0, -100, 0)))
-
-    rot = lambda r: np.array((20, r, -205)) # todo: add this back. + N(0, 7, 3)
-
-    # Pectoral Fins - front fin
-    pectoral_fin = parts.ridged_fin.FishFin(fin_params((0.09, 0.08, 0.08))) #(0.07, 0.1, 0.20)))
-    for side in [1, -1]:
-        genome.attach(genome.part(pectoral_fin), body, coord=pectoral_fin_coord,
-            joint=Joint(rest=(60, 35, 45)), side=side)
-
-    # Hind Fin - Small towards the back
-    hind_fin = parts.ridged_fin.FishFin(fin_params((0.07, 0.35, 0.3))) #(0.1, 0.5, 0.3)
-    for side in [-1, 1]:
-        genome.attach(genome.part(hind_fin), body, coord=hind_fin_coord, joint=Joint(rest=(-30, 120, -15)), side=side) #(20, r, -205)
-
-    # Tail Fin
-    angle = U(140, 170)
-    tail_fin = parts.ridged_fin.FishFin(fin_params((0.1, 0.1, 0.35)), rig=False)
-    for vdir in [-1, 1]:
-        genome.attach(genome.part(tail_fin), body, coord=(0.05, .1, 0), joint=Joint((0, -angle * vdir, 0)))
-
-    #hand_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.20)))
-    #for side in [-1]:
-    #    genome.attach(genome.part(hand_fin), body, coord=coord,
-    #        joint=Joint(rest=(-80, 20, 85)), side=side)
-
-    splay = clip_gaussian(130, 7, 90, 130) / 180
-    shoulder_t = clip_gaussian(0.12, 0.05, 0.08, 0.12)
-
-    params = {
-            'length_rad1_rad2': np.array((0.1, 0.02, 0.02)) * N(1, (0.2, 0, 0), 3),
-            'angles_deg': np.array((40.0, -120.0, 100)),
-            'fullness': 5.0,
-            'aspect': 1.0,
-            'Thigh Rad1 Rad2 Fullness': np.array((0.33, 0.15, 2.5), ) * N(1, 0.1, 3),
-            'Calf Rad1 Rad2 Fullness': np.array((0.17, 0.07, 2.5), ) * N(1, 0.1, 3),
-            'Thigh Height Tilt1 Tilt2': np.array((0.6, 0.0, 0.0), ) + N(0, [0.05, 2, 10]),
-            'Calf Height Tilt1 Tilt2': np.array((0.8, 0.0, 0.0)) + N(0, [0.05, 10, 10])
-        }
-
-    params = parts.leg.FishHand().sample_params()
-    #foot_fac = parts.foot.Foot()
-    fish_hand = parts.leg.FishHand(params=params)
-    for side in [-1, 1]:
-        #back_leg = genome.attach(genome.part(foot_fac), genome.part(backleg_fac), coord=(0.9, 0, 0), joint=Joint(rest=(0, 20, 50)))
-        genome.attach(genome.part(fish_hand), body, coord=hand_fin_coord,
-            joint=Joint(rest=(120, 40, 120)), #, bounds=shoulder_bounds),
-            rotation_basis='global', side=side)#, smooth_rad=0.06)#, bridge_rad=0.1)
-
-    eye_fac = parts.eye.MammalEye({'Eyelids': False, 'Radius': N(0.036, 0.01)})
-    for side in [-1, 1]:
-        genome.attach(genome.part(eye_fac), body, coord=eye_coord,
-            joint=Joint(rest=(0,0,0)), side=side, rotation_basis='normal')
-
-    return genome.CreatureGenome(
-        parts=body,
-        postprocess_params=dict(
-            cloth=fish_fin_cloth_sim_params(),
-            anim=fish_swim_params(),
-            surface_registry=[
-                (infinigen.assets.materials.fishbody, 3),
-                #(infinigen.assets.materials.scale, 1),
-            ]
-        )
-    )
 
 def fish_genome():
 
@@ -311,13 +228,13 @@ class FishFactory(AssetFactory):
 
     max_distance = 40
 
-    def __init__(self, factory_seed=None, bvh=None, coarse=False, animation_mode=None, species_variety=None, handfish=False, **_):
+    def __init__(self, factory_seed=None, bvh=None, coarse=False, animation_mode=None, species_variety=None):
         super().__init__(factory_seed, coarse)
         self.bvh = bvh
         self.animation_mode = animation_mode
 
         with FixedSeed(factory_seed):
-            self.species_genome = fish_genome() if not handfish else handfish_genome()
+            self.species_genome = fish_genome()
             self.species_variety = species_variety if species_variety is not None else clip_gaussian(0.2, 0.1, 0.05, 0.45)
 
     def create_asset(self, i, simulate=False, **kwargs):
@@ -378,7 +295,7 @@ class FishSchoolFactory(BoidSwarmFactory):
         )
 
         return dict(
-            particle_size=U(0.3, 1),
+            particle_size=U(0.2, 4),
             size_random=U(0.1, 0.4),
 
             use_rotation_instance=True,
@@ -407,10 +324,9 @@ class FishSchoolFactory(BoidSwarmFactory):
 
 if __name__ == "__main__":
     import os
-    for i in range(1):
-        factory = FishFactory(i, animation_mode='idle', handfish=True, species_variety=0)
-        root = factory.spawn_asset(i)
+    for i in range(3):
+        factory = FishFactory(i)
+        root = factory.create_asset(i)
         root.location[0] = i * 3
-    import os
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(os.curdir), "dev_fish5.blend"))
 
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(os.curdir), "dev_fish5.blend"))
