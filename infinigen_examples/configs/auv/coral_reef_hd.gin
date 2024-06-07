@@ -29,7 +29,7 @@ full/render_image.num_samples = 128 #8192
 
 #Terrain.populated_bounds = (-25, 25, -25, 25, -25, 0)
 #Terrain.bounds = (-200, 200, -200, 200, -40, 10)
-#OcMesher.bounds = (-40, 40, -40, 40, -30, 5) # not used on trench
+OcMesher.bounds = (-40, 40, -40, 40, -30, 5) # not used on trench
 UniformMesher.dimensions = (-15, 15, -15, 15, -30, 0)
 
 export.spherical = False # use OcMesher
