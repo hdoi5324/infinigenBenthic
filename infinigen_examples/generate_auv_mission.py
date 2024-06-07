@@ -287,6 +287,12 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
         return rock_col
     p.run_stage('rocks', add_rocks, terrain_inview)
 
+    def add_plastic_bags(target):
+        #selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7, return_scalar=True,
+        #                                   tag=land_domain)
+        plasticbag.apply(target, selection=None)
+
+    p.run_stage('plasticbag', add_plastic_bags, terrain_near)
     def add_ground_leaves(target):
         selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7, return_scalar=True, tag=land_domain)
         ground_leaves.apply(target, selection=selection, season=season)

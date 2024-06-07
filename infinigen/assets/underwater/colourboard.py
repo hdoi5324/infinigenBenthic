@@ -13,6 +13,7 @@ import numpy as np
 from infinigen.core.placement.factory import AssetFactory
 from infinigen.core.util.math import FixedSeed
 from infinigen.assets.utils.tag import tag_object, tag_nodegroup
+from infinigen.core.placement.placement import points_near_camera
 
 class ColourboardFactory(AssetFactory):
 
@@ -345,7 +346,6 @@ def apply(obj, selection=None, **kwargs):
     surface.add_material(obj, shader_cb_36, selection=selection)
 
 
-from infinigen.core.placement.placement import points_near_camera
 
 
 def place_colourboard(cam, terrain_bvh, n, alt, dist_range):

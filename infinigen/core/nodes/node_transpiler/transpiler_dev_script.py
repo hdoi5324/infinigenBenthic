@@ -32,6 +32,7 @@ from infinigen.core.nodes.node_transpiler import transpiler
 from infinigen.core.nodes import node_wrangler, node_info
 
 mode = 'write_file'
+filename = 'plasticbag.py'
 target = 'object'
 
 dependencies = [
@@ -61,7 +62,6 @@ elif mode == 'make_script':
     script.from_string(res_debug)
 elif mode == 'write_file':
 
-    filename = 'shader_script.py'
     print(f'Writing generated script to {filename}')
     with Path(filename).open('w') as f:
         f.write(res)

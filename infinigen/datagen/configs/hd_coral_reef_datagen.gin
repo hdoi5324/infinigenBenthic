@@ -11,10 +11,11 @@ iterate_scene_tasks.camera_dependent_tasks = [
     {'name': 'blendergt', 'func': @ground_truth/queue_render}
 ]
 
-iterate_scene_tasks.frame_range=[1,48]
-iterate_scene_tasks.render_frame_range=[1,48]
-iterate_scene_tasks.view_block_size = 12 # default
-iterate_scene_tasks.cam_block_size = 12
+frames = 6
+iterate_scene_tasks.frame_range=[1,%frames]
+iterate_scene_tasks.render_frame_range=[1,%frames]
+iterate_scene_tasks.view_block_size = %frames # default
+iterate_scene_tasks.cam_block_size = %frames
 iterate_scene_tasks.cam_id_ranges =(1, 2)
 
 iterate_scene_tasks.ignore_first_camera = True # This is a hack to ignore the first camera which is added to get detailed scene for downward looking camera.
