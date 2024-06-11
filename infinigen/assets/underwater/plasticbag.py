@@ -121,7 +121,7 @@ def make_plasticbag_collection(seed, n=5):
     weights = []
     child_factories = []
     for i in range(n):
-        fac, _ = PlasticbagFactory(seed + i)
+        fac = PlasticbagFactory(seed + i)
         child_factories.append(fac)
         weights.append(1.0)
 

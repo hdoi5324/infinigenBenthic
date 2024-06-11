@@ -31,6 +31,8 @@ from infinigen.core.util import exporting as exputil
 from infinigen.core.util.logging import Timer
 from infinigen.tools.datarelease_toolkit import reorganize_old_framesfolder
 from infinigen.tools.suffixes import get_suffix
+from infinigen.core.placement.bproc_camera_utility import apply_lens_distortion, load_distortion_parameters
+
 
 from .auto_exposure import nodegroup_auto_exposure
 
@@ -262,6 +264,76 @@ def postprocess_blendergt_outputs(frames_folder, output_stem):
     imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), colorize_int_array(uniq_inst_array))
     uniq_inst_path.unlink()
 
+def postprocess_blendergt_outputs_with_distortion(frames_folder, output_stem, camera_id, flat_shading):
+    cam_ob = cam_util.get_camera(*camera_id)
+    mapping_coords, orig_res = load_distortion_parameters(cam_ob)
+
+    # Save flow visualization
+    flow_dst_path = frames_folder / f"Vector{output_stem}.exr"
+    flow_array = load_flow(flow_dst_path)
+    flow_array = apply_lens_distortion(flow_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"Flow{output_stem}.npy"), flow_array)
+    imwrite(flow_dst_path.with_name(f"Flow{output_stem}.png"), colorize_flow(flow_array))
+    flow_dst_path.unlink()
+
+    # Save surface normal visualization
+    normal_dst_path = frames_folder / f"Normal{output_stem}.exr"
+    normal_array = load_normals(normal_dst_path)
+    normal_array = apply_lens_distortion(normal_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"SurfaceNormal{output_stem}.npy"), normal_array)
+    imwrite(flow_dst_path.with_name(f"SurfaceNormal{output_stem}.png"), colorize_normals(normal_array))
+    normal_dst_path.unlink()
+
+    # Save depth visualization
+    depth_dst_path = frames_folder / f"Depth{output_stem}.exr"
+    depth_array = load_depth(depth_dst_path)
+    depth_array = apply_lens_distortion(depth_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"Depth{output_stem}.npy"), depth_array)
+    imwrite(depth_dst_path.with_name(f"Depth{output_stem}.png"), colorize_depth(depth_array))
+    depth_dst_path.unlink()
+
+    # Save segmentation visualization
+    seg_dst_path = frames_folder / f"IndexOB{output_stem}.exr"
+    seg_mask_array = load_seg_mask(seg_dst_path)
+    seg_mask_array = apply_lens_distortion(seg_mask_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"ObjectSegmentation{output_stem}.npy"), seg_mask_array)
+    imwrite(seg_dst_path.with_name(f"ObjectSegmentation{output_stem}.png"), colorize_int_array(seg_mask_array))
+    seg_dst_path.unlink()
+
+    # Save unique instances visualization
+    uniq_inst_path = frames_folder / f"UniqueInstances{output_stem}.exr"
+    uniq_inst_array = load_uniq_inst(uniq_inst_path)
+    uniq_inst_array = apply_lens_distortion(uniq_inst_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
+    imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), colorize_int_array(uniq_inst_array))
+    uniq_inst_path.unlink()
+
+def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_ground_truth, output="Image", image_type='PNG'):
+    # Distort Apply distortion
+    image_type = 'jpg' if image_type == "JPEG" else image_type.lower()
+    cam_ob = cam_util.get_camera(*camera_id)
+    mapping_coords, orig_res = load_distortion_parameters(cam_ob)
+
+    image_dst_path = frames_folder / f"{output}{output_stem}.{image_type}"
+    image_array = imread(image_dst_path)
+    image_array = apply_lens_distortion(image_array, mapping_coords=mapping_coords,
+                                                 orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                                 use_interpolation=not saving_ground_truth)
+
+    np.save(image_dst_path.with_name(f"{output}{output_stem}.npy"), image_array)
+    imwrite(image_dst_path.with_name(f"{output}{output_stem}.{image_type}"), image_array)
+
+
 @gin.configurable
 def render_image(
     camera_id,
@@ -279,7 +351,8 @@ def render_image(
     motion_blur_shutter=0.5,
     render_resolution_override=None,
     excludes=[],
-    image_type='PNG'
+    image_type='PNG',
+    apply_distortion=False
 ):
     tic = time.time()
 
@@ -334,10 +407,8 @@ def render_image(
             nw = NodeWrangler(compositor_node_tree)
 
             render_layers        = nw.new_node(Nodes.RenderLayers)
-            final_image_denoised = compositor_postprocessing(nw, source=render_layers.outputs["Image"],
-                saving_ground_truth=flat_shading)
-            final_image_noisy    = compositor_postprocessing(nw, source=render_layers.outputs["Noisy Image"], show=False,
-                saving_ground_truth=flat_shading)
+            final_image_denoised = compositor_postprocessing(nw, source=render_layers.outputs["Image"])
+            final_image_noisy    = compositor_postprocessing(nw, source=render_layers.outputs["Noisy Image"], show=False)
 
             compositor_nodes = configure_compositor_output(
                 nw,
@@ -378,8 +449,17 @@ def render_image(
             if flat_shading:
                 bpy.context.scene.frame_set(frame)
                 suffix = get_suffix(dict(frame=frame, **indices))
-                postprocess_blendergt_outputs(frames_folder, suffix)
+                if apply_distortion:
+                    postprocess_blendergt_outputs_with_distortion(frames_folder, suffix, camera_id, flat_shading)
+                else:
+                    postprocess_blendergt_outputs(frames_folder, suffix)
             else:
+                bpy.context.scene.frame_set(frame)
+                suffix = get_suffix(dict(frame=frame, **indices))
+                if apply_distortion:
+                    # Note:  Need to have used set_lens_distortion when configuring cameras
+                    postprocess_apply_distortion(camera_id, frames_folder, suffix, flat_shading, output="Image",
+                                                 image_type=image_type)
                 cam_util.save_camera_parameters(
                     camera_ids=cam_util.get_cameras_ids(),
                     output_folder=frames_folder,

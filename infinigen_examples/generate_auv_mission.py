@@ -35,7 +35,7 @@ from infinigen.assets.scatters import (
     pebbles, grass, ground_leaves, ground_twigs, \
     chopped_trees, pinecone, fern, flowerplant, monocot as monocots, ground_mushroom, \
     slime_mold, moss, ivy, lichen, mushroom, decorative_plants, seashells, \
-    pine_needle, seaweed, coral_reef, jellyfish, urchin, scolymia, urchin_kina
+    pine_needle, seaweed, coral_reef, jellyfish, urchin, scolymia, urchin_kina, plasticbag
 )
 
 from infinigen.assets.materials import (
@@ -288,14 +288,15 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     p.run_stage('rocks', add_rocks, terrain_inview)
 
     def add_plastic_bags(target):
-        #selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7, return_scalar=True,
-        #                                   tag=land_domain)
-        plasticbag.apply(target, selection=None)
+        selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7, return_scalar=True,
+                                           tag=underwater_domain)
+        plasticbag.apply(target, selection=selection)
 
     p.run_stage('plasticbag', add_plastic_bags, terrain_near)
-    def add_ground_leaves(target):
-        selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7, return_scalar=True, tag=land_domain)
-        ground_leaves.apply(target, selection=selection, season=season)
+
+    #def add_ground_leaves(target):
+    #    selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7, return_scalar=True, tag=land_domain)
+    #    ground_leaves.apply(target, selection=selection, season=season)
     #p.run_stage('ground_leaves', add_ground_leaves, terrain_near, prereq='trees')
 
     def add_ground_twigs(target):

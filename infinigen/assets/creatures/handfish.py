@@ -191,27 +191,24 @@ class HandfishSchoolFactory(BoidSwarmFactory):
                 dict(type='FLOCK'),
             ],
 
-            air_speed_max = U(5, 10),
+            air_speed_max = 0, #U(5, 10),
             air_acc_max = U(0.7, 1),
-            air_personal_space = U(0.15, 2),
+            air_personal_space = 2, #U(0.15, 2),
             bank = 0, # fish dont tip over / roll
             pitch = 0.4, #
             rule_fuzzy = U(0.6, 0.9)
         )
 
         return dict(
-            particle_size=0.1, #U(0.1, 0.3),
+            particle_size=0.05, #U(0.1, 0.3),
             size_random=0.0, # U(0.0, 0.1),
-
             use_rotation_instance=True,
-
             lifetime=bpy.context.scene.frame_end - bpy.context.scene.frame_start,
             warmup_frames=1, emit_duration=0, # all particles appear immediately
             emit_from='VOLUME',
             mass = 2,
             use_multiply_size_mass=True,
             effect_gravity=0,
-
             boids_settings=boids_settings
         )
 

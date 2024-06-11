@@ -10,6 +10,7 @@
 from random import sample
 import sys
 import warnings
+import os
 from copy import deepcopy, copy
 from functools import partial
 from itertools import chain
@@ -43,7 +44,7 @@ from infinigen.core.util.random import random_general
 
 from infinigen.tools.suffixes import get_suffix
 
-from infinigen.core.placement.bproc_camera_utility import set_intrinsics_from_K_matrix, set_intrinsics_from_blender_params
+from infinigen.core.placement.bproc_camera_utility import set_intrinsics_from_blender_params, set_lens_distortion, save_distortion_parameters
 
 logger = logging.getLogger(__name__)
 
@@ -537,11 +538,10 @@ def configure_camera_lights(
 def set_camera_parameters(cam_rigs,
                           focal_mm=15.89,
                           pixel_size_in_mm=0.00343,
+                          use_distortion=False,
                           k1_k2_p1_p2_k3=[0.08294964878778682,
                                           0.3280632761758799,
-                                          -0.004615317367818974,
-                                          0.001986514143891786,
-                                          0.0],
+                                          -0.004615317367818974, 0.001986514143891786, 0.0],
                           #f=4633,
                           cx=None,
                           cy=None,
@@ -549,6 +549,8 @@ def set_camera_parameters(cam_rigs,
                           ):
     [k1, k2, p1, p2, k3] = k1_k2_p1_p2_k3
     image_height = bpy.context.scene.render.resolution_y
+    image_width = bpy.context.scene.render.resolution_x
+    f = int(focal_mm / pixel_size_in_mm)
     #K = np.array([
     #    [f, 0, cx],
     #    [0, f, cy],
@@ -570,14 +572,15 @@ def set_camera_parameters(cam_rigs,
             set_intrinsics_from_blender_params(cam_ob, lens=focal_mm, lens_unit="MILLIMETERS",
                                                             shift_x=cx,
                                                             shift_y=cy)
+            if use_distortion:
+                mapping_coords = set_lens_distortion(
+                    cam_ob, image_height, image_width, k1, k2, k3, p1, p2)
+                save_distortion_parameters(cam_ob, mapping_coords, np.array([image_height, image_width]))
+
             if focus_dist is not None:
                 # Note: aperture and use_dof is set in render_image
                 cam_data.dof.focus_distance = focus_dist  # this should come before view_layer.update()
             bpy.context.view_layer.update()
-
-    # todo: set lens distortion.  add bproc copied method
-            #set_lens_distortion(k1, k2, k3, p1, p2)
-
 
 
 @gin.configurable

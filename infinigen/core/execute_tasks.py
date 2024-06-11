@@ -316,8 +316,9 @@ def execute_tasks(
     bpy.context.scene.frame_start = int(frame_range[0])
     bpy.context.scene.frame_end = int(frame_range[1])
     bpy.context.scene.frame_set(int(frame_range[0]))
-    bpy.context.scene.render.resolution_x = generate_resolution[0]
-    bpy.context.scene.render.resolution_y = generate_resolution[1]
+    # This gets set in camera parameters so not needed
+    # bpy.context.scene.render.resolution_x = generate_resolution[0]
+    #bpy.context.scene.render.resolution_y = generate_resolution[1]
     bpy.context.view_layer.update()
 
     surface.registry.initialize_from_gin()
