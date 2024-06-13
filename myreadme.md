@@ -86,14 +86,14 @@ python -m infinigen.launch_blender -m infinigen_examples.generate_nature -- --se
 
 ```commandline
 rm -fr outputs/nimbusv4; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv4 --num_scenes 20 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
-local_64GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin; sudo shutdown -h 20
+local_16GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin; sudo shutdown -h 20
 ```
 
 
 For home
-
+--cleanup big_files 
 ```commandline
-rm -fr outputs/nimbusv3; python -m infinigen.datagen.manage_jobs -- --output_folder outputs/nimbusv3 --num_scenes 5 --cleanup big_files --configs coral_reef_hd.gin --pipeline_configs \
+rm -fr outputs/test_video; python -m infinigen.datagen.manage_jobs -- --cleanup big_files --output_folder outputs/test_video --num_scenes 5 --configs coral_reef_hd.gin --pipeline_configs \
 local_16GB.gin monocular.gin blender_gt.gin cuda_terrain.gin hd_coral_reef_datagen.gin
 ```
 add high_quality_terrain.gin for fine quality.
@@ -114,6 +114,12 @@ rm -fr  */*/frames/Flow */*/frames/SurfaceNormal */*/frames/*/*/*exr */*/frames/
 
 # when everything has finisehd
 rm -fr */*/coarse */*/fine 
+```
+
+### Demo assets
+```bash
+python -m infinigen.datagen.manage_jobs --output_folder outputs/hello_world --num_scenes 1 --specific_seed 0 \
+--configs desert.gin simple.gin --pipeline_configs local_16GB.gin monocular.gin asset_demo.gin
 ```
 
 ### Asset configuration
@@ -144,13 +150,27 @@ Scene
 * Render - added noise and lens distortion.  Noise could be improved.
 * Animation - used settings for straight camera path
 
+21 May
+* Terrain - update surface registry so that 'mountain' uses more surface types.  Mountain used a lot in underwater.
+* Assets - adjust selection of where assets are 'scattered' by lowering select_thresh.  
+* Assets - added handfish body and arm.
+* Assets - added colourboards
+* Animation - mow the lawn animation path
+* Camera - can use as downward looking with depth of field and aperture OR in ROV with no DOF
+* Script for running variations
+
+
+
 ### todo
-* postprocessing - getting noisy image but could add noise to compositor (or is it already doing this?)
+* handfish - first cut handfish
 * materials - better sand  texture; check terrain colours as they appear too red at times.
-* assets - add colour boards
-* understand placement in scatter
+* assets - place assets along camera path
+* assets - add other assets to cause some difficulty eg lichen.  pebbles?
+* Annotations - update renaming of images to combo of directory names.
 
-
+### Issues
+* Render - lense disortion causes issues with flat render used for ground truth.
+* High quality terrain or complex assets (eg kelp) - runs out of memory
 
 #### Collate examples
   

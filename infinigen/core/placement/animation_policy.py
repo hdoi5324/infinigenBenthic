@@ -34,13 +34,13 @@ def get_altitude(loc, terrain_bvh, dir=Vector((0.,0.,-1.))):
 
 @gin.configurable
 def walk_same_altitude(
-    start_loc, 
-    sampler, 
-    bvh, 
-    filter_func=None, 
-    fall_ratio=1.5, 
-    retries=30, 
-    step_up_height=2, 
+    start_loc,
+    sampler,
+    bvh,
+    filter_func=None,
+    fall_ratio=1.5,
+    retries=30,
+    step_up_height=2,
     ignore_missed_rays=False
 ):
 
@@ -62,7 +62,7 @@ def walk_same_altitude(
                 curr_alt = start_loc.z
             if new_alt is None:
                 new_alt = pos.z
-                
+
         if curr_alt is None or new_alt is None:
             if curr_alt is None:
                 raise PolicyError()
@@ -90,10 +90,10 @@ class AnimPolicyBrownian:
     def __init__(self, speed=3, pos_var=15.0):
         self.speed = speed
         self.pos_var = pos_var
-        
+
 
     def __call__(self, obj, frame_curr, bvh, retry_pct):
-        
+
         speed = random_general(self.speed)
         sampler = lambda: N(0, [self.pos_var, self.pos_var, 0.5])
         pos = walk_same_altitude(obj.location, sampler, bvh)
@@ -105,13 +105,13 @@ class AnimPolicyBrownian:
 
 
 @gin.configurable
-class AnimPolicyWalkForward:
+class AnimPolicyMowTheLawn:
 
-    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, var=0.02, transect_frames=16, turn_frames=4):
+    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, percent_var=0.1, turn_frames=4, transect_multiple=5):
         self.speed = speed
         self.fps = fps
-        self.var = var
-        self.transect_frames = transect_frames
+        self.percent_var = percent_var
+        self.transect_frames = turn_frames * transect_multiple
         self.turn_frames = turn_frames
 
     def __call__(self, obj, frame_curr, bvh, retry_pct):
@@ -131,16 +131,18 @@ class AnimPolicyWalkForward:
         yaw = obj.rotation_euler[2] + np.pi/2
         x = speed/self.fps*np.cos(yaw) #* -1
         y = speed/self.fps*np.sin(yaw) #* -1
+        var_x = np.abs(x * self.percent_var)
+        var_y = np.abs(y * self.percent_var)
 
         #sampler = lambda: [0.0, speed/self.fps, 0.5]
-        sampler = lambda: [N(x, self.var), N(y, self.var), N(0, 0.2)]
+        sampler = lambda: [N(x, var_x), N(y, var_y), N(0, 0.2)]
         pos = walk_same_altitude(obj.location, sampler, bvh)
-        time = 1 / self.fps - 0.1
+        time = 1 / self.fps - 0.001 # Make the time slightly less than one frame so that it always moves forward one frame.
 
         rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
 
         return Vector(pos), Vector(rot), time, "BEZIER"
-   
+
 @gin.configurable
 class AnimPolicyPan:
 
@@ -208,15 +210,17 @@ class AnimPolicyRandomWalkLookaround:
     def __init__(
         self, 
         speed=('uniform', 1, 2.5), 
-        yaw_range=(-20, 20), 
-        step_range=(10, 15),
+        step_speed_mult=('uniform', 0.5, 2),
+        yaw_sampler=('uniform',-20, 20), 
+        step_range=('clip_gaussian', 3, 5, 0.5, 10),
         rot_vars=(5, 0, 5),
         motion_dir_zoff=('clip_gaussian', 0, 90, 0, 180)
     ):
         
         self.speed = random_general(speed)
 
-        self.yaw_range = yaw_range
+        self.step_speed_mult = step_speed_mult
+        self.yaw_sampler = yaw_sampler
         self.step_range = step_range
         self.rot_vars = rot_vars
 
@@ -233,15 +237,16 @@ class AnimPolicyRandomWalkLookaround:
         orig_motion_dir_euler = copy(self.motion_dir_euler)
         def sampler():
             self.motion_dir_euler = copy(orig_motion_dir_euler)
-            self.motion_dir_euler[2] += np.deg2rad(U(*self.yaw_range))
-            step = U(*self.step_range)
+            self.motion_dir_euler[2] += np.deg2rad(random_general(self.yaw_sampler))
+            step = random_general(self.step_range)
             off = Euler(self.motion_dir_euler, 'XYZ').to_matrix() @ Vector((0, 0, -step))
             off.z = 0
             return off
 
         pos = walk_same_altitude(obj.location, sampler, bvh)
 
-        time = np.linalg.norm(pos - obj.location) / self.speed
+        step_speed = self.speed * random_general(self.step_speed_mult)
+        time = np.linalg.norm(pos - obj.location) / step_speed
         rot = np.array(obj.rotation_euler) + np.deg2rad(N(0, self.rot_vars, 3))
 
         return Vector(pos), Vector(rot), time, 'BEZIER'

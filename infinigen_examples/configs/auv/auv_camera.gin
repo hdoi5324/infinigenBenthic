@@ -1,24 +1,47 @@
-# Hack to create a higher first camera to increase fine terrain generated.
-# The first camera is ignored later during rendering through hard coded change
+# Camera rig
+camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 2.3)
+camera.camera_pose_proposal.pitch = 20 # 0 for downward looking
+camera_offset = 0.05 # Half baseline for stereo
 camera_pitch = 0
-camera_offset = 0.05
 camera_yaw=0
+camera.camera_pose_proposal.headspace_retries = 5
+# The first camera is ignored later during rendering through hard coded change. Hack to create a higher first camera to increase fine terrain generated.
 hack_camera_height = 8 # Set to 8m for downward looking camera eg camera_pitch = 0
 camera.spawn_camera_rigs.camera_rig_config = [
     {'loc': (0, 0, %hack_camera_height), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # Hack camera particularly for downward looking camera.  ignored during render.
     {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
-    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
+#    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 ]
 
+# Lens and resolution
+camera.set_camera_parameters.focal_mm=15.89 # Sirius 15.89 Nimbus 13.89
+camera.set_camera_parameters.pixel_size_in_mm=0.00345 # Sirius 0.00345 Nimbus 0.00454
+W = 1920 # Sirius 4112  Nimbus 2752 Scaled down 1250 1360
+H = 1080 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
+execute_tasks.generate_resolution = (%W, %H)
+get_sensor_coords.H = %H
+get_sensor_coords.W = %W
+
+# Distortion.  Based on Blenderproc distortion approach
+camera.set_camera_parameters.use_distortion=True
+full/render_image.apply_distortion = True
+flat/render_image.apply_distortion = True
+
+
+# Lights
+camera.configure_camera_lights.energy = 200
 spawn_camera_rigs.light_angle = 10 # nimbus = 10
 spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
 
-camera.set_camera_parameters.focal_mm=15.89
-camera.set_camera_parameters.pixel_size_in_mm=0.00343
 
-#adjust_camera_sensor.sensor_height = 5.2 #pixel_size_in_mm * image_height
+# Render
 render_image.use_dof = True
-render_image.dof_aperture_fstop = 1.7
-set_camera_parameters.focus_dist = 1.9
-#compositor_postprocessing.distort = 0.00 # Failed
-compositor_postprocessing.noise = 0.0005
+render_image.dof_aperture_fstop = 1.4 # AUV 2.0 ROV 1.4
+set_camera_parameters.focus_dist = 2.5 # AUV 1.9 # ROV 3.0
+#compositor_postprocessing.distort = 0.00 # This breaks the blendergt stuff.  Flat render is stuffed.
+compositor_postprocessing.noise = 0.0001
+
+
+
+
+

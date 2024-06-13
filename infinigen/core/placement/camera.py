@@ -10,6 +10,7 @@
 from random import sample
 import sys
 import warnings
+import os
 from copy import deepcopy, copy
 from functools import partial
 from itertools import chain
@@ -43,7 +44,7 @@ from infinigen.core.util.random import random_general
 
 from infinigen.tools.suffixes import get_suffix
 
-from infinigen.core.placement.bproc_camera_utility import set_intrinsics_from_K_matrix, set_intrinsics_from_blender_params
+from infinigen.core.placement.bproc_camera_utility import set_intrinsics_from_blender_params, set_lens_distortion, save_distortion_parameters
 
 logger = logging.getLogger(__name__)
 
@@ -66,14 +67,14 @@ def get_sensor_coords(cam, H, W, sparse=False):
     pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
     if (camd.sensor_fit == 'VERTICAL'):
 
-        # the sensor height is fixed (sensor fit is horizontal), 
+        # the sensor height is fixed (sensor fit is horizontal),
         # the sensor width is effectively changed with the pixel aspect ratio
         s_u = resolution_x_in_px * scale / sensor_width_in_m / pixel_aspect_ratio  # pixels per milimeter
         s_v = resolution_y_in_px * scale / sensor_height_in_m
-        
+
     else: # 'HORIZONTAL' and 'AUTO'
 
-        # the sensor width is fixed (sensor fit is horizontal), 
+        # the sensor width is fixed (sensor fit is horizontal),
         # the sensor height is effectively changed with the pixel aspect ratio
         pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
         s_u = resolution_x_in_px * scale / sensor_width_in_m
@@ -160,17 +161,17 @@ def spawn_camera_rigs(
             spot_location = spot_offset if j == 0 else spot_offset * -1
             spot.location = spot_location
 
-            spot_angle = light_angle if j == 0 else -light_angle
+            spot_angle = (light_angle if j == 1 else -light_angle) + camera_pitch
             spot.rotation_euler = [np.deg2rad(spot_angle), 0, 0]
         return rig_parent
 
     camera_rigs = [spawn_rig(i) for i in range(n_camera_rigs)]
     butil.group_in_collection(camera_rigs, CAMERA_RIGS_DIRNAME)
-        
+
     return camera_rigs
 
 def get_cameras_ids() -> list[tuple]:
-
+    #todo: merge rigs change from v1.3.3
     res = []
     col = bpy.data.collections[CAMERA_RIGS_DIRNAME]
     for i, root in enumerate(col.objects):
@@ -189,7 +190,7 @@ def get_camera(rig_id, subcam_id, checkonly=False):
     name = camera_name(rig_id, subcam_id)
     if name in col.objects.keys():
         return col.objects[name]
-    if checkonly: 
+    if checkonly:
         return None
     raise ValueError(f'Could not get_camera({rig_id=}, {subcam_id=}). {list(col.objects.keys())=}')
 
@@ -246,7 +247,7 @@ def terrain_camera_query(cam, terrain_bvh, terrain_tags_queries, vertexwise_min_
             continue
         dists.append(dist)
         if (
-            dist < min_dist or 
+            dist < min_dist or
             (vertexwise_min_dist is not None and dist < vertexwise_min_dist[index])
         ):
             dists = None # means dist < min
@@ -260,13 +261,13 @@ def terrain_camera_query(cam, terrain_bvh, terrain_tags_queries, vertexwise_min_
 
 @gin.configurable
 def camera_pose_proposal(
-    terrain_bvh, 
-    terrain_bbox, 
-    altitude=2, 
-    roll=0, 
+    terrain_bvh,
+    terrain_bbox,
+    altitude=2,
+    roll=0,
     yaw=('uniform', -180, 180),
-    pitch=90, 
-    headspace_retries=30, 
+    pitch=90,
+    headspace_retries=30,
     override_loc=None,
     override_rot=None
 ):
@@ -275,7 +276,7 @@ def camera_pose_proposal(
         loc = np.random.uniform(*terrain_bbox)
 
         alt = animation_policy.get_altitude(loc, terrain_bvh)
-        if alt is None: 
+        if alt is None:
             return None
 
         # todo: change this to check whether camera is downward facing.  If not, check headspace.
@@ -298,7 +299,7 @@ def camera_pose_proposal(
         #    return None
 
         loc[2] = loc[2] + zoff
-        if loc[2] > terrain_bbox[1][2] or loc[2] < terrain_bbox[0][2]: 
+        if loc[2] > terrain_bbox[1][2] or loc[2] < terrain_bbox[0][2]:
             return None
     else:
         loc = Vector(random_general(override_loc))
@@ -315,9 +316,9 @@ def keep_cam_pose_proposal(
     terrain,
     terrain_bvh, 
     placeholders_kd, 
-    terrain_tags_answers,
+    camera_selection_answers,
     vertexwise_min_dist,
-    terrain_tags_ratio,
+    camera_selection_ratio,
     min_placeholder_dist=0,
     min_terrain_distance=0,
     terrain_coverage_range=(0.5, 1),
@@ -325,22 +326,22 @@ def keep_cam_pose_proposal(
 
     if terrain is not None: # TODO refactor
         terrain_sdf = terrain.compute_camera_space_sdf(np.array(cam.location).reshape((1, 3)))
-        
+
     if not cam.type == 'CAMERA':
         cam = [c for c in cam.children if c.type == 'CAMERA'][0]
     if not cam.type == 'CAMERA':
         raise ValueError(f'{cam.name=} had {cam.type=}')
 
     bpy.context.view_layer.update()
-    
+
     # Reject cameras too close to any placeholder vertex
     v, i, dist_to_placeholder = placeholders_kd.find(cam.matrix_world.translation)
     if dist_to_placeholder is not None and dist_to_placeholder < min_placeholder_dist:
         logger.debug(f'keep_cam_pose_proposal rejects {dist_to_placeholder=}, {v, i}')
         return None
 
-    dists, terrain_tags_answers_counts, n_pix = terrain_camera_query(
-        cam, terrain_bvh, terrain_tags_answers, vertexwise_min_dist, min_dist=min_terrain_distance)
+    dists, camera_selection_answers_counts, n_pix = terrain_camera_query(
+        cam, terrain_bvh, camera_selection_answers, vertexwise_min_dist, min_dist=min_terrain_distance)
     
     if dists is None:
         logger.debug('keep_cam_pose_proposal rejects terrain dists')
@@ -357,7 +358,7 @@ def keep_cam_pose_proposal(
         logger.debug(f'keep_cam_pose_proposal rejects {terrain_sdf=}')
         return None
 
-    if rparams := terrain_tags_ratio:
+    if rparams := camera_selection_ratio:
         for q in rparams:
             if type(q) is tuple and q[0] == "closeup":
                 closeup = len([d for d in dists if d < q[1]])/n_pix
@@ -365,8 +366,8 @@ def keep_cam_pose_proposal(
                     return None
             else:
                 minv, maxv = rparams[q][0], rparams[q][1]
-                if q in terrain_tags_answers_counts:
-                    ratio = terrain_tags_answers_counts[q] / n_pix
+                if q in camera_selection_answers_counts:
+                    ratio = camera_selection_answers_counts[q] / n_pix
                     if ratio < minv or ratio > maxv:
                         return None
 
@@ -407,9 +408,9 @@ def compute_base_views(
     terrain_bvh, 
     terrain_bbox, 
     placeholders_kd=None,
-    terrain_tags_answers={}, 
+    camera_selection_answers={},
     vertexwise_min_dist=None,
-    terrain_tags_ratio=None,
+    camera_selection_ratio=None,
     min_candidates_ratio=20,
     max_tries=10000,
 ):
@@ -427,9 +428,9 @@ def compute_base_views(
 
             criterion = keep_cam_pose_proposal(
                 cam, terrain, terrain_bvh, placeholders_kd,
-                terrain_tags_answers=terrain_tags_answers,
+                camera_selection_answers=camera_selection_answers,
                 vertexwise_min_dist=vertexwise_min_dist,
-                terrain_tags_ratio=terrain_tags_ratio,
+                camera_selection_ratio=camera_selection_ratio,
             )
             if criterion is None:
                 continue
@@ -451,12 +452,31 @@ def compute_base_views(
     return sorted(potential_views, reverse=True)[:n_views]
 
 @gin.configurable
+def camera_selection_keep_in_animation(**kwargs):
+    return kwargs
+
+@gin.configurable
+def camera_selection_tags_ratio(**kwargs):
+    keep_in_animation = camera_selection_keep_in_animation()
+    d = {}
+    for k in kwargs:
+        d[k] = (*kwargs[k], k in keep_in_animation and keep_in_animation[k])
+    return d
+
+@gin.configurable
+def camera_selection_ranges_ratio(**kwargs):
+    keep_in_animation = camera_selection_keep_in_animation()
+    d = {}
+    for k in kwargs:
+        d[kwargs[k][:-2]] = (kwargs[k][-2], kwargs[k][-1], k in keep_in_animation and keep_in_animation[k])
+    return d
+
 def camera_selection_preprocessing(
     terrain, 
-    terrain_mesh, 
-    terrain_tags_ratio={},
+    terrain_mesh,
 ):
-    
+    camera_selection_ratio = camera_selection_tags_ratio()
+    camera_selection_ratio.update(camera_selection_ranges_ratio())
     with Timer('Building placeholders KDTree'):
         
         placeholders = list(chain.from_iterable(
@@ -475,15 +495,15 @@ def camera_selection_preprocessing(
         )
 
     with Timer(f'Building terrain BVHTree'):
-        terrain_bvh, terrain_tags_answers, vertexwise_min_dist = terrain.build_terrain_bvh_and_attrs(terrain_tags_ratio.keys())
+        terrain_bvh, camera_selection_answers, vertexwise_min_dist = terrain.build_terrain_bvh_and_attrs(camera_selection_ratio.keys())
 
     return dict(
         terrain=terrain,
         terrain_bvh=terrain_bvh,
-        terrain_tags_answers=terrain_tags_answers,
+        camera_selection_answers=camera_selection_answers,
         vertexwise_min_dist=vertexwise_min_dist,
         placeholders_kd=placeholders_kd,
-        terrain_tags_ratio=terrain_tags_ratio,
+        camera_selection_ratio=camera_selection_ratio,
     )
 
 @gin.configurable
@@ -537,11 +557,10 @@ def configure_camera_lights(
 def set_camera_parameters(cam_rigs,
                           focal_mm=15.89,
                           pixel_size_in_mm=0.00343,
+                          use_distortion=False,
                           k1_k2_p1_p2_k3=[0.08294964878778682,
                                           0.3280632761758799,
-                                          -0.004615317367818974,
-                                          0.001986514143891786,
-                                          0.0],
+                                          -0.004615317367818974, 0.001986514143891786, 0.0],
                           #f=4633,
                           cx=None,
                           cy=None,
@@ -549,6 +568,8 @@ def set_camera_parameters(cam_rigs,
                           ):
     [k1, k2, p1, p2, k3] = k1_k2_p1_p2_k3
     image_height = bpy.context.scene.render.resolution_y
+    image_width = bpy.context.scene.render.resolution_x
+    f = int(focal_mm / pixel_size_in_mm)
     #K = np.array([
     #    [f, 0, cx],
     #    [0, f, cy],
@@ -570,14 +591,15 @@ def set_camera_parameters(cam_rigs,
             set_intrinsics_from_blender_params(cam_ob, lens=focal_mm, lens_unit="MILLIMETERS",
                                                             shift_x=cx,
                                                             shift_y=cy)
+            if use_distortion:
+                mapping_coords = set_lens_distortion(
+                    cam_ob, image_height, image_width, k1, k2, k3, p1, p2)
+                save_distortion_parameters(cam_ob, mapping_coords, np.array([image_height, image_width]))
+
             if focus_dist is not None:
                 # Note: aperture and use_dof is set in render_image
                 cam_data.dof.focus_distance = focus_dist  # this should come before view_layer.update()
             bpy.context.view_layer.update()
-
-    # todo: set lens distortion.  add bproc copied method
-            #set_lens_distortion(k1, k2, k3, p1, p2)
-
 
 
 @gin.configurable
@@ -586,22 +608,28 @@ def animate_cameras(
     scene_preprocessed, 
     pois=None,
     follow_poi_chance=0.0,
-    strict_selection=False,
     policy_registry = None,
 ):
+    animation_ratio = {}
+    animation_answers = {}
+    for k in scene_preprocessed['camera_selection_ratio']:
+        if scene_preprocessed['camera_selection_ratio'][k][2]:
+            animation_ratio[k] = scene_preprocessed['camera_selection_ratio'][k]
+            animation_answers[k] = scene_preprocessed['camera_selection_answers'][k]
+
     anim_valid_pose_func = partial(
         keep_cam_pose_proposal,
         placeholders_kd=scene_preprocessed['placeholders_kd'],
         terrain_bvh=scene_preprocessed['terrain_bvh'],
         terrain=scene_preprocessed['terrain'],
         vertexwise_min_dist=scene_preprocessed['vertexwise_min_dist'],
-        terrain_tags_answers=scene_preprocessed['terrain_tags_answers'] if strict_selection else {},
-        terrain_tags_ratio=scene_preprocessed['terrain_tags_ratio'] if strict_selection else {},
+        camera_selection_answers=animation_answers,
+        camera_selection_ratio=animation_ratio,
     )
 
-
     for cam_rig in cam_rigs:
-        if policy_registry is None:  
+
+        if policy_registry is None:
             if U() < follow_poi_chance and pois is not None and len(pois):
                 policy = animation_policy.AnimPolicyFollowObject(
                     target_obj=cam_rig, 
@@ -612,7 +640,9 @@ def animate_cameras(
                 policy = animation_policy.AnimPolicyRandomWalkLookaround()
         else:
             policy = policy_registry()
+
         logger.info(f'Animating {cam_rig=} using {policy=}')
+
         animation_policy.animate_trajectory(
             cam_rig, 
             scene_preprocessed['terrain_bvh'],

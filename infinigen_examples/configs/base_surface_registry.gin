@@ -1,9 +1,9 @@
 surface.registry.ground_collection = [
     ('sand', 5),
-    ('cracked_ground', 0),
-    ('stone', 0),
+    ('cracked_ground', 1),
+    ('stone', 1),
     ('chunkyrock', 0),
-    ('sandstone', 0),
+    ('sandstone', 1),
 ]
 
 surface.registry.beach = [
@@ -25,6 +25,8 @@ surface.registry.eroded = [
 surface.registry.mountain_collection = [
     ('mountain', 10),
     ("sandstone", 2),
+    ("sand", 10),
+    ('dirt', 1),
 ]
 
 surface.registry.rock_collection = [

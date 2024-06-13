@@ -13,6 +13,7 @@ import numpy as np
 from infinigen.core.placement.factory import AssetFactory
 from infinigen.core.util.math import FixedSeed
 from infinigen.assets.utils.tag import tag_object, tag_nodegroup
+from infinigen.core.placement.placement import points_near_camera
 
 class ColourboardFactory(AssetFactory):
 
@@ -23,6 +24,7 @@ class ColourboardFactory(AssetFactory):
 
     def create_asset(self, **kwargs) -> bpy.types.Object:
         obj = new_cube()
+        obj.name = "colourboard"
         surface.add_geomod(obj, geometry_nodes, selection=None, attributes=[])
         #surface.add_material(obj, shader_cb_36)
         #assign_material(obj, self.materials)
@@ -342,3 +344,21 @@ def geometry_nodes(nw: NodeWrangler):
 def apply(obj, selection=None, **kwargs):
     surface.add_geomod(obj, geometry_nodes, selection=selection, attributes=[])
     surface.add_material(obj, shader_cb_36, selection=selection)
+
+
+
+
+def place_colourboard(cam, terrain_bvh, n, alt, dist_range):
+    if n is None:
+        n = 3
+    if alt is None:
+        alt = 0.01
+    if dist_range is None:
+        dist_range = (0, 1)
+    points = points_near_camera(cam, terrain_bvh, n, alt, dist_range)
+    alt_offset = 0
+    for p in points:
+        p[-1] += alt_offset
+        obj = ColourboardFactory(1).create_asset()
+        obj.location = p
+        alt_offset += alt

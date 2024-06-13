@@ -12,25 +12,29 @@ import logging
 import os
 import time
 import warnings
+import cv2
 
 import bpy
 import gin
 import numpy as np
 from imageio import imread, imwrite
 
-from infinigen.infinigen_gpl.extras.enable_gpu import enable_gpu
+from infinigen.core import init
 from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
 from infinigen.core.placement import camera as cam_util
 from infinigen.core.rendering.post_render import (colorize_depth, colorize_flow,
                                    colorize_normals, colorize_int_array,
                                    load_depth, load_flow, load_normals,
-                                   load_seg_mask, load_uniq_inst)
+                                   load_seg_mask, load_uniq_inst, load_exr)
 from infinigen.core import surface
 from infinigen.core.util import blender as butil
 from infinigen.core.util import exporting as exputil
 from infinigen.core.util.logging import Timer
 from infinigen.tools.datarelease_toolkit import reorganize_old_framesfolder
 from infinigen.tools.suffixes import get_suffix
+from infinigen.core.placement.bproc_camera_utility import apply_lens_distortion, load_distortion_parameters, remove_segmap_noise
+from numpy.random import uniform as U
+
 
 from .auto_exposure import nodegroup_auto_exposure
 
@@ -106,7 +110,7 @@ def compositor_postprocessing(nw, source, show=True, autoexpose=False, autoexpos
         source = nw.new_node(Nodes.LensDistortion,
             input_kwargs={'Image': source, 'Distort': distort})
         source.use_fit = True
-    
+
     if color_correct:
         source = nw.new_node(Nodes.BrightContrast,
             input_kwargs={'Image': source, 'Bright': 1.0, 'Contrast': 4.0})
@@ -130,10 +134,22 @@ def compositor_postprocessing(nw, source, show=True, autoexpose=False, autoexpos
     if show:
         nw.new_node(Nodes.Composite, input_kwargs={'Image': source})
 
-    return source.outputs[0]
+    return (
+        source.outputs[0]
+        if hasattr(source, 'outputs')
+        else source
+    )
 
 @gin.configurable
-def configure_compositor_output(nw, frames_folder, image_denoised, image_noisy, passes_to_save, saving_ground_truth, use_denoised=False):
+def configure_compositor_output(
+        nw,
+        frames_folder,
+        image_denoised,
+        image_noisy,
+        passes_to_save,
+        saving_ground_truth
+):
+
     file_output_node = nw.new_node(Nodes.OutputFile, attrs={
         "base_path": str(frames_folder),
         "format.file_format": 'OPEN_EXR' if saving_ground_truth else 'PNG',
@@ -158,7 +174,7 @@ def configure_compositor_output(nw, frames_folder, image_denoised, image_noisy, 
         file_slot_list.append(file_output_node.file_slots[slot_input.name])
 
     slot_input = file_output_node.file_slots['Image']
-    image = image_denoised if use_denoised else image_noisy
+    image = image_denoised if image_denoised is not None else image_noisy
     nw.links.new(image, file_output_node.inputs['Image'])
     if saving_ground_truth:
         slot_input.path = 'UniqueInstances'
@@ -175,7 +191,7 @@ def configure_compositor_output(nw, frames_folder, image_denoised, image_noisy, 
 
     return file_slot_list
 
-def shader_random(nw: NodeWrangler):
+def shader_random_og(nw: NodeWrangler):
     # Code generated using version 2.4.3 of the node_transpiler
 
     object_info = nw.new_node(Nodes.ObjectInfo_Shader)
@@ -185,6 +201,51 @@ def shader_random(nw: NodeWrangler):
 
     nw.new_node(Nodes.MaterialOutput,
         input_kwargs={'Surface': white_noise_texture.outputs["Color"]})
+
+
+def shader_random(nw: NodeWrangler):
+    # Code generated using version 2.6.5 of the node_transpiler
+
+    object_info_1 = nw.new_node(Nodes.ObjectInfo_Shader)
+
+    value = nw.new_node(Nodes.Value)
+    value.outputs[0].default_value = 12
+
+    divide = nw.new_node(Nodes.Math, input_kwargs={0: 1.0000, 1: value}, attrs={'operation': 'DIVIDE'})
+
+    divide_1 = nw.new_node(Nodes.Math, input_kwargs={0: object_info_1.outputs["Random"], 1: divide},
+                           attrs={'operation': 'DIVIDE'})
+
+    floor = nw.new_node(Nodes.Math, input_kwargs={0: divide_1}, attrs={'operation': 'FLOOR'})
+
+    multiply = nw.new_node(Nodes.Math, input_kwargs={0: floor, 1: divide}, attrs={'operation': 'MULTIPLY'})
+
+    divide_2 = nw.new_node(Nodes.Math, input_kwargs={0: object_info_1.outputs["Random"], 1: divide},
+                           attrs={'operation': 'DIVIDE'})
+
+    fract = nw.new_node(Nodes.Math, input_kwargs={0: divide_2}, attrs={'operation': 'FRACT'})
+
+    divide_3 = nw.new_node(Nodes.Math, input_kwargs={0: fract, 1: divide}, attrs={'operation': 'DIVIDE'})
+
+    floor_1 = nw.new_node(Nodes.Math, input_kwargs={0: divide_3}, attrs={'operation': 'FLOOR'})
+
+    multiply_1 = nw.new_node(Nodes.Math, input_kwargs={0: floor_1, 1: divide}, attrs={'operation': 'MULTIPLY'})
+
+    divide_4 = nw.new_node(Nodes.Math, input_kwargs={0: divide_2, 1: divide}, attrs={'operation': 'DIVIDE'})
+
+    fract_1 = nw.new_node(Nodes.Math, input_kwargs={0: divide_4}, attrs={'operation': 'FRACT'})
+
+    divide_5 = nw.new_node(Nodes.Math, input_kwargs={0: fract_1, 1: divide}, attrs={'operation': 'DIVIDE'})
+
+    floor_2 = nw.new_node(Nodes.Math, input_kwargs={0: divide_5}, attrs={'operation': 'FLOOR'})
+
+    multiply_2 = nw.new_node(Nodes.Math, input_kwargs={0: floor_2, 1: divide}, attrs={'operation': 'MULTIPLY'})
+
+    combine_color = nw.new_node(Nodes.CombineColor,
+                                input_kwargs={'Red': multiply, 'Green': multiply_1, 'Blue': multiply_2})
+
+    _ = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': combine_color})
+
 
 def global_flat_shading():
 
@@ -262,24 +323,111 @@ def postprocess_blendergt_outputs(frames_folder, output_stem):
     imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), colorize_int_array(uniq_inst_array))
     uniq_inst_path.unlink()
 
+def configure_compositor(frames_folder, passes_to_save, flat_shading):
+    compositor_node_tree = bpy.context.scene.node_tree
+    nw = NodeWrangler(compositor_node_tree)
+
+    render_layers = nw.new_node(Nodes.RenderLayers)
+    final_image_denoised = compositor_postprocessing(nw, source=render_layers.outputs["Image"])
+
+    final_image_noisy = (
+        compositor_postprocessing(nw, source=render_layers.outputs["Noisy Image"], show=False)
+        if bpy.context.scene.cycles.use_denoising else None
+    )
+
+    return configure_compositor_output(
+        nw,
+        frames_folder,
+        image_denoised=final_image_denoised,
+        image_noisy=final_image_noisy,
+        passes_to_save=passes_to_save,
+        saving_ground_truth=flat_shading
+    )
+
+def postprocess_blendergt_outputs_with_distortion(frames_folder, output_stem, camera_id, frame, tmp_dir, flat_shading):
+    cam_ob = cam_util.get_camera(*camera_id)
+    mapping_coords, orig_res = load_distortion_parameters(cam_ob)
+
+    # Save flow visualization
+    flow_dst_path = frames_folder / f"Vector{output_stem}.exr"
+    flow_array = load_flow(flow_dst_path)
+    flow_array = apply_lens_distortion(flow_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"Flow{output_stem}.npy"), flow_array)
+    imwrite(flow_dst_path.with_name(f"Flow{output_stem}.png"), colorize_flow(flow_array))
+    flow_dst_path.unlink()
+
+    # Save surface normal visualization
+    normal_dst_path = frames_folder / f"Normal{output_stem}.exr"
+    normal_array = load_normals(normal_dst_path)
+    normal_array = apply_lens_distortion(normal_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"SurfaceNormal{output_stem}.npy"), normal_array)
+    imwrite(flow_dst_path.with_name(f"SurfaceNormal{output_stem}.png"), colorize_normals(normal_array))
+    normal_dst_path.unlink()
+
+    # Save depth visualization
+    depth_dst_path = frames_folder / f"Depth{output_stem}.exr"
+    depth_array = load_depth(depth_dst_path)
+    depth_array = apply_lens_distortion(depth_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"Depth{output_stem}.npy"), depth_array)
+    imwrite(depth_dst_path.with_name(f"Depth{output_stem}.png"), colorize_depth(depth_array))
+    depth_dst_path.unlink()
+
+    # Save segmentation visualization
+    seg_dst_path = frames_folder / f"IndexOB{output_stem}.exr"
+    seg_mask_array = load_seg_mask(seg_dst_path)
+    seg_mask_array = apply_lens_distortion(seg_mask_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"ObjectSegmentation{output_stem}.npy"), seg_mask_array)
+    imwrite(seg_dst_path.with_name(f"ObjectSegmentation{output_stem}.png"), colorize_int_array(seg_mask_array))
+    seg_dst_path.unlink()
+
+    # Save unique instances visualization
+    uniq_inst_path = frames_folder / f"UniqueInstances{output_stem}.exr"
+    uniq_inst_array = load_exr(uniq_inst_path)
+    uniq_inst_array = cv2.imread(f"{tmp_dir}/{frame:04d}.png")
+    imwrite(uniq_inst_path.with_name(f"InstanceSegmentationorig{output_stem}.png"), uniq_inst_array)
+    uniq_inst_array = apply_lens_distortion(uniq_inst_array, mapping_coords=mapping_coords,
+                                        orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                        use_interpolation=not flat_shading)
+    np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
+    imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), uniq_inst_array)
+    uniq_inst_path.unlink()
+
+def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_ground_truth, output="Image"):
+    # Distort Apply distortion
+    cam_ob = cam_util.get_camera(*camera_id)
+    mapping_coords, orig_res = load_distortion_parameters(cam_ob)
+
+    image_dst_path = frames_folder / f"{output}{output_stem}.png"
+    image_array = imread(image_dst_path)
+    image_array = apply_lens_distortion(image_array, mapping_coords=mapping_coords,
+                                                 orig_res_x=orig_res[1], orig_res_y=orig_res[0],
+                                                 use_interpolation=not saving_ground_truth)
+
+    np.save(image_dst_path.with_name(f"{output}{output_stem}.npy"), image_array)
+    imwrite(image_dst_path.with_name(f"{output}{output_stem}.png"), image_array)
+
+
 @gin.configurable
 def render_image(
     camera_id,
-    min_samples,
-    num_samples,
-    time_limit,
     frames_folder,
-    adaptive_threshold,
-    exposure,
     passes_to_save,
-    flat_shading,
-    use_dof=False,
-    dof_aperture_fstop=2.8,
-    motion_blur=False,
-    motion_blur_shutter=0.5,
+    flat_shading=False,
     render_resolution_override=None,
     excludes=[],
+    use_dof=False,
+    dof_aperture_fstop=2.8,
+    apply_distortion=False
 ):
+
     tic = time.time()
 
     camera_rig_id, subcam_id = camera_id
@@ -287,30 +435,11 @@ def render_image(
     for exclude in excludes:
         bpy.data.objects[exclude].hide_render = True
 
-    with Timer("Enable GPU"):
-        devices = enable_gpu()
-
-    with Timer("Render/Cycles settings"):
-        if motion_blur: bpy.context.scene.cycles.motion_blur_position = 'START'
-
-        bpy.context.scene.cycles.samples = num_samples # i.e. infinity
-        bpy.context.scene.cycles.adaptive_min_samples = min_samples
-        bpy.context.scene.cycles.adaptive_threshold = adaptive_threshold # i.e. noise threshold
-        bpy.context.scene.cycles.time_limit = time_limit
-    
-        bpy.context.scene.cycles.film_exposure = exposure
-        bpy.context.scene.render.use_motion_blur = motion_blur
-        bpy.context.scene.render.motion_blur_shutter = motion_blur_shutter
-
-        #bpy.context.scene.cycles.use_denoising = True
-        try:
-            bpy.context.scene.cycles.denoiser = 'OPTIX'
-        except Exception as e:
-            warnings.warn(f"Cannot use OPTIX denoiser {e}")
-        tmp_dir = frames_folder.parent.resolve() / "tmp"
-        tmp_dir.mkdir(exist_ok=True)
-        bpy.context.scene.render.filepath = f"{tmp_dir}{os.sep}"
-
+    init.configure_cycles_devices()
+    # todo: set file format?
+    tmp_dir = frames_folder.parent.resolve() / "tmp"
+    tmp_dir.mkdir(exist_ok=True)
+    bpy.context.scene.render.filepath = f"{tmp_dir}{os.sep}"
 
     if flat_shading:
         with Timer("Set object indices"):
@@ -324,41 +453,23 @@ def render_image(
             global_flat_shading()
 
 
-    with Timer("Compositing Setup"):
-        if not bpy.context.scene.use_nodes:
-            bpy.context.scene.use_nodes = True
-            compositor_node_tree = bpy.context.scene.node_tree
-            nw = NodeWrangler(compositor_node_tree)
-
-            render_layers        = nw.new_node(Nodes.RenderLayers)
-            final_image_denoised = compositor_postprocessing(nw, source=render_layers.outputs["Image"],
-                saving_ground_truth=flat_shading)
-            final_image_noisy    = compositor_postprocessing(nw, source=render_layers.outputs["Noisy Image"], show=False,
-                saving_ground_truth=flat_shading)
-
-            compositor_nodes = configure_compositor_output(
-                nw,
-                frames_folder,
-                image_denoised=final_image_denoised,
-                image_noisy=final_image_noisy,
-                passes_to_save=passes_to_save,
-                saving_ground_truth=flat_shading
-            )
+    if not bpy.context.scene.use_nodes:
+        bpy.context.scene.use_nodes = True
+    file_slot_nodes = configure_compositor(frames_folder, passes_to_save, flat_shading)
 
     indices = dict(cam_rig=camera_rig_id, resample=0, subcam=subcam_id)
 
     ## Update output names
     fileslot_suffix = get_suffix({'frame': "####", **indices})
-    for file_slot in compositor_nodes:
+    for file_slot in file_slot_nodes:
         file_slot.path = f"{file_slot.path}{fileslot_suffix}"
 
-    with Timer("get_camera"):
-        camera = cam_util.get_camera(camera_rig_id, subcam_id)
-        if use_dof == 'IF_TARGET_SET':
-            use_dof = camera.data.dof.focus_object is not None
-        if use_dof is not None:
-            camera.data.dof.use_dof = use_dof
-            camera.data.dof.aperture_fstop = dof_aperture_fstop
+    camera = cam_util.get_camera(camera_rig_id, subcam_id)
+    if use_dof == 'IF_TARGET_SET':
+        use_dof = camera.data.dof.focus_object is not None
+    if use_dof is not None:
+        camera.data.dof.use_dof = use_dof
+        camera.data.dof.aperture_fstop = dof_aperture_fstop
 
     if render_resolution_override is not None:
         bpy.context.scene.render.resolution_x = render_resolution_override[0]
@@ -374,17 +485,63 @@ def render_image(
             if flat_shading:
                 bpy.context.scene.frame_set(frame)
                 suffix = get_suffix(dict(frame=frame, **indices))
-                postprocess_blendergt_outputs(frames_folder, suffix)
+                if apply_distortion:
+                    postprocess_blendergt_outputs_with_distortion(frames_folder, suffix, camera_id, frame, tmp_dir, flat_shading)
+                else:
+                    postprocess_blendergt_outputs(frames_folder, suffix)
             else:
+                bpy.context.scene.frame_set(frame)
+                suffix = get_suffix(dict(frame=frame, **indices))
+                if apply_distortion:
+                    # Note:  Need to have used set_lens_distortion when configuring cameras
+                    postprocess_apply_distortion(camera_id, frames_folder, suffix, flat_shading, output="Image")
                 cam_util.save_camera_parameters(
                     camera_ids=cam_util.get_cameras_ids(),
                     output_folder=frames_folder,
                     frame=frame
                 )
 
-    for file in tmp_dir.glob('*.png'):
+    for file in list(tmp_dir.glob('*png')) + list(tmp_dir.glob('*jpg')):
         file.unlink()
 
     reorganize_old_framesfolder(frames_folder)
 
     logger.info(f"rendering time: {time.time() - tic}")
+    
+def generate_color_range(num=256):
+    """ This function generates N equidistant values in a 3-dim space and returns num of them.
+
+    Every dimension of the space is limited by [0, K], where K is the given space_size_per_dimension.
+    Basically it splits a cube of shape K x K x K in to N smaller blocks. Where, N = cube_length^3
+    and cube_length is the smallest integer for which N >= num.
+
+    If K is not a multiple of N, then the sum of all blocks might
+    not fill up the whole K ** 3 cube.
+
+    :param num: The total number of values required.
+    :param space_size_per_dimension: The side length of cube.
+    """
+    space_size_per_dimension = 255
+    num_splits_per_dimension = 1
+    values = []
+    # find cube_length bound of cubes to be made
+    while num_splits_per_dimension ** 3 < num:
+        num_splits_per_dimension += 1
+
+    # Calc the side length of a block. We do a integer division here, s.t. we get blocks with the exact same size,
+    # even though we are then not using the full space of [0, 255] ** 3
+    block_length = space_size_per_dimension // num_splits_per_dimension
+
+    # Calculate the center of each block and use them as equidistant values
+    r_mid_point = block_length // 2
+    for _ in range(num_splits_per_dimension):
+        g_mid_point = block_length // 2
+        for _ in range(num_splits_per_dimension):
+            b_mid_point = block_length // 2
+            for _ in range(num_splits_per_dimension):
+                values.append([r_mid_point, g_mid_point, b_mid_point])
+                b_mid_point += block_length
+            g_mid_point += block_length
+        r_mid_point += block_length
+    values = [np.array(color)/255 for color in values[:num]]
+    return values
