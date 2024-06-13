@@ -51,12 +51,19 @@ def handfish_genome():
     body = genome.part(body_params)
 
     # Positions (u, v, radius)
-    dorsal_fin1_coord = (U(0.45, 0.6), 1.0, 0.6)
-    dorsal_fin2_coord = (U(0.25, 0.45), 1.0, 0.6)
-    pectoral_fin_coord = (0.9, 0.3, 0.9) # Front fin
-    hind_fin_coord = (U(0.3, 0.4), N(36, 1)/180, .6) #(U(0.2, 0.3), N(36, 5)/180, .9)
+    dorsal_fin1_coord = (U(0.45, 0.6), 1.0, U(0.6, 0.8))
+    dorsal_fin2_coord = (U(0.25, 0.45), 1.0, U(0.6, 0.8))
+    pectoral_fin_coord = (0.9, 0.2, 1.0) # Front fin
+    hind_fin_coord = (U(0.3, 0.4), N(36, 1)/180, .9) #(U(0.2, 0.3), N(36, 5)/180, .9)
     hand_fin_coord = (0.60, 75/180, 0.6)
     eye_coord = (0.9, 0.6, 0.9)
+
+    pectoral_params = fin_params((0.05, 0.09, 0.08))
+    hind_fin_params = fin_params((0.06, 0.2, 0.2))
+    tail_params = fin_params((0.1, 0.1, 0.35))
+    tail_params['RoundWeight'] = 0.8
+    fish_hand_params = fin_params((0.08, 0.08, 0.10))
+    fish_hand_params['RoundWeight'] = 0.5
 
     # Dorsal Fins
     for fin_coord in [dorsal_fin1_coord, dorsal_fin2_coord]:
@@ -66,49 +73,37 @@ def handfish_genome():
     rot = lambda r: np.array((20, r, -205)) # todo: add this back. + N(0, 7, 3)
 
     # Pectoral Fins - front fin
-    pectoral_fin = parts.ridged_fin.FishFin(fin_params((0.09, 0.08, 0.08))) #(0.07, 0.1, 0.20)))
+    pectoral_fin = parts.ridged_fin.FishFin(pectoral_params) #(0.07, 0.1, 0.20)))
     for side in [1, -1]:
         genome.attach(genome.part(pectoral_fin), body, coord=pectoral_fin_coord,
             joint=Joint(rest=(60, 35, 45)), side=side)
 
     # Hind Fin - Small towards the back
-    hind_fin = parts.ridged_fin.FishFin(fin_params((0.07, 0.35, 0.3))) #(0.1, 0.5, 0.3)
+    hind_fin = parts.ridged_fin.FishFin(hind_fin_params) #(0.1, 0.5, 0.3)
     for side in [-1, 1]:
         genome.attach(genome.part(hind_fin), body, coord=hind_fin_coord, joint=Joint(rest=(-30, 120, -15)), side=side) #(20, r, -205)
 
     # Tail Fin
-    angle = U(140, 170)
-    tail_fin = parts.ridged_fin.FishFin(fin_params((0.1, 0.1, 0.35)), rig=False)
+    angle = U(170, 210)
+    tail_fin = parts.ridged_fin.FishFin(tail_params, rig=False)
     for vdir in [-1, 1]:
-        genome.attach(genome.part(tail_fin), body, coord=(0.05, .1, 0), joint=Joint((0, -angle * vdir, 0)))
+        genome.attach(genome.part(tail_fin), body, coord=(0.1, .1, 0), joint=Joint((0, -angle * vdir, 0)))
 
-    #hand_fin = parts.ridged_fin.FishFin(fin_params((0.08, 0.5, 0.20)))
-    #for side in [-1]:
-    #    genome.attach(genome.part(hand_fin), body, coord=coord,
-    #        joint=Joint(rest=(-80, 20, 85)), side=side)
-
+    # Hand
     splay = clip_gaussian(130, 7, 90, 130) / 180
     shoulder_t = clip_gaussian(0.12, 0.05, 0.08, 0.12)
-
-    params = {
-            'length_rad1_rad2': np.array((0.1, 0.02, 0.02)) * N(1, (0.2, 0, 0), 3),
-            'angles_deg': np.array((40.0, -120.0, 100)),
-            'fullness': 5.0,
-            'aspect': 1.0,
-            'Thigh Rad1 Rad2 Fullness': np.array((0.33, 0.15, 2.5), ) * N(1, 0.1, 3),
-            'Calf Rad1 Rad2 Fullness': np.array((0.17, 0.07, 2.5), ) * N(1, 0.1, 3),
-            'Thigh Height Tilt1 Tilt2': np.array((0.6, 0.0, 0.0), ) + N(0, [0.05, 2, 10]),
-            'Calf Height Tilt1 Tilt2': np.array((0.8, 0.0, 0.0)) + N(0, [0.05, 10, 10])
-        }
-
     params = parts.leg.FishHand().sample_params()
-    #foot_fac = parts.foot.Foot()
-    fish_hand = parts.leg.FishHand(params=params)
+    shoulder_bounds = np.array([[-20, -20, -20], [20, 20, 20]])
+    fish_hand_fin = parts.ridged_fin.FishFin(fish_hand_params, rig=False) # foot_fac
+    fish_hand = parts.leg.FishHand(params=params) # backleg_fac
     for side in [-1, 1]:
         #back_leg = genome.attach(genome.part(foot_fac), genome.part(backleg_fac), coord=(0.9, 0, 0), joint=Joint(rest=(0, 20, 50)))
-        genome.attach(genome.part(fish_hand), body, coord=hand_fin_coord,
-            joint=Joint(rest=(120, 40, 120)), #, bounds=shoulder_bounds),
+        arm = genome.attach(genome.part(fish_hand_fin), genome.part(fish_hand), coord=(0.9, .5, .5), joint=Joint(rest=(90, -60, 130)))
+        genome.attach(arm, body, coord=hand_fin_coord,
+            joint=Joint(rest=(120, 40, U(140, 160))), #, bounds=shoulder_bounds),
             rotation_basis='global', side=side)#, smooth_rad=0.06)#, bridge_rad=0.1)
+
+
 
     eye_fac = parts.eye.MammalEye({'Eyelids': True, 'Radius': N(0.024, 0.01)})
     for side in [-1, 1]:
@@ -132,16 +127,24 @@ class HandfishFactory(AssetFactory):
 
     max_distance = 40
 
-    def __init__(self, factory_seed=None, bvh=None, coarse=False, animation_mode=None, species_variety=None):
+    def __init__(self,
+                 factory_seed=None,
+                 bvh=None, coarse=False,
+                 animation_mode=None,
+                 species_variety=None,
+                 clothsim_skin: bool = False,
+                 **_
+    ):
         super().__init__(factory_seed, coarse)
         self.bvh = bvh
         self.animation_mode = animation_mode
+        self.clothsim_skin = clothsim_skin
 
         with FixedSeed(factory_seed):
             self.species_genome = handfish_genome()
             self.species_variety = 0
 
-    def create_asset(self, i, simulate=False, **kwargs):
+    def create_asset(self, i, **kwargs):
 
         instance_genome = genome.interp_genome(self.species_genome, fish_genome(), self.species_variety)
 
@@ -163,11 +166,14 @@ class HandfishFactory(AssetFactory):
             else:
                 raise ValueError(f'Unrecognized {self.animation_mode=}')
 
-        if simulate:
+        if self.clothsim_skin:
             joined = simulate_fish_cloth(joined, extras, instance_genome.postprocess_params['cloth'])
         else:
             joined = butil.join_objects([joined] + extras)
             joined.parent = root
+
+        root.scale = [U(.08, .12)] * 3
+        butil.apply_transform(root)
 
         tag_object(root, 'fish')
 
@@ -227,9 +233,9 @@ class HandfishSchoolFactory(BoidSwarmFactory):
 if __name__ == "__main__":
     import os
     for i in range(1):
-        factory = HandfishFactory(i, animation_mode='idle')
+        factory = HandfishFactory(i, cloth_sim=True)
         root = factory.spawn_asset(i)
-        root.location[0] = i * 3
+        root.location[0] = i+1 * 3
     import os
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(os.curdir), "dev_fish5.blend"))
+    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(os.curdir), "dev_handfish.blend"))
 

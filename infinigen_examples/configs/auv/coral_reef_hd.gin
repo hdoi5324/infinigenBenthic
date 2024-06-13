@@ -11,12 +11,12 @@ surface.registry.mountain_collection = [
     ('sandcomplex', 1),
     ('mountain', 5),
     ("sandstone", 2),
-    ("sand", 1000),
+    ("sand", 1),
     ('dirt', 1),
 ]
 surface.registry.ground_collection = [
     ('sandcomplex', 2),
-    ('sand', 1000),
+    ('sand', 1),
     ('cracked_ground', 1),
     ('stone', 1),
     ('chunkyrock', 0),
@@ -24,13 +24,11 @@ surface.registry.ground_collection = [
 ]
 
 # from dev.gin
-full/render_image.min_samples = 32 #100
-full/render_image.num_samples = 64 #8192
+full/configure_render_cycles.min_samples = 32
+full/configure_render_cycles.num_samples = 512
 
 #Terrain.populated_bounds = (-25, 25, -25, 25, -25, 0)
-#Terrain.bounds = (-200, 200, -200, 200, -40, 10)
 OcMesher.bounds = (-40, 40, -40, 40, -30, 5) # not used on trench
-UniformMesher.dimensions = (-15, 15, -15, 15, -30, 0)
 
 export.spherical = False # use OcMesher
 min_terrain_distance = 1.5
@@ -60,25 +58,25 @@ animation_policy.AnimPolicyMowTheLawn.turn_frames = 4
 
 full/render_image.passes_to_save = []
 
-compose_scene.urchin_chance = 0.0
+compose_scene.urchin_chance = 1.0
 compose_scene.urchinkina_chance = 0.0
-compose_scene.handfish_chance = 1.0
+compose_scene.handfish_chance = 0.5
 compose_scene.fish_school_chance = 0.0
 compose_scene.colourboard_chance = 1.0
-compose_scene.plasticbag_chance = 1.0
-compose_scene.seaweed_chance = 0.0
-compose_scene.lichen_chance = 0.0
+compose_scene.plasticbag_chance = 0.5
+compose_scene.seaweed_chance = 0.5
+compose_scene.lichen_chance = 0.3
 compose_scene.kelp_chance = 0.0
-compose_scene.corals_chance = 0.0
+compose_scene.corals_chance = 0.2
 compose_scene.seashell_chance = 0.4
 compose_scene.scolymia_chance = 0.0
-compose_scene.jellyfish_chance = 0.0
+compose_scene.jellyfish_chance = 0.1
 compose_scene.marine_snow_particles_chance = 0.0
 compose_scene.boulders_chance = 0.00
 
-populate_scene.slime_mold_chance = 0.5
-populate_scene.lichen_chance = 0.6
-populate_scene.moss_chance = 0.8
+populate_scene.slime_mold_chance = 0.0
+populate_scene.lichen_chance = 0.0
+populate_scene.moss_chance = 0.0
 
 compose_scene.monocots_chance = 0.0
 compose_scene.mushroom_chance = 0.0

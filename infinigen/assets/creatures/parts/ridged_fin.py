@@ -475,13 +475,18 @@ class FishFin(PartFactory):
 
 if __name__ == "__main__":
     params = FishFin().sample_params()
-    params['FinScale'] = [0, 0, 0.5]
-    for i in range(10):
-        params['FinScale'][0] += 0.1
-        for j in range(10):
-            params['FinScale'][1] += 0.1
-            fin = FishFin().make_part(params)
-            fin.location = (0.5*i, .5*j, 0)
+    fin = FishFin().make_part(params)
+    fin.obj.location = [ 0,0,0]
+    num = 4
+    scale_inc = .2
+    for i in range(num):
+        params['FinScale'][0] += scale_inc
+        for j in range(num):
+            params['FinScale'][1] += scale_inc
+            for k in range(2):
+                params['FinScale'][2] += scale_inc
+                fin = FishFin().make_part(params)
+                fin.obj.location = (i*4, j*4, k*2)
     import os
     fn = os.path.join(os.path.abspath(os.curdir), 'dev_scene_test_fin.blend')
     bpy.ops.wm.save_as_mainfile(filepath=fn)

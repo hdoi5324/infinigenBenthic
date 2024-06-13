@@ -2,7 +2,8 @@ import logging
 
 import bpy
 import numpy as np
-from numpy.random import randint
+from numpy.random import randint, uniform
+from infinigen.core.util import blender as butil
 
 from infinigen.assets.creatures.util import cloth_sim
 from infinigen.assets.utils.object import new_cube
@@ -11,6 +12,7 @@ from infinigen.core import surface
 from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
 from infinigen.core.placement.factory import AssetFactory, make_asset_collection
 from infinigen.core.util.math import FixedSeed
+from infinigen.assets.utils.decorate import geo_extension
 
 logger = logging.getLogger(__name__)
 
@@ -38,12 +40,25 @@ class PlasticbagFactory(AssetFactory):
 
             air_damping=5,
             mass=0.1,
-            uniform_pressure_force=2
+            uniform_pressure_force=randint(40)+70,
+            use_pressure=True
         )
 
-        cloth_sim.bake_cloth(obj, settings, {}, 1, randint(10))
+
         obj.name = "plasticbag"
-        surface.add_geomod(obj, geometry_nodes, selection=None, attributes=[])
+        surface.add_geomod(obj, geometry_nodes, selection=None, attributes=[], apply=True)
+
+        last_bake_frame = 3
+        cloth_sim.bake_cloth(obj, settings, {}, 1, last_bake_frame)
+        bpy.context.scene.frame_current = last_bake_frame
+        butil.apply_modifiers(obj)
+        bpy.context.scene.frame_current = 1
+
+        surface.add_geomod(obj, geo_extension, apply=True)
+        obj.scale = uniform(.8, 1.5, 3)
+        obj.rotation_euler = uniform(0, np.pi * 2, 3)
+        butil.apply_transform(obj)
+
         surface.add_material(obj, shader_polyethylene, selection=None)
         tag_object(obj, 'plasticbag')
         return obj
@@ -51,8 +66,9 @@ class PlasticbagFactory(AssetFactory):
 
 def shader_polyethylene(nw: NodeWrangler):
     # Code generated using version 2.6.5 of the node_transpiler
-
-    translucent_bsdf = nw.new_node(Nodes.TranslucentBSDF, input_kwargs={'Color': (0.4275, 0.4174, 0.8000, 1.0000)})
+    color = [uniform(.8, .95), uniform(.8, .95), uniform(.8, .95), 1.0]
+    # color = (0.4275, 0.4174, 0.8000, 1.0000)
+    translucent_bsdf = nw.new_node(Nodes.TranslucentBSDF, input_kwargs={'Color': color})
 
     material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': translucent_bsdf},
                                   attrs={'is_active_output': True})
@@ -93,18 +109,18 @@ def geometry_nodes(nw: NodeWrangler):
 
     transform_geometry_1 = nw.new_node(Nodes.Transform, input_kwargs={'Geometry': delete_geometry})
 
-    noise_texture = nw.new_node(Nodes.NoiseTexture,
-                                input_kwargs={'Vector': position, 'Scale': 1.7000, 'Detail': 1.2000,
-                                              'Roughness': 0.2000, 'Distortion': 0.1000})
+    #noise_texture = nw.new_node(Nodes.NoiseTexture,
+    #                            input_kwargs={'Vector': position, 'Scale': 1.7000, 'Detail': 1.2000,
+    #                                          'Roughness': 0.2000, 'Distortion': 0.1000})
 
-    subtract = nw.new_node(Nodes.Math, input_kwargs={0: noise_texture.outputs["Fac"]}, attrs={'operation': 'SUBTRACT'})
+    #subtract = nw.new_node(Nodes.Math, input_kwargs={0: noise_texture.outputs["Fac"]}, attrs={'operation': 'SUBTRACT'})
 
-    combine_xyz = nw.new_node(Nodes.CombineXYZ, input_kwargs={'X': subtract, 'Y': subtract})
+    #combine_xyz = nw.new_node(Nodes.CombineXYZ, input_kwargs={'X': subtract, 'Y': subtract})
 
-    set_position = nw.new_node(Nodes.SetPosition,
-                               input_kwargs={'Geometry': transform_geometry_1, 'Offset': combine_xyz})
+    #set_position = nw.new_node(Nodes.SetPosition,
+    #                           input_kwargs={'Geometry': transform_geometry_1, 'Offset': combine_xyz})
 
-    set_shade_smooth = nw.new_node(Nodes.SetShadeSmooth, input_kwargs={'Geometry': set_position, 'Shade Smooth': False})
+    set_shade_smooth = nw.new_node(Nodes.SetShadeSmooth, input_kwargs={'Geometry': transform_geometry_1, 'Shade Smooth': True})
 
     group_output = nw.new_node(Nodes.GroupOutput, input_kwargs={'Geometry': set_shade_smooth},
                                attrs={'is_active_output': True})

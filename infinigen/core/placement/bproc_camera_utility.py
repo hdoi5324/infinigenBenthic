@@ -399,14 +399,15 @@ def apply_lens_distortion(image: Union[List[np.ndarray], np.ndarray],
         # Forward mapping in order to distort the undistorted image coordinates
         # and reshape the arrays into the image shape grid.
         # The reference frame for coords is as in DLR CalDe etc. (the upper-left pixel center is at [0,0])
+        mode = 'nearest'
         for i in range(image_distorted.shape[2]):
             if len(input_image.shape) == 3:
                 image_distorted[:, :, i] = np.reshape(map_coordinates(data[:, :, i], mapping_coords,
                                                                       order=interpolation_order,
-                                                                      mode='nearest'), image_distorted[:, :, i].shape)
+                                                                      mode=mode), image_distorted[:, :, i].shape)
             else:
                 image_distorted[:, :, i] = np.reshape(map_coordinates(data, mapping_coords, order=interpolation_order,
-                                                                      mode='nearest'),
+                                                                      mode=mode),
                                                       image_distorted[:, :, i].shape)
         # Other options are:
         # - map_coordinates() in all channels at the same time (turns out to be slower)
@@ -475,7 +476,7 @@ def load_distortion_parameters(cam_ob, parameter_dir="./"):
     return mapping_coords, original_resolution
 
 
-def remove_segmap_noise(image: Union[list, np.ndarray]) -> Union[list, np.ndarray]:
+def remove_segmap_noise(image: Union[list, np.ndarray], image_bit=0, threshold=200) -> Union[list, np.ndarray]:
     """
     A function that takes an image and a few 2D indices, where these indices correspond to pixel values in
     segmentation maps, where these values are not real labels, but some deviations from the real labels, that were
@@ -490,7 +491,7 @@ def remove_segmap_noise(image: Union[list, np.ndarray]) -> Union[list, np.ndarra
     if isinstance(image, list) or hasattr(image, "shape") and len(image.shape) > 3:
         return [remove_segmap_noise(img) for img in image]
 
-    noise_indices = determine_noisy_pixels(image)
+    noise_indices = determine_noisy_pixels(image, image_bit=image_bit, threshold=threshold)
 
     for index in noise_indices:
         neighbors = get_pixel_neighbors(image, index[0], index[
@@ -535,7 +536,7 @@ def get_pixel_neighbors(data: np.ndarray, i: int, j: int) -> np.ndarray:
 
     return np.array(neighbors)
 
-def determine_noisy_pixels(image: np.ndarray) -> np.ndarray:
+def determine_noisy_pixels(image: np.ndarray, threshold=100, image_bit=16) -> np.ndarray:
     """
     :param image: The image data.
     :return: a list of 2D indices that correspond to the noisy pixels. One criterion of finding \
@@ -544,7 +545,7 @@ def determine_noisy_pixels(image: np.ndarray) -> np.ndarray:
     """
     # The map was scaled to be ranging along the entire 16-bit color depth, and this is the scaling down operation
     # that should remove some noise or deviations
-    image = (image * 37) / (65536)  # assuming 16 bit color depth
+    image = (image * 37) / (np.power(2, image_bit))  # assuming 16 bit color depth
     image = image.astype(np.int32)
     b, counts = np.unique(image.flatten(), return_counts=True)
 
@@ -553,7 +554,7 @@ def determine_noisy_pixels(image: np.ndarray) -> np.ndarray:
     # result of some numerical operation) neighbor.
     hist = sorted((np.asarray((b, counts)).T), key=lambda x: x[1])
     # Assuming the stray pixels wouldn't have a count of more than 100
-    noise_vals = [h[0] for h in hist if h[1] <= 100]
+    noise_vals = [h[0] for h in hist if h[1] <= threshold]
     noise_indices = np.argwhere(is_in(image, noise_vals))
 
     return noise_indices

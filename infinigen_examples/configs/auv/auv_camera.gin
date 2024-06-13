@@ -22,9 +22,10 @@ execute_tasks.generate_resolution = (%W, %H)
 get_sensor_coords.H = %H
 get_sensor_coords.W = %W
 
+# Distortion.  Based on Blenderproc distortion approach
 camera.set_camera_parameters.use_distortion=True
-full/render_image.use_distortion = True
-flat/render_image.use_distortion = True
+full/render_image.apply_distortion = True
+flat/render_image.apply_distortion = True
 
 
 # Lights
@@ -34,7 +35,6 @@ spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
 
 
 # Render
-render_image.image_type='JPEG'
 render_image.use_dof = True
 render_image.dof_aperture_fstop = 1.4 # AUV 2.0 ROV 1.4
 set_camera_parameters.focus_dist = 2.5 # AUV 1.9 # ROV 3.0
