@@ -135,6 +135,13 @@ python -m infinigen.datagen.manage_jobs --output_folder outputs/hello_world --nu
 
 #### Collate examples
   
+
+
+```bash
+python -m infinigen.datagen.manage_jobs -- --output_folder outputs/benthic_demo --num_scenes 1 \
+--configs coral_reef_hd.gin no_assets.gin  --overrides compose_scene.handfish_chance=1.0  \
+--pipeline_configs local_16GB.gin monocular.gin cuda_terrain.gin hd_coral_reef_datagen.gin
+```
 ```commandline
 bash ./scripts/copy_output.sh
 ```

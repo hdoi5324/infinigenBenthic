@@ -197,7 +197,7 @@ class HandfishSchoolFactory(BoidSwarmFactory):
                 dict(type='FLOCK'),
             ],
 
-            air_speed_max = 0, #U(5, 10),
+            air_speed_max = U(0.1, 0.7),
             air_acc_max = U(0.7, 1),
             air_personal_space = 2, #U(0.15, 2),
             bank = 0, # fish dont tip over / roll

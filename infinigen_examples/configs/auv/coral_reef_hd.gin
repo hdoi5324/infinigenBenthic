@@ -60,7 +60,7 @@ full/render_image.passes_to_save = []
 
 compose_scene.urchin_chance = 1.0
 compose_scene.urchinkina_chance = 0.0
-compose_scene.handfish_chance = 0.5
+compose_scene.handfish_chance = 1.0
 compose_scene.fish_school_chance = 0.0
 compose_scene.colourboard_chance = 1.0
 compose_scene.plasticbag_chance = 0.5
