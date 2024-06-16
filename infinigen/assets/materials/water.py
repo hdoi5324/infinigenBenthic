@@ -268,7 +268,7 @@ def apply(objs, is_ocean=False, coastal=0, selection=None, **kwargs):
         asset_paths.append(ocean_folder)
     input_kwargs = {"asset_paths": asset_paths, "coastal": coastal}
     surface.add_geomod(objs, geo_water, selection=selection, input_kwargs=input_kwargs, attributes=["foam"] if is_ocean else None)
-    surface.add_material(objs, shader, selection=selection, input_kwargs=input_kwargs)
+    surface.add_material(objs, shader, selection=selection, input_kwargs=input_kwargs, name='water_shader')
     if is_ocean:
         (ocean_folder / "cache/disp_0001.exr").unlink()
         (ocean_folder / "cache/foam_0001.exr").unlink()

@@ -13,6 +13,7 @@ import os
 import time
 import warnings
 import cv2
+import shutil
 
 import bpy
 import gin
@@ -209,7 +210,7 @@ def shader_random(nw: NodeWrangler):
     object_info_1 = nw.new_node(Nodes.ObjectInfo_Shader)
 
     value = nw.new_node(Nodes.Value)
-    value.outputs[0].default_value = 12
+    value.outputs[0].default_value = 8
 
     divide = nw.new_node(Nodes.Math, input_kwargs={0: 1.0000, 1: value}, attrs={'operation': 'DIVIDE'})
 
@@ -244,7 +245,10 @@ def shader_random(nw: NodeWrangler):
     combine_color = nw.new_node(Nodes.CombineColor,
                                 input_kwargs={'Red': multiply, 'Green': multiply_1, 'Blue': multiply_2})
 
-    _ = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': combine_color})
+    emission = nw.new_node(
+        "ShaderNodeEmission", input_kwargs={"Color": combine_color, "Strength": 0.5})
+    _ = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': emission})
+
 
 
 def global_flat_shading():
@@ -286,7 +290,7 @@ def global_flat_shading():
     for link in nw.links:
         nw.links.remove(link)
 
-def postprocess_blendergt_outputs(frames_folder, output_stem):
+def postprocess_blendergt_outputs(frames_folder, output_stem, frame, tmp_dir):
 
     # Save flow visualization
     flow_dst_path = frames_folder / f"Vector{output_stem}.exr"
@@ -318,9 +322,11 @@ def postprocess_blendergt_outputs(frames_folder, output_stem):
 
     # Save unique instances visualization
     uniq_inst_path = frames_folder / f"UniqueInstances{output_stem}.exr"
-    uniq_inst_array = load_uniq_inst(uniq_inst_path)
+    #uniq_inst_array = load_uniq_inst(uniq_inst_path)
+    uniq_inst_tmp_path = f"{tmp_dir}/{frame:04d}.png"
+    uniq_inst_array = cv2.imread(uniq_inst_tmp_path)
     np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
-    imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), colorize_int_array(uniq_inst_array))
+    shutil.copy(uniq_inst_tmp_path, str(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.png")))
     uniq_inst_path.unlink()
 
 def configure_compositor(frames_folder, passes_to_save, flat_shading):
@@ -392,12 +398,12 @@ def postprocess_blendergt_outputs_with_distortion(frames_folder, output_stem, ca
     uniq_inst_path = frames_folder / f"UniqueInstances{output_stem}.exr"
     uniq_inst_array = load_exr(uniq_inst_path)
     uniq_inst_array = cv2.imread(f"{tmp_dir}/{frame:04d}.png")
-    imwrite(uniq_inst_path.with_name(f"InstanceSegmentationorig{output_stem}.png"), uniq_inst_array)
+    cv2.imwrite(uniq_inst_path.with_name(f"InstanceSegmentation_undistorted{output_stem}.png"), uniq_inst_array)
     uniq_inst_array = apply_lens_distortion(uniq_inst_array, mapping_coords=mapping_coords,
                                         orig_res_x=orig_res[1], orig_res_y=orig_res[0],
                                         use_interpolation=not flat_shading)
     np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
-    imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), uniq_inst_array)
+    cv2.imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), uniq_inst_array)
     uniq_inst_path.unlink()
 
 def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_ground_truth, output="Image"):
@@ -406,7 +412,7 @@ def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_g
     mapping_coords, orig_res = load_distortion_parameters(cam_ob)
 
     image_dst_path = frames_folder / f"{output}{output_stem}.png"
-    image_array = imread(image_dst_path)
+    image_array = cv2.imread(image_dst_path)
     image_array = apply_lens_distortion(image_array, mapping_coords=mapping_coords,
                                                  orig_res_x=orig_res[1], orig_res_y=orig_res[0],
                                                  use_interpolation=not saving_ground_truth)
@@ -449,7 +455,19 @@ def render_image(
             suffix = get_suffix(dict(cam_rig=camera_rig_id, resample=0, frame=first_frame, subcam=subcam_id))
             (frames_folder / f"Objects{suffix}.json").write_text(json_object)
 
+
+
         with Timer("Flat Shading"):
+            bpy.context.scene.cycles.samples = 1
+            bpy.context.scene.cycles.use_adaptive_sampling = False
+            bpy.context.scene.cycles.diffuse_bounces = 1
+            bpy.context.scene.cycles.glossy_bounces = 0
+            bpy.context.scene.cycles.ao_bounces_render = 0
+            bpy.context.scene.cycles.max_bounces = 1
+            bpy.context.scene.cycles.transmission_bounces = 0
+            bpy.context.scene.cycles.transparent_max_bounces = 8
+            bpy.context.scene.cycles.volume_bounces = 0
+            bpy.context.scene.cycles.feature_set = 'EXPERIMENTAL'
             global_flat_shading()
 
 
@@ -478,6 +496,7 @@ def render_image(
     # Render the scene
     bpy.context.scene.camera = camera
     with Timer("Actual rendering"):
+        bpy.ops.wm.save_mainfile(filepath="render.blend")
         bpy.ops.render.render(animation=True)
 
     with Timer("Post Processing"):
@@ -488,7 +507,7 @@ def render_image(
                 if apply_distortion:
                     postprocess_blendergt_outputs_with_distortion(frames_folder, suffix, camera_id, frame, tmp_dir, flat_shading)
                 else:
-                    postprocess_blendergt_outputs(frames_folder, suffix)
+                    postprocess_blendergt_outputs(frames_folder, suffix, frame, tmp_dir)
             else:
                 bpy.context.scene.frame_set(frame)
                 suffix = get_suffix(dict(frame=frame, **indices))
@@ -507,41 +526,3 @@ def render_image(
     reorganize_old_framesfolder(frames_folder)
 
     logger.info(f"rendering time: {time.time() - tic}")
-    
-def generate_color_range(num=256):
-    """ This function generates N equidistant values in a 3-dim space and returns num of them.
-
-    Every dimension of the space is limited by [0, K], where K is the given space_size_per_dimension.
-    Basically it splits a cube of shape K x K x K in to N smaller blocks. Where, N = cube_length^3
-    and cube_length is the smallest integer for which N >= num.
-
-    If K is not a multiple of N, then the sum of all blocks might
-    not fill up the whole K ** 3 cube.
-
-    :param num: The total number of values required.
-    :param space_size_per_dimension: The side length of cube.
-    """
-    space_size_per_dimension = 255
-    num_splits_per_dimension = 1
-    values = []
-    # find cube_length bound of cubes to be made
-    while num_splits_per_dimension ** 3 < num:
-        num_splits_per_dimension += 1
-
-    # Calc the side length of a block. We do a integer division here, s.t. we get blocks with the exact same size,
-    # even though we are then not using the full space of [0, 255] ** 3
-    block_length = space_size_per_dimension // num_splits_per_dimension
-
-    # Calculate the center of each block and use them as equidistant values
-    r_mid_point = block_length // 2
-    for _ in range(num_splits_per_dimension):
-        g_mid_point = block_length // 2
-        for _ in range(num_splits_per_dimension):
-            b_mid_point = block_length // 2
-            for _ in range(num_splits_per_dimension):
-                values.append([r_mid_point, g_mid_point, b_mid_point])
-                b_mid_point += block_length
-            g_mid_point += block_length
-        r_mid_point += block_length
-    values = [np.array(color)/255 for color in values[:num]]
-    return values
