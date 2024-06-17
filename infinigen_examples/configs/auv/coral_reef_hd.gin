@@ -23,9 +23,10 @@ surface.registry.ground_collection = [
     ('sandstone', 1),
 ]
 
-# from dev.gin
-full/configure_render_cycles.min_samples = 32
+full/configure_render_cycles.min_samples = 0
 full/configure_render_cycles.num_samples = 512
+configure_render_cycles.min_samples = 0
+configure_render_cycles.num_samples = 512
 
 #Terrain.populated_bounds = (-25, 25, -25, 25, -25, 0)
 OcMesher.bounds = (-40, 40, -40, 40, -30, 5) # not used on trench

@@ -1012,6 +1012,7 @@ def shader_stripe_fish(nw: NodeWrangler, rand=True, **input_kwargs):
         input_kwargs={'Surface': principled_bsdf})
 
 
+
 def apply(obj, geo_kwargs=None, shader_kwargs=None, **kwargs):
 
     attributes = [
@@ -1027,7 +1028,7 @@ def apply(obj, geo_kwargs=None, shader_kwargs=None, **kwargs):
     else:
         shader = shader_fish_body_regular
 
-    surface.add_geomod(obj, geometry_fish_body, input_kwargs=geo_kwargs, attributes=attributes, apply=True)
+    surface.add_geomod(obj, geometry_fish_body, input_kwargs=geo_kwargs, attributes=attributes)
     surface.add_material(obj, shader, input_kwargs=shader_kwargs)
 
 if __name__ == "__main__":

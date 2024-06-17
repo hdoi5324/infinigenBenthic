@@ -208,7 +208,7 @@ def nodegroup_fish_hand(nw: NodeWrangler):
 
 class FishHand(PartFactory):
 
-    tags = ['leg']
+    tags = ['limb', 'fin', 'leg']
 
     def sample_params(self):
         return {
@@ -221,12 +221,16 @@ class FishHand(PartFactory):
         }
     def make_part(self, params):
         part = nodegroup_to_part(nodegroup_fish_hand, params)
+        angle_bound = 60
         part.joints = {
-            0: Joint(rest=(0,0,0), bounds=np.array([[-35, 0, -70], [35, 0, 70]])), # shoulder
-            0.5: Joint(rest=(0,0,0), bounds=np.array([[-35, 0, -70], [35, 0, 70]])), # elbow
+            0: Joint(rest=(0,0,0), bounds=np.array([[-angle_bound, 0, -angle_bound*2], [angle_bound, 0, angle_bound*2]])), # shoulder
+            0.5: Joint(rest=(0,0,0), bounds=np.array([[-angle_bound, 0, -angle_bound*2], [angle_bound, 0, angle_bound*2]])), # elbow
         }
-        part.iks = {}
+        #part.iks = {}
+        #part.iks = {1.0: IKParams('foot', rotation_weight=0.8, chain_parts=1)}
+
         tag_object(part.obj, 'fish_hand')
+        part.settings['rig_extras'] = True
         return part
 class BirdLeg(PartFactory):
 

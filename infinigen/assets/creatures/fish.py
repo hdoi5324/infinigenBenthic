@@ -73,8 +73,8 @@ def fin_params(scale=(1, 1, 1), dorsal=False):
         'Freq': Freq
     }
 
-def fish_postprocessing(body_parts, extras, params, handfish=False):
-
+def fish_postprocessing(body_parts, extras, params):
+    
     get_extras = lambda k: [o for o in extras if k in o.name]
     main_template = surface.registry.sample_registry(params['surface_registry'])
     main_template.apply(body_parts + get_extras('BodyExtra'))
@@ -82,11 +82,7 @@ def fish_postprocessing(body_parts, extras, params, handfish=False):
     mat = body_parts[0].active_material
     gold = (mat is not None and 'gold' in mat.name)
     body_parts[0].active_material.name.lower() or U() < 0.1
-
-    if handfish:
-        fishfin.apply_handfish(get_extras('Fin'))
-    else:
-        fishfin.apply(get_extras('Fin'), shader_kwargs={'goldfish': gold })
+    fishfin.apply(get_extras('Fin'), shader_kwargs={'goldfish': gold })
 
     fish_eye_shader.apply(get_extras('Eyeball'))
     #eyeball.apply(get_extras('Eyeball'), shader_kwargs={"coord": "X"})
@@ -207,16 +203,17 @@ def animate_fish_swim(arma, params):
             mag_deg=params['flipper_mag']*N(1, v), 
             freq=params['flipper_mag']*N(1, v))
 
-def simulate_fish_cloth(joined, extras, cloth_params, rigidity='cloth_pin_rigidity'):
+def simulate_fish_cloth(joined, root, extras, cloth_params, rigidity='cloth_pin_rigidity'):
 
     for e in [joined] + extras:
         assert e.type == 'MESH'
         if 'Fin' in e.name:
             assert rigidity in e.data.attributes
         else:
-            surface.write_attribute(joined, lambda nw: 1, data_type='FLOAT', 
+            surface.write_attribute(joined, lambda nw: 1, data_type='FLOAT',
                                     name=rigidity, apply=True)
     joined = butil.join_objects([joined] + extras)
+    joined.parent = root
 
     cloth_sim.bake_cloth(joined, settings=cloth_params, 
                          attributes=dict(vertex_group_mass=rigidity))
@@ -270,7 +267,7 @@ class FishFactory(AssetFactory):
                 raise ValueError(f'Unrecognized {self.animation_mode=}')
             
         if self.clothsim_skin:
-            joined = simulate_fish_cloth(joined, extras, instance_genome.postprocess_params['cloth'])
+            joined = simulate_fish_cloth(joined, root, extras, instance_genome.postprocess_params['cloth'])
         else:
             joined = butil.join_objects([joined] + extras)
             joined.parent = root
@@ -326,7 +323,8 @@ class FishSchoolFactory(BoidSwarmFactory):
     def __init__(self, factory_seed, bvh=None, coarse=False):
         with FixedSeed(factory_seed):
             settings = self.fish_school_params()
-            col = make_asset_collection(FishFactory(factory_seed=randint(1e7), animation_mode='idle'), n=3)
+            clothsim_skin = np.random.random_sample(1) < 0.2
+            col = make_asset_collection(FishFactory(factory_seed=randint(1e7), animation_mode='idle', clothsim_skin=clothsim_skin), n=3)
         super().__init__(
             factory_seed, child_col=col, 
             collider_col=bpy.data.collections.get('colliders'),
@@ -337,9 +335,9 @@ class FishSchoolFactory(BoidSwarmFactory):
 
 if __name__ == "__main__":
     import os
-    for i in range(3):
-        factory = FishFactory(i)
+    for i in range(1):
+        bpy.context.scene.frame_end = 10
+        factory = FishFactory(i, clothsim_skin=False, animation_mode='idle')
         root = factory.spawn_asset(i)
-        root.location[0] = i * 3
 
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(os.curdir), "dev_fish5.blend"))

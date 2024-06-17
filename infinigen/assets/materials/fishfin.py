@@ -204,7 +204,7 @@ def shader_fin_handfish(nw: NodeWrangler):
     color_ramp_1.color_ramp.elements[0].position = 0.0000
     color_ramp_1.color_ramp.elements[0].color = [0.1215, 0.1095, 0.0708, 1.0000]
     color_ramp_1.color_ramp.elements[1].position = 0.6727
-    color_ramp_1.color_ramp.elements[1].color = [0.5711, 0.0685, 0.0232, 1.0000]
+    color_ramp_1.color_ramp.elements[1].color = [0.5711, 0.269, 0.211, 1.0000]
     color_ramp_1.color_ramp.elements[2].position = 1.0000
     color_ramp_1.color_ramp.elements[2].color = [0.0465, 0.1026, 0.0651, 1.0000]
 
@@ -215,7 +215,7 @@ def shader_fin_handfish(nw: NodeWrangler):
     color_ramp_2.color_ramp.elements[0].position = 0.0045
     color_ramp_2.color_ramp.elements[0].color = [0.3231, 0.0953, 0.0630, 1.0000]
     color_ramp_2.color_ramp.elements[1].position = 0.5364
-    color_ramp_2.color_ramp.elements[1].color = [0.7913, 0.0612, 0.0395, 1.0000]
+    color_ramp_2.color_ramp.elements[1].color = [0.7, 0.26, 0.21, 1.0000]
 
     mix = nw.new_node(Nodes.Mix,
                       input_kwargs={0: color_ramp.outputs["Color"], 6: color_ramp_1.outputs["Color"],

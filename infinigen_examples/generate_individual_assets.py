@@ -71,6 +71,8 @@ def load_txt_list(path, skip_sharp=False):
 import generate_nature  # to load most/all factory.AssetFactory subclasses
 
 def build_scene_asset(factory_name, idx):
+    bpy.context.scene.frame_end = 10
+
     factory = None
     for subdir in os.listdir('../infinigen/assets'):
         with gin.unlock_config():
