@@ -43,6 +43,8 @@ from infinigen.assets.materials import (
     soil, dirt, cobble_stone, chunkyrock, stone, lava, ice, mud, snow
 )
 
+
+
 from infinigen.assets import (
     fluid,
     cactus,
@@ -159,10 +161,10 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     # Crustaceans
     def add_ground_creatures(target):
-        fac_class = sample_registry(params['ground_creature_registry'])
+        fac_class = creatures.CrustaceanFactory # sample_registry(params['ground_creature_registry'])
         fac = fac_class(int_hash((scene_seed, 0)), bvh=terrain_bvh, animation_mode='idle')
         n = params.get('max_ground_creatures', randint(1, 4))
-        selection = density.placement_mask(select_thresh=0, tag='beach', altitude_range=(-0.5, 0.5)) \
+        selection = density.placement_mask(select_thresh=0, tag=underwater_domain, altitude_range=(-0.5, 0.5)) \
             if fac_class is creatures.CrabFactory else 1
         col = placement.scatter_placeholders_mesh(target, fac, num_placeholders=n, overall_density=1, selection=selection, altitude=0.2)
         return list(col.objects)
