@@ -14,8 +14,8 @@ from infinigen.core.placement.instance_scatter import scatter_instances
 
 
 def apply(obj, n=5, selection=None, density=U(0.2, 0.8)):
-    n_species = np.random.randint(2, 5)
-    factories = list(UrchinFactory(np.random.randint(1e5)+1000, extrude_height=("clip_gaussian", U(1.5, 2.5), 0.7, 0.5, 5.0)) for _ in range(n_species))
+    n_species = np.random.randint(8, 15)
+    factories = list(UrchinFactory(np.random.randint(1e5+668), extrude_height=("clip_gaussian", U(1.5, 2.5), 0.7, 0.5, 5.0)) for _ in range(n_species))
     urchin = make_asset_collection(factories, name='blackspinyurchin',
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
@@ -29,9 +29,9 @@ def apply(obj, n=5, selection=None, density=U(0.2, 0.8)):
         base_obj=obj, collection=urchin,
         vol_density=density, # density across surface
         ground_offset=ground_offset,
-        scale=scale, scale_rand=U(-0.1, 0.1),
-        scale_rand_axi=U(-0.05, 0.05),
+        scale=scale, scale_rand=U(-0.2, 0.2),
+        scale_rand_axi=U(-0.1, 0.1),
         selection=selection,
-        min_spacing=0.08)
+        min_spacing=0.15)
 
     return scatter_obj, urchin

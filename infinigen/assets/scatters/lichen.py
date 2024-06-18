@@ -48,7 +48,7 @@ def apply(obj, selection=None, density=5e3):
     scatter_obj = scatter_instances(
         base_obj=obj, collection=col,
         density=density,  min_spacing=.08,
-        scale=1, scale_rand=N(0.5, 0.2),
+        scale=.5, scale_rand=N(0.5, 0.2),
         selection=selection
     )
     return scatter_obj

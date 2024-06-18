@@ -14,7 +14,7 @@ from infinigen.core.placement.instance_scatter import scatter_instances
 
 
 def apply(obj, n=5, selection=None, density=U(0.3, .7)):
-    n_species = np.random.randint(2, 5)
+    n_species = np.random.randint(5, 15)
     factories = list(UrchinFactory(np.random.randint(1e5)+400,
                                    z_scale=(0.6, 0.9),
                                    extrude_height=("log_uniform", 0.6, 0.8),
@@ -36,6 +36,6 @@ def apply(obj, n=5, selection=None, density=U(0.3, .7)):
         scale=scale, scale_rand=U(-0.2, 0.2),
         scale_rand_axi=U(-0.05, 0.05),
         selection=selection,
-        min_spacing=0.08)
+        min_spacing=0.15)
 
     return scatter_obj, urchin

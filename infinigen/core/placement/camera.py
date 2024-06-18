@@ -550,9 +550,7 @@ def configure_camera_lights(
             light.data.spot_size = spot_size
             light.data.spot_blend = spot_blend
 
-
-
-
+#todo: put distortion in gin config
 @gin.configurable
 def set_camera_parameters(cam_rigs,
                           focal_mm=15.89,
@@ -560,7 +558,9 @@ def set_camera_parameters(cam_rigs,
                           use_distortion=False,
                           k1_k2_p1_p2_k3=[0.08294964878778682,
                                           0.3280632761758799,
-                                          -0.004615317367818974, 0.001986514143891786, 0.0],
+                                          -0.004615317367818974,
+                                          0.001986514143891786,
+                                          0.007061125986068614],
                           #f=4633,
                           cx=None,
                           cy=None,

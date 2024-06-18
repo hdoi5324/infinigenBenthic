@@ -3,7 +3,7 @@
 
 overwrite="--overwrite" #--overwrite
 cleanfiles="" #"--cleanup big_files"
-outputfolder="nudi1_urchin"
+outputfolder="trench_urchin1"
 num_scenes=15
 pipeline_overrides=""
 
