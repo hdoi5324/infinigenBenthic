@@ -49,9 +49,9 @@ class PlasticbagFactory(AssetFactory):
         surface.add_geomod(obj, geometry_nodes, selection=None, attributes=[], apply=True)
 
         last_bake_frame = 3
-        cloth_sim.bake_cloth(obj, settings, {}, 1, last_bake_frame)
+        mod = cloth_sim.bake_cloth(obj, settings, {}, 1, last_bake_frame)
         bpy.context.scene.frame_current = last_bake_frame
-        butil.apply_modifiers(obj)
+        butil.apply_modifiers(obj, mod=mod)
         bpy.context.scene.frame_current = 1
 
         surface.add_geomod(obj, geo_extension, apply=True)

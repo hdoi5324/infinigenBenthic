@@ -31,12 +31,13 @@ from infinigen.assets.creatures.util.boid_swarm import BoidSwarmFactory
 
 from infinigen.core.util import blender as butil
 from infinigen.core.util.math import clip_gaussian, FixedSeed
+from infinigen.core.util.random import random_general as rg
 from infinigen.assets.creatures.util.animation.driver_wiggle import animate_wiggle_bones
 from infinigen.assets.creatures.util.creature_util import offset_center
 
 from infinigen.assets.utils.tag import tag_object, tag_nodegroup
 
-from infinigen.assets.materials import fish_eye_shader
+from infinigen.assets.materials import fish_eye_shader, handfishfin
 from infinigen.assets.creatures.fish import fin_params, fish_fin_cloth_sim_params, fish_genome, simulate_fish_cloth
 from infinigen.core.placement import detail
 from infinigen.assets.creatures.util.genome import Joint, IKParams
@@ -58,7 +59,7 @@ def handfish_genome():
     pectoral_fin_coord = (0.9, 0.1, .5) # Front fin
     hind_fin_coord = (U(0.3, 0.4), N(36, 1)/180, .9) #(U(0.2, 0.3), N(36, 5)/180, .9)
     hand_fin_coord = (0.60, 75/180, 0.9)
-    eye_coord = (0.9, 0.6, 0.9)
+    eye_coord = (0.9, 0.6, 1.0)
 
     pectoral_params = fin_params((0.06, 0.5, 0.3))
     hind_fin_params = fin_params((0.1, 0.5, 0.3)) # ((0.06, 0.2, 0.9))
@@ -92,22 +93,18 @@ def handfish_genome():
         genome.attach(genome.part(tail_fin), body, coord=(0.1, .1, 0), joint=Joint((0, -angle * vdir, 0)))
 
     # Hand
-    splay = clip_gaussian(130, 7, 90, 130) / 180
-    shoulder_t = clip_gaussian(0.12, 0.05, 0.08, 0.12)
     params = parts.leg.FishHand().sample_params()
-    shoulder_bounds = np.array([[-20, -20, -20], [20, 20, 20]])
     fish_hand_fin = parts.ridged_fin.FishFin(fish_hand_params) # foot_fac
 
     fish_hand = parts.leg.FishHand(params=params) # backleg_fac
     for side in [-1, 1]:
-        #back_leg = genome.attach(genome.part(foot_fac), genome.part(backleg_fac), coord=(0.9, 0, 0), joint=Joint(rest=(0, 20, 50)))
         arm = genome.attach(genome.part(fish_hand_fin), genome.part(fish_hand), coord=(0.8, 0, 0.2), joint=Joint(rest=(30, -70, -40)), rotation_basis='normal') #, coord=(0.9, .5, .9), joint=Joint(rest=(90, -60, 130)))
         genome.attach(arm, body, coord=hand_fin_coord,
             joint=Joint(rest=(120, 40, U(140, 160))), #, bounds=shoulder_bounds),
             rotation_basis='global', side=side)#, smooth_rad=0.06)#, bridge_rad=0.1)
 
 
-    eye_fac = parts.eye.MammalEye({'Eyelids': True, 'Radius': N(0.024, 0.01)})
+    eye_fac = parts.eye.MammalEye({'Eyelids': True, 'Radius': N(0.016, 0.006)})
     for side in [-1, 1]:
         genome.attach(genome.part(eye_fac), body, coord=eye_coord,
             joint=Joint(rest=(0,0,0)), side=side, rotation_basis='normal')
@@ -135,12 +132,14 @@ class HandfishFactory(AssetFactory):
                  animation_mode='idle',
                  species_variety=None,
                  clothsim_skin: bool = False,
+                 scale: tuple = ("uniform", 0.09, 0.15),
                  **_
     ):
         super().__init__(factory_seed, coarse)
         self.bvh = bvh
         self.animation_mode = animation_mode
         self.clothsim_skin = clothsim_skin
+        self.scale = scale
 
         with FixedSeed(factory_seed):
             self.species_genome = handfish_genome()
@@ -156,8 +155,6 @@ class HandfishFactory(AssetFactory):
         instance_genome = genome.interp_genome(self.species_genome, fish_genome(), self.species_variety)
 
         root, parts = creature.genome_to_creature(instance_genome, name=f'handfish({self.factory_seed}, {i})')
-
-
 
         offset_center(root, x=True, z=False)
 
@@ -178,16 +175,17 @@ class HandfishFactory(AssetFactory):
                 raise ValueError(f'Unrecognized {self.animation_mode=}')
 
         if self.clothsim_skin:
-            joined = simulate_fish_cloth(joined, root, extras, instance_genome.postprocess_params['cloth'])
+            _ = simulate_fish_cloth(joined, extras, instance_genome.postprocess_params['cloth'])
         else:
             joined = butil.join_objects([joined] + extras)
             joined.parent = root
 
+            scale = [rg(self.scale)] * 3
+            for o in list(root.children):
+                o.scale = scale
+                butil.apply_transform(o, scale=True)
 
         tag_object(root, 'fish')
-
-        root.scale = [U(.08, .12)] * 3
-        butil.apply_transform(root, scale=True)
 
         return root
 
@@ -216,14 +214,10 @@ def fish_postprocessing(body_parts, extras, params):
     main_template = surface.registry.sample_registry(params['surface_registry'])
     main_template.apply(body_parts + get_extras('BodyExtra'))
 
-    mat = body_parts[0].active_material
-    gold = (mat is not None and 'gold' in mat.name)
-    body_parts[0].active_material.name.lower() or U() < 0.1
-
-    fishfin.apply_handfish(get_extras('Fin'))
+    handfishfin.apply(get_extras('Fin'))
 
     fish_eye_shader.apply(get_extras('Eyeball'))
-    #eyeball.apply(get_extras('Eyeball'), shader_kwargs={"coord": "X"})
+    eyeball.apply(get_extras('Eyeball'), shader_kwargs={"coord": "X"})
 def fish_swim_params():
     swim_freq = 3 * clip_gaussian(.6, 0.3, 0.1, 2)
     swim_mag = N(30, 3)
@@ -259,8 +253,8 @@ class HandfishSchoolFactory(BoidSwarmFactory):
         )
 
         return dict(
-            particle_size=0.05, #U(0.1, 0.3),
-            size_random=0.0, # U(0.0, 0.1),
+            particle_size=U(0.1, 0.3),
+            size_random=U(0.0, 0.1),
             use_rotation_instance=True,
             lifetime=bpy.context.scene.frame_end - bpy.context.scene.frame_start,
             warmup_frames=1, emit_duration=0, # all particles appear immediately
@@ -285,11 +279,15 @@ class HandfishSchoolFactory(BoidSwarmFactory):
 
 if __name__ == "__main__":
     import os
+
+    bpy.context.scene.frame_end = 5
+    bpy.ops.object.delete(use_global=False)
+
     for i in range(1):
-        bpy.context.scene.frame_end = 15
-        factory = HandfishFactory(i, clothsim_skin=False, animation_mode='idle')
+        factory = HandfishFactory(i, clothsim_skin=True, animation_mode='idle')
         root = factory.spawn_asset(i)
-        root.location[0] = i+1 * 3
+        #root.location[0] = i+1 * 3
+        #butil.apply_transform(root, loc=True)
     import os
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(os.curdir), "dev_handfish.blend"))
 

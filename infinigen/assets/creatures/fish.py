@@ -12,6 +12,7 @@ import bpy
 import gin
 import numpy as np
 from numpy.random import uniform as U, normal as N, randint
+from infinigen.core.util.random import random_general as rg
 
 import infinigen.assets.materials.scale
 import infinigen.assets.materials.fishbody
@@ -203,17 +204,16 @@ def animate_fish_swim(arma, params):
             mag_deg=params['flipper_mag']*N(1, v), 
             freq=params['flipper_mag']*N(1, v))
 
-def simulate_fish_cloth(joined, root, extras, cloth_params, rigidity='cloth_pin_rigidity'):
+def simulate_fish_cloth(joined, extras, cloth_params, rigidity='cloth_pin_rigidity'):
 
     for e in [joined] + extras:
         assert e.type == 'MESH'
         if 'Fin' in e.name:
             assert rigidity in e.data.attributes
         else:
-            surface.write_attribute(joined, lambda nw: 1, data_type='FLOAT',
+            surface.write_attribute(joined, lambda nw: 1, data_type='FLOAT', 
                                     name=rigidity, apply=True)
     joined = butil.join_objects([joined] + extras)
-    joined.parent = root
 
     cloth_sim.bake_cloth(joined, settings=cloth_params, 
                          attributes=dict(vertex_group_mass=rigidity))
@@ -226,19 +226,21 @@ class FishFactory(AssetFactory):
     max_distance = 40
 
     def __init__(
-        self,
-        factory_seed=None,
-        bvh=None,
-        coarse=False,
-        animation_mode=None,
-        species_variety=None,
+        self, 
+        factory_seed=None, 
+        bvh=None, 
+        coarse=False, 
+        animation_mode=None, 
+        species_variety=None, 
         clothsim_skin: bool = False,
+        scale: tuple = ("uniform", 0.2, .3),
         **_
     ):
         super().__init__(factory_seed, coarse)
         self.bvh = bvh
         self.animation_mode = animation_mode
         self.clothsim_skin = clothsim_skin
+        self.scale = scale
 
         with FixedSeed(factory_seed):
             self.species_genome = fish_genome()
@@ -267,13 +269,15 @@ class FishFactory(AssetFactory):
                 raise ValueError(f'Unrecognized {self.animation_mode=}')
             
         if self.clothsim_skin:
-            joined = simulate_fish_cloth(joined, root, extras, instance_genome.postprocess_params['cloth'])
+            joined = simulate_fish_cloth(joined, extras, instance_genome.postprocess_params['cloth'])
         else:
             joined = butil.join_objects([joined] + extras)
             joined.parent = root
-
-        root.scale = [U(.2, .4)] * 3
-        butil.apply_transform(root)
+    
+            scale = [rg(self.scale)] * 3
+            for o in list(root.children):
+                o.scale = scale
+                butil.apply_transform(o, scale=True)
 
         tag_object(root, 'fish')
             
@@ -304,9 +308,9 @@ class FishSchoolFactory(BoidSwarmFactory):
             rule_fuzzy = U(0.6, 0.9)
         )
 
-        return dict(
-            particle_size=U(0.2, 4),
-            size_random=U(0.1, 0.4),
+        return dict(      
+            particle_size=U(0.3, 1),
+            size_random=U(0.1, 0.7),
 
             use_rotation_instance=True,
 
@@ -323,8 +327,9 @@ class FishSchoolFactory(BoidSwarmFactory):
     def __init__(self, factory_seed, bvh=None, coarse=False):
         with FixedSeed(factory_seed):
             settings = self.fish_school_params()
-            clothsim_skin = np.random.random_sample(1) < 0.2
-            col = make_asset_collection(FishFactory(factory_seed=randint(1e7), animation_mode='idle', clothsim_skin=clothsim_skin), n=3)
+            col = make_asset_collection(FishFactory(factory_seed=randint(1e7),
+                                                    animation_mode='idle',
+                                                    scale=("clip_gaussian", 0.3, 0.4, 0.1, .6)), n=3)
         super().__init__(
             factory_seed, child_col=col, 
             collider_col=bpy.data.collections.get('colliders'),
@@ -335,9 +340,10 @@ class FishSchoolFactory(BoidSwarmFactory):
 
 if __name__ == "__main__":
     import os
-    for i in range(1):
-        bpy.context.scene.frame_end = 10
-        factory = FishFactory(i, clothsim_skin=False, animation_mode='idle')
+    bpy.ops.object.delete(use_global=False)
+    for i in range(4):
+        #bpy.context.scene.frame_end = 3
+        factory = FishFactory(i, clothsim_skin=False, animation_mode='idle', scale=("clip_gaussian", 0.3, 0.4, 0.1, 1.2))
         root = factory.spawn_asset(i)
 
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(os.path.abspath(os.curdir), "dev_fish5.blend"))
