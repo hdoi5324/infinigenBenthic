@@ -110,14 +110,6 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                 selection=selection, altitude=-0.25)
     p.run_stage('boulders', add_boulders, terrain_mesh)
 
-
-    def add_rocks(target):
-        selection = density.placement_mask(scale=0.15, select_thresh=0.4,
-            normal_thresh=0.7, return_scalar=True, tag=nonliving_domain)
-        _, rock_col = pebbles.apply(target, selection=selection)
-        return rock_col
-    p.run_stage('rocks', add_rocks, terrain_mesh)
-
     def camera_preprocess():
         camera_rigs = cam_util.spawn_camera_rigs()
         scene_preprocessed = cam_util.camera_selection_preprocessing(terrain, terrain_mesh)
@@ -193,6 +185,14 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
         deps = bpy.context.evaluated_depsgraph_get()
         terrain_inview_bvh = mathutils.bvhtree.BVHTree.FromObject(terrain_inview, deps)
+
+
+    def add_rocks(target):
+        selection = density.placement_mask(scale=0.15, select_thresh=0.4,
+            normal_thresh=0.7, return_scalar=True, tag=nonliving_domain)
+        _, rock_col = pebbles.apply(target, selection=selection)
+        return rock_col
+    p.run_stage('rocks', add_rocks, terrain_mesh)
 
 
     def add_corals(target):

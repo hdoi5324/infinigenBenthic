@@ -1,7 +1,7 @@
 # Copyright (c) Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
-# Authors:
+# Authors: 
 # - Lahav Lipson - Render, flat shading, etc
 # - Alex Raistrick - Compositing
 # - Hei Law - Initial version
