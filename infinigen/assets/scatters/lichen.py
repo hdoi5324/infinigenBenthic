@@ -36,7 +36,7 @@ class Lichen:
         scatter_obj = scatter_instances(
             base_obj=obj, collection=self.col,
             density=5e3,  min_spacing=.08,
-            scale=1, scale_rand=N(0.5, 0.07),
+            scale=0.7, scale_rand=N(0.5, 0.07),
             selection=selection
         )
         return scatter_obj

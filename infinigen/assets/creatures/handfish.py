@@ -240,35 +240,39 @@ class HandfishSchoolFactory(BoidSwarmFactory):
 
             rules = [
                 dict(type='SEPARATE'),
-                dict(type='GOAL'),
-                dict(type='FLOCK'),
+                dict(type='AVERAGE_SPEED'),
             ],
 
-            air_speed_max = U(0.1, 0.7),
+            air_speed_max = U(.3, .5),
             air_acc_max = U(0.7, 1),
-            air_personal_space = 2, #U(0.15, 2),
+            air_personal_space = U(1.5, 2),
             bank = 0, # fish dont tip over / roll
-            pitch = 0.4, #
+            pitch = 0.1, #
             rule_fuzzy = U(0.6, 0.9)
         )
 
         return dict(
-            particle_size=U(0.1, 0.3),
-            size_random=U(0.0, 0.1),
+            particle_size=U(0.09, .14),
+            size_random=U(0.1, 0.3),
+
             use_rotation_instance=True,
+
             lifetime=bpy.context.scene.frame_end - bpy.context.scene.frame_start,
             warmup_frames=1, emit_duration=0, # all particles appear immediately
             emit_from='VOLUME',
             mass = 2,
             use_multiply_size_mass=True,
             effect_gravity=0,
+
             boids_settings=boids_settings
         )
 
     def __init__(self, factory_seed, bvh=None, coarse=False):
         with FixedSeed(factory_seed):
             settings = self.fish_school_params()
-            col = make_asset_collection(HandfishFactory(factory_seed=randint(1e4), animation_mode='idle'), n=10)
+            col = make_asset_collection(HandfishFactory(factory_seed=randint(1e7),
+                                                    animation_mode='idle',
+                                                    scale=1.0, n=3))
         super().__init__(
             factory_seed, child_col=col,
             collider_col=bpy.data.collections.get('colliders'),

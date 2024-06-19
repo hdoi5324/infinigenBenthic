@@ -213,20 +213,20 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     p.run_stage('kelp', add_kelp, terrain_inview)
 
     p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=.6, normal_thresh=0.4, tag=underwater_domain),
-                                               density=1e2))
+        selection=density.placement_mask(scale=0.05, select_thresh=.5, normal_thresh=0.0, tag=underwater_domain),
+                                               density=random_general('uniform', 20, 100)))
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
         selection=density.placement_mask(scale=0.05, select_thresh=.55, normal_thresh=0.4, tag=underwater_domain)))
 
-    urchin_density = random_general(('uniform', 0.1, 0.7))
-    urchin_select_threshold = uniform(0.4, 0.6)
+    urchin_density = random_general(('uniform', .5, 4))  # no per square metre
+    urchin_select_threshold = uniform(0.2, 0.4)  # Lower covers more of the terrain_inview
+
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
-        selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold, tag=underwater_domain,
-                                         normal_thresh=0.4),
+        selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold, tag=underwater_domain),
                                                density=urchin_density))
+
     p.run_stage('urchinkina', lambda: urchin_kina.apply(terrain_inview,
                                                selection=density.placement_mask(scale=0.05, select_thresh=urchin_select_threshold,
-                                                                                normal_thresh=0.4,
                                                                                 tag=underwater_domain),
                                                         density=urchin_density))
 

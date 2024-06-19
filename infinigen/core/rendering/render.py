@@ -1,7 +1,7 @@
 # Copyright (c) Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
-# Authors: 
+# Authors:
 # - Lahav Lipson - Render, flat shading, etc
 # - Alex Raistrick - Compositing
 # - Hei Law - Initial version
@@ -398,12 +398,12 @@ def postprocess_blendergt_outputs_with_distortion(frames_folder, output_stem, ca
     uniq_inst_path = frames_folder / f"UniqueInstances{output_stem}.exr"
     uniq_inst_array = load_exr(uniq_inst_path)
     uniq_inst_array = cv2.imread(f"{tmp_dir}/{frame:04d}.png")
-    cv2.imwrite(uniq_inst_path.with_name(f"InstanceSegmentation_undistorted{output_stem}.png"), uniq_inst_array)
+    #cv2.imwrite(str(uniq_inst_path.with_name(f"InstanceSegmentation_undistorted{output_stem}.png")), uniq_inst_array)
     uniq_inst_array = apply_lens_distortion(uniq_inst_array, mapping_coords=mapping_coords,
                                         orig_res_x=orig_res[1], orig_res_y=orig_res[0],
                                         use_interpolation=not flat_shading)
     np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
-    cv2.imwrite(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"), uniq_inst_array)
+    cv2.imwrite(str(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png")), uniq_inst_array)
     uniq_inst_path.unlink()
 
 def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_ground_truth, output="Image"):
@@ -412,13 +412,13 @@ def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_g
     mapping_coords, orig_res = load_distortion_parameters(cam_ob)
 
     image_dst_path = frames_folder / f"{output}{output_stem}.png"
-    image_array = cv2.imread(image_dst_path)
+    image_array = cv2.imread(str(image_dst_path))
     image_array = apply_lens_distortion(image_array, mapping_coords=mapping_coords,
                                                  orig_res_x=orig_res[1], orig_res_y=orig_res[0],
                                                  use_interpolation=not saving_ground_truth)
 
     np.save(image_dst_path.with_name(f"{output}{output_stem}.npy"), image_array)
-    imwrite(image_dst_path.with_name(f"{output}{output_stem}.png"), image_array)
+    cv2.imwrite(str(image_dst_path.with_name(f"{output}{output_stem}.png")), image_array)
 
 
 @gin.configurable

@@ -1,6 +1,6 @@
 # Camera rig
 camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 2.3)
-camera.camera_pose_proposal.pitch = 20 # 0 for downward looking
+camera.camera_pose_proposal.pitch = 0 # 0 for downward looking
 camera_offset = 0.05 # Half baseline for stereo
 camera_pitch = 0
 camera_yaw=0
@@ -37,9 +37,8 @@ spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
 
 # Render
 render_image.use_dof = True
-render_image.dof_aperture_fstop = 1.4 # AUV 2.0 ROV 1.4
-set_camera_parameters.focus_dist = 2.5 # AUV 1.9 # ROV 3.0
-#compositor_postprocessing.distort = 0.00 # This breaks the blendergt stuff.  Flat render is stuffed.
+render_image.dof_aperture_fstop = 2.0 # AUV 2.0 ROV 1.4
+set_camera_parameters.focus_dist = 1.9 # AUV 1.9 # ROV 3.0
 compositor_postprocessing.noise = 0.0001
 
 
