@@ -205,7 +205,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                                                                                 tag=underwater_domain),
                                                density=random_general(('uniform', 20, 100))))
     p.run_stage('mollusk', lambda: mollusk.apply(terrain_inview,
-                                                 selection=density.placement_mask(scale=0.05, select_thresh=.7,
+                                                 selection=density.placement_mask(scale=0.04, select_thresh=.3,
                                                                                   normal_thresh=0.0,
                                                                                   tag=underwater_domain),
                                                  density=random_general(('uniform', 1, 10))))

@@ -210,7 +210,7 @@ def shader_random(nw: NodeWrangler):
     object_info_1 = nw.new_node(Nodes.ObjectInfo_Shader)
 
     value = nw.new_node(Nodes.Value)
-    value.outputs[0].default_value = 8
+    value.outputs[0].default_value = 10
 
     divide = nw.new_node(Nodes.Math, input_kwargs={0: 1.0000, 1: value}, attrs={'operation': 'DIVIDE'})
 

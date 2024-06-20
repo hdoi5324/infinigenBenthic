@@ -16,10 +16,10 @@ from infinigen.core.placement.instance_scatter import scatter_instances
 from infinigen.core import surface
 
 
-def apply(obj, scale=0.4, density=1., n=10, min_spacing=.5, selection=None):
+def apply(obj, scale=0.1, density=1., n=10, min_spacing=.5, selection=None):
     with CountInstance('mollusk'):
-        n_species = np.random.randint(4, 6)
-        factories = list(MolluskFactory(np.random.randint(1e5)) for _ in range(n_species))
+        n_species = np.random.randint(4, 8)
+        factories = list(MolluskFactory(np.random.randint(1e5+444)) for _ in range(n_species))
         mollusk = make_asset_collection(factories, name='mollusk',
                                                     weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                                     verbose=True)
