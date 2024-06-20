@@ -1,7 +1,7 @@
 # ROV Camera rig
-camera.camera_pose_proposal.altitude = ("clip_gaussian", 3.2, .1, 1.8, 4.3)
-camera.camera_pose_proposal.pitch = 80 # 0 for downward looking
-camera_offset = 0.05 # Half baseline for stereo
+camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 4.3)
+camera.camera_pose_proposal.pitch = 45 # 0 for downward looking
+camera_offset = 0.0 # Half baseline for stereo
 camera_pitch = 0
 camera_yaw=0
 camera.camera_pose_proposal.headspace_retries = 5
@@ -12,6 +12,9 @@ camera.spawn_camera_rigs.camera_rig_config = [
     {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 #    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 ]
+
+# Terrain
+compose_scene.inview_distance = 20
 
 # Lens and resolution
 camera.set_camera_parameters.focal_mm=15.89 # Sirius 15.89 Nimbus 13.89
@@ -30,17 +33,19 @@ flat/render_image.apply_distortion = True
 
 
 # Lights
-camera.configure_camera_lights.energy = 300
-spawn_camera_rigs.light_angle = 10 # nimbus = 10
-spawn_camera_rigs.light_offset = 0.2 # nimbus 1.2
+camera.spawn_camera_rigs.light_foreaft=False
+camera.configure_camera_lights.energy = 800
+spawn_camera_rigs.light_angle = 0 # nimbus = 10
+spawn_camera_rigs.light_offset = 0.3 # nimbus 1.2
 
 
 # Render
 render_image.use_dof = True
 render_image.dof_aperture_fstop = 1.4 # AUV 2.0 ROV 1.4
-set_camera_parameters.focus_dist = 3.0 # AUV 1.9 # ROV 3.0
+set_camera_parameters.focus_dist = 2.8 # AUV 1.9 # ROV 6.0 for 60 degrees
 compositor_postprocessing.noise = 0.0001
 
+water.shader.volume_density = ("clip_gaussian", 0.5, 0.1, 0.4, 0.6)
 
 
 

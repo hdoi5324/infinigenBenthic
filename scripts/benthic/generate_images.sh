@@ -3,7 +3,7 @@
 
 overwrite="--overwrite" #--overwrite
 cleanfiles="" #"--cleanup big_files"
-outputfolder="nudi_urchin1"
+outputfolder="nudi_urchin2"
 num_scenes=15
 pipeline_overrides="" # "--pipeline_overrides manage_datagen_jobs.num_concurrent=2"
 
@@ -17,7 +17,7 @@ do
     override="--overrides ${option}"
   fi
   echo $override
-  python -m infinigen.datagen.manage_jobs -- ${overwrite} ${cleanfiles} --debug --output_folder outputs/${outputfolder} --num_scenes ${num_scenes} \
+  python -m infinigen.datagen.manage_jobs -- ${overwrite} ${cleanfiles}  --output_folder outputs/${outputfolder} --num_scenes ${num_scenes} \
   --configs coral_reef_hd.gin ${override} --pipeline_configs local_16GB.gin monocular.gin cuda_terrain.gin hd_coral_reef_datagen.gin \
   ${pipeline_overrides}
 done

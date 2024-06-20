@@ -135,6 +135,7 @@ def spawn_camera_rigs(
     n_camera_rigs,
     light_angle=10,
     light_offset=1.2,
+    light_foreaft=True
 ):
 
     def spawn_rig(i):
@@ -151,7 +152,7 @@ def spawn_camera_rigs(
         camera_pitch = camera_rig_config[0]['rot_euler'][0]
         light_z = light_offset*np.sin(np.deg2rad(camera_pitch))
         light_y = light_offset*np.cos(np.deg2rad(camera_pitch))
-        spot_offset = np.array([0, light_y, light_z])
+        spot_offset = np.array([0, light_y, light_z] if light_foreaft else [light_offset, 0, 0])
         for j in range(2):
             # Add camera lights - first aft then fore
             spot = spawn_camera_light()
@@ -161,7 +162,7 @@ def spawn_camera_rigs(
             spot_location = spot_offset if j == 0 else spot_offset * -1
             spot.location = spot_location
 
-            spot_angle = (light_angle if j == 1 else -light_angle) + camera_pitch
+            spot_angle = (light_angle if j == 1 else -light_angle) + camera_pitch if light_foreaft else 0
             spot.rotation_euler = [np.deg2rad(spot_angle), 0, 0]
         return rig_parent
 

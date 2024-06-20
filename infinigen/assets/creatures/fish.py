@@ -311,8 +311,8 @@ class FishSchoolFactory(BoidSwarmFactory):
         )
 
         return dict(
-            particle_size=U(0.1, 0.5),
-            size_random=U(0.1, 0.3),
+            particle_size=1.0,
+            size_random=U(0.8, 1.2),
 
             use_rotation_instance=True,
 

@@ -10,7 +10,7 @@ from infinigen.assets.underwater.plasticbag import make_plasticbag_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 
-def apply(obj, selection=None, density=1.5, **kwargs):
+def apply(obj, selection=None, density=0.5, **kwargs):
     col = make_plasticbag_collection(randint(100), 5)
     return scatter_instances(
         base_obj=obj,

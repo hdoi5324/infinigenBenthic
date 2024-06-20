@@ -218,7 +218,8 @@ class CrustaceanFactory(AssetFactory):
 
         for o in [arma, joined]:
             o.scale = self.scale
-            butil.apply_transform(o, scale=True)
+            butil.apply_transform(o, scale=True, loc=True)
+        #todo: some issue here where occasionally the crustacian arma and joined location gets offset to root location.  Not too important.
 
         return root
 
