@@ -20,6 +20,7 @@ from infinigen.core.placement.camera import nodegroup_active_cam_info
 
 logger = logging.getLogger(__name__)
 
+
 def _less(a, b, nw):
     return nw.new_node(Nodes.Compare, [a, b], attrs={"data_type": "FLOAT", "operation": "LESS_THAN"})
 
@@ -63,10 +64,11 @@ def camera_cull_points(nw, fov=25, camera=None, near_dist_margin=5):
     dot_prod = nw.new_node(Nodes.VectorMath, [pt_to_cam_normalized, cam_dir], {"operation": "DOT_PRODUCT"})
     angle_rad = nw.new_node(Nodes.Math, [dot_prod], {"operation": "ARCCOSINE"})
     angle_deg = nw.new_node(Nodes.Math, [angle_rad], {"operation": "DEGREES"})
-    visible = nw.new_node(Nodes.BooleanMath, [_less(angle_deg, fov, nw), _less(distance, near_dist_margin, nw)], 
+    visible = nw.new_node(Nodes.BooleanMath, [_less(angle_deg, fov, nw), _less(distance, near_dist_margin, nw)],
                           attrs={'operation': 'OR'})
 
     return visible, distance
+
 
 def bucketed_instance(nw, points, collection, distance, buckets, selection, scaling, rotation, instance_index=None):
     instance_index = {'Instance Index': surface.eval_argument(nw, instance_index, n=len(
@@ -93,15 +95,16 @@ def bucketed_instance(nw, points, collection, distance, buckets, selection, scal
 
     return nw.new_node(Nodes.JoinGeometry, input_kwargs={'Geometry': instance_groups})
 
+
 def geo_instance_scatter(
-    nw: NodeWrangler, base_obj, collection, density, 
-    fov=None, dist_max=None, no_culling_dist=5, min_spacing=0,
-    scaling=Vector((1, 1, 1)), normal=None, normal_fac=1, rotation_offset=None,
-    selection=True, taper_scale=False, taper_density=False,
-    ground_offset=0, instance_index=None,
-    transform_space='RELATIVE', reset_children=True
+        nw: NodeWrangler, base_obj, collection, density,
+        fov=None, dist_max=None, no_culling_dist=5, min_spacing=0,
+        scaling=Vector((1, 1, 1)), normal=None, normal_fac=1, rotation_offset=None,
+        selection=True, taper_scale=False, taper_density=False,
+        ground_offset=0, instance_index=None,
+        transform_space='RELATIVE', reset_children=True
 ):
-    base_geo = nw.new_node(Nodes.ObjectInfo, [base_obj], attrs={'transform_space':transform_space}).outputs['Geometry']
+    base_geo = nw.new_node(Nodes.ObjectInfo, [base_obj], attrs={'transform_space': transform_space}).outputs['Geometry']
 
     overall_density = nw.expose_input("Overall Density", val=density)
     selection_val = surface.eval_argument(nw, selection)
@@ -113,30 +116,33 @@ def geo_instance_scatter(
 
     if density_scalar is not None:
         if taper_density:
-            overall_density = nw.new_node(Nodes.Math, [density_scalar, overall_density], attrs={'operation': 'MULTIPLY'})
+            overall_density = nw.new_node(Nodes.Math, [density_scalar, overall_density],
+                                          attrs={'operation': 'MULTIPLY'})
         if taper_scale:
-            scaling = nw.new_node(Nodes.VectorMath, input_kwargs={0: scaling, 'Scale': density_scalar}, attrs={'operation': 'SCALE'})
+            scaling = nw.new_node(Nodes.VectorMath, input_kwargs={0: scaling, 'Scale': density_scalar},
+                                  attrs={'operation': 'SCALE'})
 
-    points = nw.new_node(Nodes.DistributePointsOnFaces, 
-        [base_geo], input_kwargs={"Density": overall_density, "Selection": selection_val})
+    points = nw.new_node(Nodes.DistributePointsOnFaces,
+                         [base_geo], input_kwargs={"Density": overall_density, "Selection": selection_val,
+                                                   "Seed": np.random.randint(1e5)})
     distribute_points = points
-        
+
     if min_spacing > 0:
         points = nw.new_node(Nodes.MergeByDistance,
-            input_kwargs={'Geometry': points, 'Distance': surface.eval_argument(nw, min_spacing)})
+                             input_kwargs={'Geometry': points, 'Distance': surface.eval_argument(nw, min_spacing)})
 
     point_fields = {}
 
     normal = (distribute_points, "Normal") if normal is None else surface.eval_argument(nw, normal)
     rotation_val = nw.new_node(Nodes.AlignEulerToVector, attrs={"axis": "Z"},
-                                input_kwargs={"Factor": surface.eval_argument(nw, normal_fac), "Vector": normal})
+                               input_kwargs={"Factor": surface.eval_argument(nw, normal_fac), "Vector": normal})
     rotation_val = nw.new_node(Nodes.RotateEuler, [rotation_val], {"type": "AXIS_ANGLE", "space": "LOCAL"},
-                            input_kwargs={"Axis": Vector((0., 0., 1.)), "Angle": nw.uniform(0, 1e4)})
+                               input_kwargs={"Axis": Vector((0., 0., 1.)), "Angle": nw.uniform(0, 1e4)})
     if rotation_offset is not None:
         rotation_val = nw.new_node(Nodes.RotateEuler, attrs=dict(space='OBJECT'), input_kwargs={
-            'Rotation':surface.eval_argument(nw, rotation_offset), 'Rotate By':rotation_val})
+            'Rotation': surface.eval_argument(nw, rotation_offset), 'Rotate By': rotation_val})
     point_fields['rotation'] = (rotation_val, 'FLOAT_VECTOR')
-    
+
     if instance_index is not None:
         inst = surface.eval_argument(nw, instance_index, n=len(collection.objects))
         point_fields['instance_index'] = (inst, 'INT')
@@ -146,46 +152,49 @@ def geo_instance_scatter(
         point_fields['ground_offset'] = (surface.eval_argument(nw, ground_offset), 'FLOAT')
 
     if dist_max is not None or fov is not None:
-        
+
         for k, (soc, dtype) in point_fields.items():
-            points = nw.new_node(Nodes.CaptureAttribute, input_kwargs={'Geometry': points, 'Value': soc}, attrs={'data_type': dtype})
+            points = nw.new_node(Nodes.CaptureAttribute, input_kwargs={'Geometry': points, 'Value': soc},
+                                 attrs={'data_type': dtype})
             point_fields[k] = points
 
         # camera-based culling
-        visible, distance = camera_cull_points(nw, fov=nw.expose_input("FOV", val=fov), near_dist_margin=no_culling_dist)
-        points = nw.new_node(Nodes.SeparateGeometry, 
-            [points, visible], attrs={"domain": "POINT"})
+        visible, distance = camera_cull_points(nw, fov=nw.expose_input("FOV", val=fov),
+                                               near_dist_margin=no_culling_dist)
+        points = nw.new_node(Nodes.SeparateGeometry,
+                             [points, visible], attrs={"domain": "POINT"})
         if dist_max is not None:
             in_range = _less(distance, dist_max)
-            points = nw.new_node(Nodes.SeparateGeometry, 
-                [points, in_range], attrs={"domain": "POINT"})
+            points = nw.new_node(Nodes.SeparateGeometry,
+                                 [points, in_range], attrs={"domain": "POINT"})
     else:
         for k, v in point_fields.items():
             point_fields[k] = v[0]
-    
+
     collection_info = nw.new_node(Nodes.CollectionInfo, [collection, True, reset_children])
 
     instances = nw.new_node(Nodes.InstanceOnPoints, [points], input_kwargs={
         "Instance": collection_info, "Pick Instance": True,
-        'Instance Index': point_fields.get('instance_index'), 
+        'Instance Index': point_fields.get('instance_index'),
         "Rotation": point_fields.get('rotation'),
         "Scale": point_fields.get('scaling')})
-    
+
     if ground_offset != 0:
         instances = nw.new_node(Nodes.TranslateInstances, [instances],
-            input_kwargs={ "Translation": nw.combine(0, 0, point_fields['ground_offset']), "Local Space": True})
+                                input_kwargs={"Translation": nw.combine(0, 0, point_fields['ground_offset']),
+                                              "Local Space": True})
 
     instances = nw.new_node(Nodes.SetShadeSmooth, input_kwargs={'Geometry': instances, 'Shade Smooth': False})
 
     nw.new_node(Nodes.GroupOutput, input_kwargs={'Geometry': instances})
 
+
 def scatter_instances(
-    collection, 
-    density=None, vol_density=None, max_density=5000,
-    scale=None, scale_rand=0, scale_rand_axi=0,
-    **kwargs
+        collection,
+        density=None, vol_density=None, max_density=5000,
+        scale=None, scale_rand=0, scale_rand_axi=0,
+        **kwargs
 ):
-    
     if np.sum([density is None, vol_density is None]) != 1:
         raise ValueError(f'Scatter instances got {density=} and {vol_density=} expected only one of the three')
 
@@ -194,23 +203,26 @@ def scatter_instances(
     if vol_density is not None:
         avg_scale = scale * (1 - scale_rand / 2) * (1 - scale_rand_axi / 2)
         assert scale is not None, 'Cannot compute expected collection vol when using legacy scaling= func'
-        assert density is None # ensured by check above
+        assert density is None  # ensured by check above
 
         avg_vol = np.mean([prod(list(o.dimensions)) for o in collection.objects])
-        density = vol_density / (avg_vol * avg_scale ** 2) # TODO cube power?
+        density = vol_density / (avg_vol * avg_scale ** 2)  # TODO cube power?
 
         if density > max_density:
-            logger.warning(f'scatter_instances with {collection.name=} {vol_density=} {avg_scale=:.4f} {avg_vol=:.4f} attempted {density=:.4f}, clamping to {max_density=}')
+            logger.warning(
+                f'scatter_instances with {collection.name=} {vol_density=} {avg_scale=:.4f} {avg_vol=:.4f} attempted {density=:.4f}, clamping to {max_density=}')
             density = max_density
-        
+
     if scale is not None:
         assert 'scaling' not in kwargs
+
         def scaling(nw: NodeWrangler):
             axis_scaling = nw.new_node(Nodes.RandomValue,
-                input_kwargs={0: 3*(1-scale_rand_axi,), 1:3*(1,)},
-                attrs={"data_type": 'FLOAT_VECTOR'})
+                                       input_kwargs={0: 3 * (1 - scale_rand_axi,), 1: 3 * (1,)},
+                                       attrs={"data_type": 'FLOAT_VECTOR'})
             overall = nw.uniform(1 - scale_rand, 1)
-            return nw.multiply(axis_scaling, overall, 3*(scale,))
+            return nw.multiply(axis_scaling, overall, 3 * (scale,))
+
         kwargs['scaling'] = scaling
 
     scatter_obj = butil.spawn_vert(name)
