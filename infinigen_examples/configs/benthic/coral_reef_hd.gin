@@ -61,10 +61,7 @@ animation_policy.AnimPolicyMowTheLawn.turn_frames = 4
 
 
 full/render_image.passes_to_save = []
-flat/render_image.passes_to_save = [
-    ['z', 'Depth'],
-    ['object_index', 'IndexOB']
-]
+
 compose_scene.urchin_chance = 1.0
 compose_scene.urchinkina_chance = 0.0
 compose_scene.handfish_chance = 0.0
