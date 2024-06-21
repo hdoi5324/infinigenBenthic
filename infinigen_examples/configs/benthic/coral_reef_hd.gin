@@ -38,7 +38,7 @@ export.spherical = False # use OcMesher
 min_terrain_distance = 1.5
 keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
 #OcMesher.pixels_per_cube = 4 # hifi 4 default 8
-#OpaqueSphericalMesher.pixels_per_cube = 0.92 # hifi 0.92 lofi 4
+OpaqueSphericalMesher.pixels_per_cube = 2 # hifi 0.92 lofi 4
 TransparentSphericalMesher.pixels_per_cube = 1.8 # hifi 1.38 lofi 4
 target_face_size.global_multiplier = 2 # use this for dev. Not sure it gets used for my assets
 
@@ -61,7 +61,10 @@ animation_policy.AnimPolicyMowTheLawn.turn_frames = 4
 
 
 full/render_image.passes_to_save = []
-
+flat/render_image.passes_to_save = [
+    ['z', 'Depth'],
+    ['object_index', 'IndexOB']
+]
 compose_scene.urchin_chance = 1.0
 compose_scene.urchinkina_chance = 0.0
 compose_scene.handfish_chance = 0.0
@@ -80,7 +83,7 @@ compose_scene.scolymia_chance = 0.0
 compose_scene.jellyfish_chance = 0.2
 compose_scene.marine_snow_particles_chance = 0.3
 compose_scene.boulders_chance = 0.2
-compose_scene.ground_creatures_chance = 0.3 #crustaceans
+compose_scene.ground_creatures_chance = 0.1 #crustaceans
 
 populate_scene.slime_mold_chance = 0.0
 populate_scene.lichen_chance = 0.0
@@ -99,7 +102,7 @@ water.geo.water_height = ("uniform", 0.05, 0.15)
 water.geo.with_ripples = 0
 water.geo.with_waves=False
 #Absorption
-#water.shader.volume_density = ("clip_gaussian", 0.8, 0.2, 0.3, 1.1)
+water.shader.volume_density = ("clip_gaussian", 0.8, 0.2, 0.4, 1.1)
 water.shader.color = ("color_category", 'seawater')
 #Scattering
 water.shader.scatter_color = ("color_category", 'seawater_scatter')

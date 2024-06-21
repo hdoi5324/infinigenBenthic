@@ -93,6 +93,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     def camera_preprocess():
         camera_rigs = cam_util.spawn_camera_rigs()
+        cam_util.set_camera_parameters(camera_rigs)
         scene_preprocessed = cam_util.camera_selection_preprocessing(terrain, terrain_mesh)
         return camera_rigs, scene_preprocessed
 
@@ -102,12 +103,6 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     p.run_stage(
         'pose_cameras',
         lambda: cam_util.configure_cameras(camera_rigs, bbox, scene_preprocessed),
-        use_chance=False
-    )
-
-    p.run_stage(
-        'configure_camera_parameters',
-        lambda: cam_util.set_camera_parameters(camera_rigs),
         use_chance=False
     )
 

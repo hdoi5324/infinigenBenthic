@@ -3,11 +3,11 @@
 
 overwrite="--overwrite" #--overwrite
 cleanfiles="" #"--cleanup big_files"
-outputfolder="nudi_urchin2"
+outputfolder="nudi_urchin1"
 num_scenes=15
 pipeline_overrides="" # "--pipeline_overrides manage_datagen_jobs.num_concurrent=2"
 
-options=("" "compose_scene.seaweed_chance=0.8 compose_scene.fish_school_chance=0.5" "compose_scene.corals_chance=1.0" "compose_scene.kelp_chance=1.0")
+options=("" )
 #rm -fr outputs/${outputfolder}
 for i in 0
 do

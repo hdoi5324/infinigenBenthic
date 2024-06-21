@@ -14,11 +14,13 @@ camera.spawn_camera_rigs.camera_rig_config = [
 ]
 
 # Lens and resolution
-camera.set_camera_parameters.focal_mm=15.89 # Sirius 15.89 Nimbus 13.89
-camera.set_camera_parameters.pixel_size_in_mm=0.00345 # Sirius 0.00345 Nimbus 0.00454
-W = 1920 # Sirius 4112  Nimbus 2752 Scaled down 1250 1360
-H = 1080 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
-execute_tasks.generate_resolution = (%W, %H)
+camera.set_camera_parameters.focal_mm=13.89 # Sirius 15.89 Nimbus 13.89
+camera.set_camera_parameters.pixel_size_in_mm=0.00908 # Sirius 0.00345 Nimbus 0.00454
+W = 1376 # Sirius 4112  Nimbus 2752 Scaled down 1250 1360
+H = 1100 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
+# execute_tasks.generate_resolution = (%W, %H) ## NO LONGER USED
+camera.set_camera_parameters.image_height=%H
+camera.set_camera_parameters.image_width=%W
 get_sensor_coords.H = %H
 get_sensor_coords.W = %W
 

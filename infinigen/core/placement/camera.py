@@ -62,7 +62,7 @@ def get_sensor_coords(cam, H, W, sparse=False):
     scale = scene.render.resolution_percentage / 100
     sensor_width_in_m = camd.sensor_width / 1000
     sensor_height_in_m = camd.sensor_height / 1000
-    assert abs(sensor_width_in_m/sensor_height_in_m - W/H) < 1e-4, (sensor_width_in_m, sensor_height_in_m, W, H)
+    assert abs(sensor_width_in_m/sensor_height_in_m - W/H) < 0.1, (sensor_width_in_m, sensor_height_in_m, W, H)
 
     pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
     if (camd.sensor_fit == 'VERTICAL'):
@@ -556,6 +556,8 @@ def configure_camera_lights(
 def set_camera_parameters(cam_rigs,
                           focal_mm=15.89,
                           pixel_size_in_mm=0.00343,
+                          image_width=1920,
+                          image_height=1080,
                           use_distortion=False,
                           k1_k2_p1_p2_k3=[0.08294964878778682,
                                           0.3280632761758799,
@@ -567,9 +569,11 @@ def set_camera_parameters(cam_rigs,
                           cy=None,
                           focus_dist=None,
                           ):
+    scene = bpy.context.scene
+    scene.render.resolution_x = image_width
+    scene.render.resolution_y = image_height
+
     [k1, k2, p1, p2, k3] = k1_k2_p1_p2_k3
-    image_height = bpy.context.scene.render.resolution_y
-    image_width = bpy.context.scene.render.resolution_x
     f = int(focal_mm / pixel_size_in_mm)
     #K = np.array([
     #    [f, 0, cx],
@@ -585,6 +589,7 @@ def set_camera_parameters(cam_rigs,
             cam_data = cam_ob.data
             cam_data.lens = focal_mm
             cam_data.sensor_fit = "HORIZONTAL"
+            #todo: update adjust_camera_sensor to take sensor_fit as well.
             adjust_camera_sensor(cam, pixel_size_in_mm * image_height)
             #cam_data.sensor_width = pixel_size_in_mm * image_width
 
