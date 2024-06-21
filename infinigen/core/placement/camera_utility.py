@@ -14,10 +14,10 @@ from scipy.ndimage import map_coordinates
 
 
 @gin.configurable
-def adjust_camera_sensor(cam, sensor_height=18.):
+def adjust_camera_sensor(cam, sensor_height=18., W=None, H=None):
     scene = bpy.context.scene
-    W = scene.render.resolution_x
-    H = scene.render.resolution_y
+    W = scene.render.resolution_x if W is None else W
+    H = scene.render.resolution_y if H is None else H
     sensor_width = sensor_height * (W / H)
     # assert sensor_width.is_integer(), (18, W, H)
     cam.data.sensor_height = sensor_height
@@ -347,7 +347,7 @@ def set_lens_distortion(cam: bpy.types.Camera, resolution_y, resolution_x,
 
     # Update sensor size using new resolution but keeping same px size.
     pixel_size_in_mm = get_sensor_size(cam.data) / resolution_x
-    adjust_camera_sensor(cam, pixel_size_in_mm * columns_needed)
+    adjust_camera_sensor(cam, sensor_height=pixel_size_in_mm * columns_needed, W=columns_needed, H=rows_needed)
 
     # Adapt/shift the mapping function coordinates to the new_image_resolution resolution
     # (if we didn't, the mapping would only be valid for same resolution mapping)
