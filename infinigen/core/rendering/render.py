@@ -1,7 +1,7 @@
 # Copyright (c) Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
-# Authors: 
+# Authors:
 # - Lahav Lipson - Render, flat shading, etc
 # - Alex Raistrick - Compositing
 # - Hei Law - Initial version
@@ -33,7 +33,7 @@ from infinigen.core.util import exporting as exputil
 from infinigen.core.util.logging import Timer
 from infinigen.tools.datarelease_toolkit import reorganize_old_framesfolder
 from infinigen.tools.suffixes import get_suffix
-from infinigen.core.placement.bproc_camera_utility import apply_lens_distortion, load_distortion_parameters, remove_segmap_noise
+from infinigen.core.placement.camera_utility import apply_lens_distortion, load_distortion_parameters, remove_segmap_noise
 from numpy.random import uniform as U
 
 

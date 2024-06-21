@@ -1,7 +1,7 @@
 # Copyright (c) Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
-# Authors: 
+# Authors:
 # - Zeyu Ma, Lahav Lipson: Stationary camera selection
 # - Alex Raistrick: Refactor into proposal/validate, camera animation
 # - Lingjie Mei: get_camera_trajectory
@@ -44,7 +44,7 @@ from infinigen.core.util.random import random_general
 
 from infinigen.tools.suffixes import get_suffix
 
-from infinigen.core.placement.bproc_camera_utility import set_intrinsics_from_blender_params, set_lens_distortion, save_distortion_parameters
+from infinigen.core.placement.camera_utility import set_intrinsics_from_blender_params, set_lens_distortion, save_distortion_parameters, adjust_camera_sensor
 
 logger = logging.getLogger(__name__)
 
@@ -101,15 +101,6 @@ def get_sensor_coords(cam, H, W, sparse=False):
 
     return cam_coords_vectors, pixel_locs
 
-@gin.configurable
-def adjust_camera_sensor(cam, sensor_height=18.):
-    scene = bpy.context.scene
-    W = scene.render.resolution_x
-    H = scene.render.resolution_y
-    sensor_width = sensor_height * (W/H)
-    #assert sensor_width.is_integer(), (18, W, H)
-    cam.data.sensor_height = sensor_height
-    cam.data.sensor_width = sensor_width
 
 def spawn_camera():
     bpy.ops.object.camera_add()
@@ -315,8 +306,8 @@ def camera_pose_proposal(
 def keep_cam_pose_proposal(
     cam,
     terrain,
-    terrain_bvh, 
-    placeholders_kd, 
+    terrain_bvh,
+    placeholders_kd,
     camera_selection_answers,
     vertexwise_min_dist,
     camera_selection_ratio,
@@ -343,11 +334,11 @@ def keep_cam_pose_proposal(
 
     dists, camera_selection_answers_counts, n_pix = terrain_camera_query(
         cam, terrain_bvh, camera_selection_answers, vertexwise_min_dist, min_dist=min_terrain_distance)
-    
+
     if dists is None:
         logger.debug('keep_cam_pose_proposal rejects terrain dists')
         return None
-    
+
     coverage = len(dists)/n_pix
     if coverage < terrain_coverage_range[0] or coverage > terrain_coverage_range[1]:
         return None
@@ -373,7 +364,7 @@ def keep_cam_pose_proposal(
                         return None
 
     return np.std(dists)
-    
+
 @gin.configurable
 class AnimPolicyGoToProposals:
 
@@ -401,13 +392,13 @@ class AnimPolicyGoToProposals:
 
         time = np.linalg.norm(pos - camera_rig.location) / random_general(self.speed)
         return Vector(pos), Vector(rot), time, 'BEZIER'
-   
+
 @gin.configurable
 def compute_base_views(
     cam, n_views,
-    terrain, 
-    terrain_bvh, 
-    terrain_bbox, 
+    terrain,
+    terrain_bvh,
+    terrain_bbox,
     placeholders_kd=None,
     camera_selection_answers={},
     vertexwise_min_dist=None,
@@ -449,7 +440,7 @@ def compute_base_views(
 
     if len(potential_views) < n_views:
         raise ValueError(f'Could not find {n_views} camera views')
-    
+
     return sorted(potential_views, reverse=True)[:n_views]
 
 @gin.configurable
@@ -473,13 +464,13 @@ def camera_selection_ranges_ratio(**kwargs):
     return d
 
 def camera_selection_preprocessing(
-    terrain, 
+    terrain,
     terrain_mesh,
 ):
     camera_selection_ratio = camera_selection_tags_ratio()
     camera_selection_ratio.update(camera_selection_ranges_ratio())
     with Timer('Building placeholders KDTree'):
-        
+
         placeholders = list(chain.from_iterable(
             c.all_objects for c in bpy.data.collections if c.name.startswith('placeholders:')
         ))
@@ -517,14 +508,14 @@ def configure_cameras(
     dummy_camera = spawn_camera()
 
     base_views = compute_base_views(
-        dummy_camera, 
-        n_views=len(cam_rigs), 
-        terrain_bbox=bounding_box, 
+        dummy_camera,
+        n_views=len(cam_rigs),
+        terrain_bbox=bounding_box,
         **scene_preprocessed
     )
 
     for view, cam_rig in zip(base_views, cam_rigs):
-        
+
         score, loc, rot, focus_dist = view
         cam_rig.location = loc
         cam_rig.rotation_euler = rot
@@ -610,8 +601,8 @@ def set_camera_parameters(cam_rigs,
 
 @gin.configurable
 def animate_cameras(
-    cam_rigs, 
-    scene_preprocessed, 
+    cam_rigs,
+    scene_preprocessed,
     pois=None,
     follow_poi_chance=0.0,
     policy_registry = None,
@@ -638,8 +629,8 @@ def animate_cameras(
         if policy_registry is None:
             if U() < follow_poi_chance and pois is not None and len(pois):
                 policy = animation_policy.AnimPolicyFollowObject(
-                    target_obj=cam_rig, 
-                    pois=pois, 
+                    target_obj=cam_rig,
+                    pois=pois,
                     bvh=scene_preprocessed['terrain_bvh']
                 )
             else:
@@ -650,11 +641,11 @@ def animate_cameras(
         logger.info(f'Animating {cam_rig=} using {policy=}')
 
         animation_policy.animate_trajectory(
-            cam_rig, 
+            cam_rig,
             scene_preprocessed['terrain_bvh'],
             policy_func=policy,
-            validate_pose_func=anim_valid_pose_func, 
-            verbose=True, 
+            validate_pose_func=anim_valid_pose_func,
+            verbose=True,
             fatal=True
         )
 
@@ -674,7 +665,7 @@ def save_camera_parameters(camera_ids, output_folder, frame, use_dof=False):
         output_file = output_folder / f"camview{suffix}.npz"
 
         height_width = np.array((
-            bpy.context.scene.render.resolution_y, 
+            bpy.context.scene.render.resolution_y,
             bpy.context.scene.render.resolution_x
         ))
         T = np.asarray(camera_obj.matrix_world, dtype=np.float64) @ np.diag((1.,-1.,-1.,1.))
@@ -682,7 +673,7 @@ def save_camera_parameters(camera_ids, output_folder, frame, use_dof=False):
 
 if __name__ == "__main__":
     """
-    This interactive section generates a depth map by raycasting through each pixel. 
+    This interactive section generates a depth map by raycasting through each pixel.
     It is very useful for debugging camera.py.
     """
     cam = bpy.context.scene.camera
