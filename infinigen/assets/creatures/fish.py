@@ -111,7 +111,6 @@ def fish_fin_cloth_sim_params():
 
     return res
 
-
 def fish_genome():
     temp_dict = defaultdict(lambda: 0.1, {'body_fish_eel': 0.01, 'body_fish_puffer': 0.001})
     body = genome.part(parts.generic_nurbs.NurbsBody(
@@ -270,7 +269,7 @@ class FishFactory(AssetFactory):
                 animate_fish_swim(arma, instance_genome.postprocess_params['anim'])
             else:
                 raise ValueError(f'Unrecognized {self.animation_mode=}')
-
+            
         if self.clothsim_skin:
             joined = simulate_fish_cloth(joined, extras, instance_genome.postprocess_params['cloth'])
         else:
@@ -283,20 +282,20 @@ class FishFactory(AssetFactory):
                 butil.apply_transform(o, scale=True)
 
         tag_object(root, 'fish')
-
+            
         return root
-
+    
 
 class FishSchoolFactory(BoidSwarmFactory):
 
     @gin.configurable
     def fish_school_params(self):
         boids_settings = dict(
-            use_flight=True,
-            use_land=False,
-            use_climb=False,
+            use_flight = True,
+            use_land = False,
+            use_climb = False,
 
-            rules=[
+            rules = [
                 dict(type='SEPARATE'),
                 dict(type='GOAL'),
                 dict(type='FLOCK'),
@@ -317,9 +316,9 @@ class FishSchoolFactory(BoidSwarmFactory):
             use_rotation_instance=True,
 
             lifetime=bpy.context.scene.frame_end - bpy.context.scene.frame_start,
-            warmup_frames=1, emit_duration=0,  # all particles appear immediately
+            warmup_frames=1, emit_duration=0, # all particles appear immediately
             emit_from='VOLUME',
-            mass=2,
+            mass = 2,
             use_multiply_size_mass=True,
             effect_gravity=0,
 
@@ -333,13 +332,12 @@ class FishSchoolFactory(BoidSwarmFactory):
                                                     animation_mode='idle',
                                                     scale=("clip_gaussian", 0.3, 0.2, 0.2, .6)), n=3)
         super().__init__(
-            factory_seed, child_col=col,
+            factory_seed, child_col=col, 
             collider_col=bpy.data.collections.get('colliders'),
             settings=settings, bvh=bvh,
             volume=("uniform", 1, 3),
             coarse=coarse
         )
-
 
 if __name__ == "__main__":
     import os

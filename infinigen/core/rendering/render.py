@@ -1,7 +1,7 @@
 # Copyright (c) Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
-# Authors:
+# Authors: 
 # - Lahav Lipson - Render, flat shading, etc
 # - Alex Raistrick - Compositing
 # - Hei Law - Initial version
@@ -33,7 +33,7 @@ from infinigen.core.util import exporting as exputil
 from infinigen.core.util.logging import Timer
 from infinigen.tools.datarelease_toolkit import reorganize_old_framesfolder
 from infinigen.tools.suffixes import get_suffix
-from infinigen.core.placement.bproc_camera_utility import apply_lens_distortion, load_distortion_parameters, remove_segmap_noise
+from infinigen.core.placement.camera_utility import apply_lens_distortion, load_distortion_parameters
 from numpy.random import uniform as U
 
 
@@ -143,12 +143,12 @@ def compositor_postprocessing(nw, source, show=True, autoexpose=False, autoexpos
 
 @gin.configurable
 def configure_compositor_output(
-        nw,
-        frames_folder,
-        image_denoised,
-        image_noisy,
-        passes_to_save,
-        saving_ground_truth
+    nw, 
+    frames_folder, 
+    image_denoised, 
+    image_noisy, 
+    passes_to_save, 
+    saving_ground_truth, 
 ):
 
     file_output_node = nw.new_node(Nodes.OutputFile, attrs={
@@ -328,7 +328,7 @@ def postprocess_blendergt_outputs(frames_folder, output_stem, frame, tmp_dir):
     np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
     shutil.copy(uniq_inst_tmp_path, str(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.png")))
     uniq_inst_path.unlink()
-
+    
 def configure_compositor(frames_folder, passes_to_save, flat_shading):
     compositor_node_tree = bpy.context.scene.node_tree
     nw = NodeWrangler(compositor_node_tree)
@@ -433,7 +433,7 @@ def render_image(
     dof_aperture_fstop=2.8,
     apply_distortion=False
 ):
-
+    
     tic = time.time()
 
     camera_rig_id, subcam_id = camera_id
@@ -454,8 +454,6 @@ def render_image(
             first_frame = bpy.context.scene.frame_start
             suffix = get_suffix(dict(cam_rig=camera_rig_id, resample=0, frame=first_frame, subcam=subcam_id))
             (frames_folder / f"Objects{suffix}.json").write_text(json_object)
-
-
 
         with Timer("Flat Shading"):
             bpy.context.scene.cycles.samples = 1
@@ -496,7 +494,6 @@ def render_image(
     # Render the scene
     bpy.context.scene.camera = camera
     with Timer("Actual rendering"):
-        bpy.ops.wm.save_mainfile(filepath="render.blend")
         bpy.ops.render.render(animation=True)
 
     with Timer("Post Processing"):
