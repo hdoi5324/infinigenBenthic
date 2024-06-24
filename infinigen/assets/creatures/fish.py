@@ -92,18 +92,18 @@ def fish_postprocessing(body_parts, extras, params):
 
 def fish_fin_cloth_sim_params():
     res = dict(
-        compression_stiffness=1200,
-        tension_stiffness=1200,
-        shear_stiffness=1200,
-        bending_stiffness=3000,
+        compression_stiffness= 1200,
+        tension_stiffness = 1200,
+        shear_stiffness = 1200,
+        bending_stiffness = 3000,
 
         tension_damping=100,
         compression_damping=100,
         shear_damping=100,
         bending_damping=100,
 
-        air_damping=5,
-        mass=0.3,
+        air_damping = 5,
+        mass = 0.3,
     )
 
     for k, v in res.items():
@@ -115,9 +115,9 @@ def fish_fin_cloth_sim_params():
 def fish_genome():
     temp_dict = defaultdict(lambda: 0.1, {'body_fish_eel': 0.01, 'body_fish_puffer': 0.001})
     body = genome.part(parts.generic_nurbs.NurbsBody(
-        prefix='body_fish', tags=['body'], var=U(0.3, 1),
-        temperature=temp_dict,
-        shoulder_ik_ts=[0.0, 0.3, 0.6, 1.0],
+        prefix='body_fish', tags=['body'], var=U(0.3, 1), 
+        temperature=temp_dict, 
+        shoulder_ik_ts=[0.0, 0.3, 0.6, 1.0], 
         n_bones=15,
         rig_reverse_skeleton=True
     ))
@@ -228,12 +228,12 @@ class FishFactory(AssetFactory):
     max_distance = 40
 
     def __init__(
-        self,
-        factory_seed=None,
-        bvh=None,
-        coarse=False,
-        animation_mode=None,
-        species_variety=None,
+        self, 
+        factory_seed=None, 
+        bvh=None, 
+        coarse=False, 
+        animation_mode=None, 
+        species_variety=None, 
         clothsim_skin: bool = False,
         scale: tuple = ("uniform", 0.2, .3),
         **_
@@ -250,7 +250,7 @@ class FishFactory(AssetFactory):
                                                                                                      0.45)
 
     def create_asset(self, i, **kwargs):
-
+        
         instance_genome = genome.interp_genome(self.species_genome, fish_genome(), self.species_variety)
 
         root, parts = creature.genome_to_creature(instance_genome, name=f'fish({self.factory_seed}, {i})')
@@ -302,18 +302,18 @@ class FishSchoolFactory(BoidSwarmFactory):
                 dict(type='FLOCK'),
             ],
 
-            air_speed_max=U(5, 10),
-            air_acc_max=U(0.7, 1),
-            air_personal_space=U(0.20, 2), #space between them?
-            bank=U(0, 0.1),  # fish dont tip over / roll
-            pitch=0.4,  #
-            rule_fuzzy=U(0.6, 0.9)
+            air_speed_max = U(5, 10),
+            air_acc_max = U(0.7, 1),
+            air_personal_space = U(0.15, 2),
+            bank = 0, # fish dont tip over / roll
+            pitch = 0.4, #
+            rule_fuzzy = U(0.6, 0.9)
         )
 
-        return dict(
-            particle_size=1.0,
-            size_random=U(0.8, 1.2),
-
+        return dict(      
+            particle_size=U(0.3, 1),
+            size_random=U(0.1, 0.7),
+            count=int(U(20, 50)),
             use_rotation_instance=True,
 
             lifetime=bpy.context.scene.frame_end - bpy.context.scene.frame_start,
@@ -331,12 +331,12 @@ class FishSchoolFactory(BoidSwarmFactory):
             settings = self.fish_school_params()
             col = make_asset_collection(FishFactory(factory_seed=randint(1e7),
                                                     animation_mode='idle',
-                                                    scale=("clip_gaussian", 0.3, 0.4, 0.1, .6)), n=3)
+                                                    scale=("clip_gaussian", 0.3, 0.2, 0.2, .6)), n=3)
         super().__init__(
             factory_seed, child_col=col,
             collider_col=bpy.data.collections.get('colliders'),
             settings=settings, bvh=bvh,
-            volume=("uniform", .005, .1),
+            volume=("uniform", 1, 3),
             coarse=coarse
         )
 

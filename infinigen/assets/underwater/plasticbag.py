@@ -39,8 +39,8 @@ class PlasticbagFactory(AssetFactory):
             bending_damping=100,
 
             air_damping=5,
-            mass=0.1,
-            uniform_pressure_force=randint(40)+70,
+            mass=randint(10)*0.01,
+            uniform_pressure_force=randint(60)+100,
             use_pressure=True
         )
 
@@ -84,7 +84,7 @@ def geometry_nodes(nw: NodeWrangler):
                                                    'Translation': (0.0000, 0.0000, 0.5000),
                                                    'Scale': (0.3500, 0.0010, 0.5000)})
 
-    subdivide_mesh = nw.new_node(Nodes.SubdivideMesh, input_kwargs={'Mesh': transform_geometry, 'Level': 5})
+    subdivide_mesh = nw.new_node(Nodes.SubdivideMesh, input_kwargs={'Mesh': transform_geometry, 'Level': 6})
 
     position = nw.new_node(Nodes.InputPosition)
 

@@ -125,11 +125,11 @@ def shader_crustacean(nw: NodeWrangler, params):
     dark_color = *colorsys.hsv_to_rgb((base_hue + uniform(-.05, .05)) % 1, uniform(.8, 1.),
                                       log_uniform(.01, .02) * value_shift), 1
     light_color = *colorsys.hsv_to_rgb(base_hue, uniform(.0, .4), log_uniform(.2, 1.)), 1
-    specular = uniform(.6, .8)
+    specular = uniform(.3, .6)
     specular_tint = uniform(0, 1)
     clearcoat = uniform(.2, .8)
-    roughness = uniform(.1, .3)
-    metallic = uniform(.6, .8)
+    roughness = uniform(.3, .5)
+    metallic = uniform(.4, .6)
     x, y, z = nw.separate(nw.new_node(Nodes.NewGeometry).outputs['Position'])
     color = build_color_ramp(nw, nw.new_node(Nodes.MapRange, [
         nw.new_node(Nodes.MusgraveTexture, [nw.combine(x, nw.math('ABSOLUTE', y), z)],

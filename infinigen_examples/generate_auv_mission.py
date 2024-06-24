@@ -167,6 +167,26 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
         deps = bpy.context.evaluated_depsgraph_get()
         terrain_inview_bvh = mathutils.bvhtree.BVHTree.FromObject(terrain_inview, deps)
 
+    def add_fish_school():
+        n = random_general(params.get("max_fish_schools", 3))
+        for i in range(n):
+            selection = density.placement_mask(0.1, select_thresh=0, tag=underwater_domain)
+            fac = creatures.FishSchoolFactory(randint(1e7), bvh=terrain_inview_bvh)
+            col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
+                                                      overall_density=1, num_placeholders=1, altitude=1.8)
+            placement.populate_collection(fac, col)
+
+    p.run_stage('fish_school', add_fish_school, default=[])
+
+    def add_handfish():
+        selection = density.placement_mask(scale=0.05, select_thresh=uniform(0.1, 0.3), tag=underwater_domain)
+        fac = creatures.HandfishSchoolFactory(randint(1e7 + 55), bvh=terrain_inview_bvh)
+        col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
+                                                  overall_density=1, num_placeholders=1, altitude=.1)
+        placement.populate_collection(fac, col)
+
+    p.run_stage('handfish', add_handfish, default=[])
+
     def add_rocks(target):
         selection = density.placement_mask(scale=0.15, select_thresh=0.4,
                                            normal_thresh=0.7, return_scalar=True, tag=nonliving_domain)
@@ -205,6 +225,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                                                                                   tag=underwater_domain),
                                                  density=random_general(('uniform', 1, 10))))
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
+                                                 scale=uniform(0.1, 0.7),
                                                  selection=density.placement_mask(scale=0.05, select_thresh=.55,
                                                                                   normal_thresh=0.4,
                                                                                   tag=underwater_domain)))
@@ -225,26 +246,6 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                                                                                          normal_thresh=0.0,
                                                                                          tag=underwater_domain),
                                                         density=urchin_density))
-
-    def add_fish_school():
-        n = random_general(params.get("max_fish_schools", 3))
-        for i in range(n):
-            selection = density.placement_mask(0.1, select_thresh=0, tag=underwater_domain)
-            fac = creatures.FishSchoolFactory(randint(1e7), bvh=terrain_inview_bvh)
-            col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
-                                                      overall_density=1, num_placeholders=1, altitude=1.8)
-            placement.populate_collection(fac, col)
-
-    p.run_stage('fish_school', add_fish_school, default=[])
-
-    def add_handfish():
-        selection = density.placement_mask(scale=0.05, select_thresh=uniform(0.1, 0.3), tag=underwater_domain)
-        fac = creatures.HandfishSchoolFactory(randint(1e7 + 55), bvh=terrain_inview_bvh)
-        col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
-                                                  overall_density=1, num_placeholders=1, altitude=.1)
-        placement.populate_collection(fac, col)
-
-    p.run_stage('handfish', add_handfish, default=[])
 
     p.run_stage('scolymia', lambda: scolymia.apply(terrain_inview,
                                                    selection=density.placement_mask(scale=0.05, select_thresh=.5,
