@@ -15,12 +15,12 @@ from infinigen.core.placement.instance_scatter import scatter_instances
 
 def apply(obj, n=5, selection=None, density=U(0.5, 3)):
     n_species = np.random.randint(8, 15)
-    factories = list(UrchinFactory(np.random.randint(1e5+668), extrude_height=("clip_gaussian", U(1.5, 2.5), 0.7, 0.5, 5.0)) for _ in range(n_species))
+    factories = list(UrchinFactory(np.random.randint(1e5+668), extrude_height=("clip_gaussian", U(1.8, 3.0), 0.7, 1.0, 5.0)) for _ in range(n_species))
     urchin = make_asset_collection(factories, name='blackspinyurchin',
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
 
-    scale = U(0.07, 0.11) # scale of urchins
+    scale = U(0.05, 0.11) # scale of urchins
 
     def ground_offset(nw: NodeWrangler):
         return nw.uniform(.5 * scale, .8 * scale)

@@ -1,29 +1,25 @@
 #!/bin/bash
 
-frames=24
-output_dir="/media/data/hdoi5324/phd_data/infinigen/outputs/trench_video"
-seed="2d3dc69d"
-home_dir="/home/hdoi5324"
-for i in 2 3
+frames=1
+output_dir="/home/heather/GitHub/infinigen/outputs/nudi_urchin3"
+home_dir="/home/heather"
+
+for seed in 63040821 1595e93e 675a31da 6723a8ee 70e5b232 279e08b4 78ee6790 c3e681b 92794e9 53623e69 5d98521e e3629e2 1e611603 3813d192 4a1fb6a6
 do
-  from=$(($i*$frames+1))
-  to=$((($i+1)*$frames))
-  echo $from $to
-  nice -n 20 ${home_dir}/.conda/envs/bproc/bin/python -m infinigen_examples.generate_auv_mission -- --input_folder ${output_dir}/${seed}/fine --output_folder ${output_dir}/${seed}/frames_0_0_00${from}_1 --seed ${seed} --task render --task_uniqname blendergt_0_0_00${from}_1 -g coral_reef coral_reef_hd.gin -p render.render_image_func=@flat/render_image LOG_DIR='${output_dir}/${seed}/logs' execute_tasks.frame_range=[${from},${to}] execute_tasks.camera_id=[0,1] execute_tasks.resample_idx=0
-
+  for from in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
+  do
+    echo $from $seed
+    nice -n 20 ${home_dir}/.conda/envs/bproc/bin/python -m infinigen_examples.generate_auv_mission -- --input_folder ${output_dir}/${seed}/fine \
+    --output_folder ${output_dir}/${seed}/frames_0_0_00${from}_1 --seed ${seed} --task render --task_uniqname rendershort_0_0_00${from}_1 \
+    -g coral_reef coral_reef_hd.gin -p render.render_image_func=@full/render_image LOG_DIR='${output_dir}/${seed}/logs' execute_tasks.frame_range=[${from},${from}] execute_tasks.camera_id=[0,1] execute_tasks.resample_idx=0
+  done
+  
+  for from in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24
+  do
+    echo $from $seed
+    nice -n 20 ${home_dir}/.conda/envs/bproc/bin/python -m infinigen_examples.generate_auv_mission -- --input_folder ${output_dir}/${seed}/fine \
+    --output_folder ${output_dir}/${seed}/frames_0_0_00${from}_1 --seed ${seed} --task render --task_uniqname blendergt_0_0_00${from}_1 -g coral_reef coral_reef_hd.gin \
+    -p render.render_image_func=@flat/render_image LOG_DIR='${output_dir}/${seed}/logs' execute_tasks.frame_range=[${from},${from}] execute_tasks.camera_id=[0,1] execute_tasks.resample_idx=0
+  
+  done
 done
-
-for i in 4
-do
-  from=$(($i*$frames+1))
-  to=$((($i+1)*$frames))
-  echo $from $to
-  nice -n 20 ${home_dir}/.conda/envs/bproc/bin/python -m infinigen_examples.generate_auv_mission -- --input_folder ${output_dir}/${seed}/fine --output_folder ${output_dir}/${seed}/frames_0_0_00${from}_1 --seed ${seed} --task render --task_uniqname blendergt_0_0_00${from}_1 -g coral_reef coral_reef_hd.gin -p render.render_image_func=@flat/render_image LOG_DIR='${output_dir}/${seed}/logs' execute_tasks.frame_range=[${from},${to}] execute_tasks.camera_id=[0,1] execute_tasks.resample_idx=0
-
-  nice -n 20 ${home_dir}/.conda/envs/bproc/bin/python -m infinigen_examples.generate_auv_mission -- --input_folder ${output_dir}/${seed}/fine --output_folder ${output_dir}/${seed}/frames_0_0_00${from}_1 --seed ${seed} --task render --task_uniqname rendershort_0_0_00${from}_1 -g coral_reef coral_reef_hd.gin -p render.render_image_func=@full/render_image LOG_DIR='${output_dir}/${seed}/logs' execute_tasks.frame_range=[${from},${to}] execute_tasks.camera_id=[0,1] execute_tasks.resample_idx=0
-done
-
-
--- --output_folder /home/heather/GitHub/infinigen/outputs/nudi2_urchin/2d3dc69d/fine --input_folder /home/heather/GitHub/infinigen/outputs/nudi2_urchin/2d3dc69d/fine --seed 2d3dc69d --task populate --task_uniqname populate -g coral_reef coral_reef_hd.gin -p LOG_DIR='/home/heather/GitHub/infinigen/outputs/nudi2_urchin/2d3dc69d/logs' execute_tasks.frame_range=[1, 6] execute_tasks.camera_id=[0, 0]
-
---input_folder /home/heather/GitHub/infinigen/outputs/nudi2_urchin/2d3dc69d/fine --output_folder /home/heather/GitHub/infinigen/outputs/nudi2_urchin/2d3dc69d/frames_0_0_0001_1 --seed 2d3dc69d --task render --task_uniqname rendershort_0_0_0001_1 -g coral_reef coral_reef_hd.gin -p render.render_image_func=@full/render_image LOG_DIR='/home/heather/GitHub/infinigen/outputs/nudi2_urchin/2d3dc69d/logs' execute_tasks.frame_range=[1,6] execute_tasks.camera_id=[0,1] execute_tasks.resample_idx=0

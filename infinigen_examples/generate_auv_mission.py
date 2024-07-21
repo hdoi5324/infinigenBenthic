@@ -26,7 +26,7 @@ from infinigen.core.placement import (
     animation_policy, )
 
 from infinigen.assets.scatters import (
-    pebbles, mollusk, lichen, seaweed, coral_reef, jellyfish, urchin, scolymia, urchin_kina, plasticbag
+    pebbles, mollusk, lichen, seaweed, coral_reef, jellyfish, urchin, scolymia, urchin_kina, plasticbag, cocoimage
 )
 
 from infinigen.assets import (
@@ -80,11 +80,12 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     nonliving_domain = params.get('nonliving_domain_tags')
 
     def add_boulders(terrain_mesh):
-        n_boulder_species = randint(1, params.get("max_boulder_species", 5))
+        n_boulder_species = randint(1, params.get("max_boulder_species", 3))
         for i in range(n_boulder_species):
             selection = density.placement_mask(0.05, tag=nonliving_domain, select_thresh=uniform(0.55, 0.6))
             fac = rocks.BoulderFactory(int_hash((scene_seed, i)), coarse=True)
             placement.scatter_placeholders_mesh(terrain_mesh, fac,
+                                                num_placeholders=10,
                                                 overall_density=params.get("boulder_density",
                                                                            uniform(.02, .05)) / n_boulder_species,
                                                 selection=selection, altitude=-0.25)
@@ -219,14 +220,21 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                                                                                 normal_thresh=0.0,
                                                                                 tag=underwater_domain),
                                                density=random_general(('uniform', 20, 100))))
+    p.run_stage('cocoimage', lambda: cocoimage.apply(terrain_inview,
+                                               selection=density.placement_mask(scale=0.05, select_thresh=.5,
+                                                                                normal_thresh=0.0,
+                                                                                tag=underwater_domain),
+                                               density=random_general(('uniform', 20, 100))))
     p.run_stage('mollusk', lambda: mollusk.apply(terrain_inview,
                                                  selection=density.placement_mask(scale=0.04, select_thresh=.3,
                                                                                   normal_thresh=0.0,
                                                                                   tag=underwater_domain),
                                                  density=random_general(('uniform', 1, 10))))
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
-                                                 scale=uniform(0.1, 0.7),
-                                                 selection=density.placement_mask(scale=0.05, select_thresh=.55,
+                                                 scale=random_general(('clip_gaussian', 0.3, 0.2, 0.1, 0.8)),
+                                                 brown_prob=1.0,
+                                                 n=20,
+                                                 selection=density.placement_mask(scale=0.05, select_thresh=.0,
                                                                                   normal_thresh=0.4,
                                                                                   tag=underwater_domain)))
 

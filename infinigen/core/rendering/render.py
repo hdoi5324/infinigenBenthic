@@ -35,6 +35,7 @@ from infinigen.tools.datarelease_toolkit import reorganize_old_framesfolder
 from infinigen.tools.suffixes import get_suffix
 from infinigen.core.placement.camera_utility import apply_lens_distortion, load_distortion_parameters
 from numpy.random import uniform as U
+from infinigen.core.util.random import random_general
 
 
 from .auto_exposure import nodegroup_auto_exposure
@@ -431,7 +432,8 @@ def render_image(
     excludes=[],
     use_dof=False,
     dof_aperture_fstop=2.8,
-    apply_distortion=False
+    apply_distortion=False,
+    motion_blur=0.0
 ):
     
     tic = time.time()
@@ -467,7 +469,11 @@ def render_image(
             bpy.context.scene.cycles.volume_bounces = 0
             bpy.context.scene.cycles.feature_set = 'EXPERIMENTAL'
             global_flat_shading()
-
+            
+    motion_blur = random_general(motion_blur)
+    if not flat_shading and motion_blur > 0.0:
+        bpy.context.scene.render.use_motion_blur = True
+        bpy.context.scene.render.motion_blur_shutter = motion_blur
 
     if not bpy.context.scene.use_nodes:
         bpy.context.scene.use_nodes = True

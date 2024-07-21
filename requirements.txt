@@ -2,7 +2,7 @@ gin-config>=0.5.0
 tqdm
 opencv-python
 matplotlib
-scipy
+scipy>=1.14.0
 imageio
 scikit-image==0.19.3
 submitit

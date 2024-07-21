@@ -90,7 +90,7 @@ HSV_RANGES = {
     'seawater_scatter': (
         N(0.474, 0.05),
         N(0.8, 0.1),
-        N(0.6, 0.1)
+        N(0.9, 0.1)
     ),
     'seawater': (
         N(0.453, 0.03),
