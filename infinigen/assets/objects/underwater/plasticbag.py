@@ -5,9 +5,9 @@ import numpy as np
 from numpy.random import randint, uniform
 from infinigen.core.util import blender as butil
 
-from infinigen.assets.creatures.util import cloth_sim
+from infinigen.assets.objects.creatures.util import cloth_sim
 from infinigen.assets.utils.object import new_cube
-from infinigen.assets.utils.tag import tag_object
+from infinigen.core.tagging import tag_object
 from infinigen.core import surface
 from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
 from infinigen.core.placement.factory import AssetFactory, make_asset_collection

@@ -12,8 +12,9 @@ import numpy as np
 
 from infinigen.core.placement.factory import AssetFactory
 from infinigen.core.util.math import FixedSeed
-from infinigen.assets.utils.tag import tag_object, tag_nodegroup
+from infinigen.core.tagging import tag_object
 from infinigen.core.placement.placement import points_near_camera
+from infinigen.core.placement.factory import make_asset_collection
 
 class ColourboardFactory(AssetFactory):
 
@@ -357,8 +358,8 @@ def place_colourboard(cam, terrain_bvh, n, alt, dist_range):
         dist_range = (0, 1)
     points = points_near_camera(cam, terrain_bvh, n, alt, dist_range)
     alt_offset = 0
-    for p in points:
-        p[-1] += alt_offset
-        obj = ColourboardFactory(1).create_asset()
-        obj.location = p
+    col = make_asset_collection(ColourboardFactory(1), name='colourboard', n=n)
+    for i in range(n):
+        points[i][-1] += alt_offset
+        col.all_objects[i].location = points[i]
         alt_offset += alt

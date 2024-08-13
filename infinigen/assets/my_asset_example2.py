@@ -1,22 +1,6 @@
-import bpy
-import sys
-import importlib
-import bpy
-import mathutils
-from mathutils import Vector
-import gin
-import numpy as np
-from numpy.random import uniform, normal, randint
-
-
 from infinigen.assets.corals.generate import *
-from infinigen.assets.creatures.fish import FishFactory
-from infinigen.assets.creatures.jellyfish import JellyfishFactory
-from infinigen.assets.creatures.crustacean import *
-from infinigen.assets.underwater.scolymia import ScolymiaFactory
-from infinigen.assets.underwater.urchin import UrchinFactory
-from infinigen.assets.underwater.seaweed import SeaweedFactory
-from infinigen.assets.debris.lichen import LichenFactory
+
+
 #importlib.reload(ScolymiaFactory)
 
 def get_class(class_name):

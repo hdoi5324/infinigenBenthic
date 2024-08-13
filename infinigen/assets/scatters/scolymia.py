@@ -7,9 +7,9 @@
 import numpy as np
 from numpy.random import uniform as U
 
-from infinigen.assets.underwater.scolymia import ScolymiaFactory
+from infinigen.assets.objects.underwater.scolymia import ScolymiaFactory
 from infinigen.core.nodes.node_wrangler import NodeWrangler
-from infinigen.core.placement.factory import AssetFactory, make_asset_collection
+from infinigen.core.placement.factory import make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 

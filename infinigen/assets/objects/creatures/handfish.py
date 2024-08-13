@@ -16,18 +16,15 @@ from numpy.random import uniform as U, normal as N, randint
 import infinigen.assets.materials.scale
 import infinigen.assets.materials.handfishbody
 import infinigen.assets.materials.fishbody
-from infinigen.assets.materials import fishfin, eyeball
+from infinigen.assets.materials import eyeball
 from infinigen.core import surface
-from infinigen.assets.materials.utils.surface_utils import sample_range
 
 from infinigen.core.placement.factory import AssetFactory, make_asset_collection
 
 from infinigen.assets.creatures.util import genome
-from infinigen.assets.creatures.util.genome import Joint
 from infinigen.assets.creatures import parts
 from infinigen.assets.creatures.util import creature, joining
-from infinigen.assets.creatures.util import cloth_sim
-from infinigen.assets.creatures.util.boid_swarm import BoidSwarmFactory
+from infinigen.assets.objects.creatures.util.boid_swarm import BoidSwarmFactory
 
 from infinigen.core.util import blender as butil
 from infinigen.core.util.math import clip_gaussian, FixedSeed
@@ -35,12 +32,12 @@ from infinigen.core.util.random import random_general as rg
 from infinigen.assets.creatures.util.animation.driver_wiggle import animate_wiggle_bones
 from infinigen.assets.creatures.util.creature_util import offset_center
 
-from infinigen.assets.utils.tag import tag_object, tag_nodegroup
+from infinigen.core.tagging import tag_object
 
 from infinigen.assets.materials import fish_eye_shader, handfishfin
 from infinigen.assets.creatures.fish import fin_params, fish_fin_cloth_sim_params, fish_genome, simulate_fish_cloth
 from infinigen.core.placement import detail
-from infinigen.assets.creatures.util.genome import Joint, IKParams
+from infinigen.assets.creatures.util.genome import Joint
 
 
 def handfish_genome():
@@ -93,10 +90,10 @@ def handfish_genome():
         genome.attach(genome.part(tail_fin), body, coord=(0.1, .1, 0), joint=Joint((0, -angle * vdir, 0)))
 
     # Hand
-    params = parts.leg.FishHand().sample_params()
+    params = infinigen.assets.objects.creatures.parts.leg.FishHand().sample_params()
     fish_hand_fin = parts.ridged_fin.FishFin(fish_hand_params) # foot_fac
 
-    fish_hand = parts.leg.FishHand(params=params) # backleg_fac
+    fish_hand = infinigen.assets.objects.creatures.parts.leg.FishHand(params=params) # backleg_fac
     for side in [-1, 1]:
         arm = genome.attach(genome.part(fish_hand_fin), genome.part(fish_hand), coord=(0.8, 0, 0.2), joint=Joint(rest=(30, -70, -40)), rotation_basis='normal') #, coord=(0.9, .5, .9), joint=Joint(rest=(90, -60, 130)))
         genome.attach(arm, body, coord=hand_fin_coord,

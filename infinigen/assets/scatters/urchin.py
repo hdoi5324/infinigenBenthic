@@ -1,4 +1,4 @@
-# Copyright (c) Princeton University.
+# Copyright (C) 2023, Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
 # Authors: Lingjie Mei
@@ -7,18 +7,23 @@
 import numpy as np
 from numpy.random import uniform as U
 
-from infinigen.assets.underwater.urchin import UrchinFactory
+from infinigen.assets.objects.underwater.urchin import UrchinFactory
 from infinigen.core.nodes.node_wrangler import NodeWrangler
-from infinigen.core.placement.factory import AssetFactory, make_asset_collection
+from infinigen.core.placement.factory import make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 
 def apply(obj, n=5, selection=None, density=U(0.5, 3)):
     n_species = np.random.randint(8, 15)
-    factories = list(UrchinFactory(np.random.randint(1e5+668), extrude_height=("clip_gaussian", U(1.8, 3.0), 0.7, 1.0, 5.0)) for _ in range(n_species))
-    urchin = make_asset_collection(factories, name='blackspinyurchin',
-                                              weights=np.random.uniform(0.5, 1, len(factories)), n=n,
-                                              verbose=True)
+    factories = list(UrchinFactory(np.random.randint(1e5+66), 
+                                   extrude_height=("clip_gaussian", U(1.8, 3.0), 0.7, 1.0, 5.0)) for i in range(n_species))
+    urchin = make_asset_collection(
+        factories,
+        name="blackspinyurchin",
+        weights=np.random.uniform(0.5, 1, len(factories)),
+        n=n,
+        verbose=True,
+    )
 
     scale = U(0.05, 0.11) # scale of urchins
 
@@ -32,6 +37,7 @@ def apply(obj, n=5, selection=None, density=U(0.5, 3)):
         scale=scale, scale_rand=U(-0.2, 0.2),
         scale_rand_axi=U(-0.1, 0.1),
         selection=selection,
-        min_spacing=0.15)
+        min_spacing=0.15,
+    )
 
     return scatter_obj, urchin

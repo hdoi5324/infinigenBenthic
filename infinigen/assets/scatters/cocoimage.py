@@ -5,7 +5,7 @@
 import numpy as np
 from numpy.random import uniform, normal as N
 
-from infinigen.assets.underwater import ImagePlaneFactory
+from infinigen.assets.objects.underwater import ImagePlaneFactory
 from infinigen.core.placement.factory import make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 

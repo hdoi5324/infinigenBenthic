@@ -1,18 +1,16 @@
 import bpy
-import mathutils
 import colorsys
 import random
 
-from numpy.random import uniform, normal, randint
+from numpy.random import uniform
 from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
 from infinigen.assets.utils.object import new_icosphere
 from infinigen.core.nodes import node_utils
-from infinigen.core.util.color import color_category
-from infinigen.assets.utils.misc import log_uniform
-from infinigen.assets.utils.decorate import assign_material, geo_extension, separate_loose
+from infinigen.core.util.random import log_uniform
+from infinigen.assets.utils.misc import assign_material
 
 from infinigen.core import surface
-from infinigen.assets.utils.tag import tag_object, tag_nodegroup
+from infinigen.core.tagging import tag_object
 import infinigen.core.util.blender as butil
 
 

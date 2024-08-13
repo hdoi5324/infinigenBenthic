@@ -1,4 +1,4 @@
-# Copyright (c) Princeton University.
+# Copyright (C) 2023, Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
 # Authors: Lingjie Mei
@@ -9,17 +9,23 @@ import bpy
 from numpy.random import uniform
 
 import infinigen.core.util.blender as butil
-from infinigen.assets.creatures.util.animation.driver_repeated import repeated_driver
-from infinigen.assets.utils.object import new_icosphere
-from infinigen.assets.utils.decorate import assign_material, geo_extension, separate_loose
-from infinigen.assets.utils.misc import log_uniform
+from infinigen.assets.objects.creatures.util.animation.driver_repeated import (
+    repeated_driver,
+)
+from infinigen.assets.utils.decorate import geo_extension
+from infinigen.assets.utils.misc import assign_material
+from infinigen.assets.utils.object import new_icosphere, separate_loose
+from infinigen.core import surface
+from infinigen.assets.utils.misc import assign_material
+from infinigen.assets.utils.decorate import geo_extension
 from infinigen.core.nodes.node_info import Nodes
 from infinigen.core.nodes.node_wrangler import NodeWrangler
 from infinigen.core.placement.detail import adapt_mesh_resolution
 from infinigen.core.placement.factory import AssetFactory
-from infinigen.core import surface
+from infinigen.core.tagging import tag_object
+from infinigen.core.util.color import hsv2rgba
 from infinigen.core.util.math import FixedSeed
-from infinigen.assets.utils.tag import tag_object, tag_nodegroup
+from infinigen.core.util.random import log_uniform
 from infinigen.core.util.random import random_general as rg
 
 
@@ -71,10 +77,16 @@ class UrchinFactory(AssetFactory):
         return obj
 
     def animate_stretch(self, obj):
-        obj, mod = butil.modify_mesh(obj, 'SIMPLE_DEFORM', False, return_mod=True, deform_method='STRETCH',
-                                     deform_axis='Z')
-        driver = mod.driver_add('factor').driver
-        driver.expression = repeated_driver(-.1, .1, self.freq)
+        obj, mod = butil.modify_mesh(
+            obj,
+            "SIMPLE_DEFORM",
+            False,
+            return_mod=True,
+            deform_method="STRETCH",
+            deform_axis="Z",
+        )
+        driver = mod.driver_add("factor").driver
+        driver.expression = repeated_driver(-0.1, 0.1, self.freq)
 
     @staticmethod
     def geo_extrude(nw: NodeWrangler, extrude_height=2.0, spike_prob=0.98, min_spike_scale=0.5):
@@ -100,44 +112,53 @@ class UrchinFactory(AssetFactory):
 
     @staticmethod
     def shader_spikes(nw: NodeWrangler, base_hue):
-        transmission = uniform(.95, .99)
-        subsurface = uniform(.1, .2)
-        roughness = uniform(.5, .8)
-        color = *colorsys.hsv_to_rgb(base_hue, uniform(.5, 1.), log_uniform(.05, 1.)), 1
-        principled_bsdf = nw.new_node(Nodes.PrincipledBSDF, input_kwargs={
-            'Base Color': color,
-            'Roughness': roughness,
-            'Subsurface': subsurface,
-            'Subsurface Color': color,
-            'Transmission': transmission
-        })
+        transmission = uniform(0.95, 0.99)
+        subsurface = uniform(0.1, 0.2)
+        roughness = uniform(0.5, 0.8)
+        color = hsv2rgba(base_hue, uniform(0.5, 1.0), log_uniform(0.05, 1.0))
+        principled_bsdf = nw.new_node(
+            Nodes.PrincipledBSDF,
+            input_kwargs={
+                "Base Color": color,
+                "Roughness": roughness,
+                "Subsurface": subsurface,
+                "Subsurface Color": color,
+                "Transmission": transmission,
+            },
+        )
         return principled_bsdf
 
     @staticmethod
     def shader_girdle(nw: NodeWrangler, base_hue):
-        roughness = uniform(.5, .8)
-        color = *colorsys.hsv_to_rgb(base_hue, uniform(.4, .5), log_uniform(.02, .1)), 1
-        principled_bsdf = nw.new_node(Nodes.PrincipledBSDF,
-                                      input_kwargs={'Base Color': color, 'Roughness': roughness})
+        roughness = uniform(0.5, 0.8)
+        color = hsv2rgba(base_hue, uniform(0.4, 0.5), log_uniform(0.02, 0.1))
+        principled_bsdf = nw.new_node(
+            Nodes.PrincipledBSDF,
+            input_kwargs={"Base Color": color, "Roughness": roughness},
+        )
         return principled_bsdf
 
     @staticmethod
     def shader_base(nw: NodeWrangler, base_hue):
-        roughness = uniform(.5, .8)
-        color = *colorsys.hsv_to_rgb(base_hue, uniform(.8, 1.), log_uniform(.01, .02)), 1
-        principled_bsdf = nw.new_node(Nodes.PrincipledBSDF,
-                                      input_kwargs={'Base Color': color, 'Roughness': roughness})
+        roughness = uniform(0.5, 0.8)
+        color = hsv2rgba(base_hue, uniform(0.8, 1.0), log_uniform(0.01, 0.02))
+        principled_bsdf = nw.new_node(
+            Nodes.PrincipledBSDF,
+            input_kwargs={"Base Color": color, "Roughness": roughness},
+        )
         return principled_bsdf
 
     @staticmethod
     def geo_material_index(nw: NodeWrangler):
-        geometry, spike, girdle = nw.new_node(Nodes.GroupInput,
-                                              expose_input=[('NodeSocketGeometry', 'Geometry', None),
-                                                  ('NodeSocketFloat', 'Spike', None),
-                                                  ('NodeSocketFloat', 'Girdle', None)]).outputs[:-1]
+        geometry, spike, girdle = nw.new_node(
+            Nodes.GroupInput,
+            expose_input=[
+                ("NodeSocketGeometry", "Geometry", None),
+                ("NodeSocketFloat", "Spike", None),
+                ("NodeSocketFloat", "Girdle", None),
+            ],
+        ).outputs[:-1]
         geometry = nw.new_node(Nodes.SetMaterialIndex, [geometry, None, 2])
         geometry = nw.new_node(Nodes.SetMaterialIndex, [geometry, spike, 0])
         geometry = nw.new_node(Nodes.SetMaterialIndex, [geometry, girdle, 1])
-        nw.new_node(Nodes.GroupOutput, input_kwargs={'Geometry': geometry})
-
-#UrchinFactory(1).spawn_asset(1)
+        nw.new_node(Nodes.GroupOutput, input_kwargs={"Geometry": geometry})

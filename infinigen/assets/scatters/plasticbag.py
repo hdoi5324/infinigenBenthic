@@ -6,7 +6,7 @@
 
 from numpy.random import uniform as U, randint
 
-from infinigen.assets.underwater.plasticbag import make_plasticbag_collection
+from infinigen.assets.objects.underwater.plasticbag import make_plasticbag_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 

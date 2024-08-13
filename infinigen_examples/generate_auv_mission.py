@@ -5,48 +5,93 @@ import argparse
 import logging
 from pathlib import Path
 
-logging.basicConfig(
-    format='[%(asctime)s.%(msecs)03d] [%(name)s] [%(levelname)s] | %(message)s',
-    datefmt='%H:%M:%S',
-    level=logging.WARNING
-)
-
 import bpy
+import gin
+import os
 import mathutils
 from mathutils import Vector
-import gin
-from numpy.random import uniform, randint
+from numpy.random import randint, uniform
 
-logging.basicConfig(level=logging.INFO)
-
-from infinigen.core.placement import (
-    particles, placement, density,
-    camera as cam_util,
-    split_in_view, factory,
-    animation_policy, )
-
-from infinigen.assets.scatters import (
-    pebbles, mollusk, lichen, seaweed, coral_reef, jellyfish, urchin, scolymia, urchin_kina, plasticbag, cocoimage
+# ruff: noqa: E402
+# NOTE: logging config has to be before imports that use logging
+logging.basicConfig(
+    format="[%(asctime)s.%(msecs)03d] [%(module)s] [%(levelname)s] | %(message)s",
+    datefmt="%H:%M:%S",
+    level=logging.INFO,
 )
 
-from infinigen.assets import (
-    monocot,
-    rocks,
+from infinigen.assets import fluid, lighting, weather
+from infinigen.assets.materials import (
+    atmosphere_light_haze,
+    chunkyrock,
+    cobble_stone,
+    cracked_ground,
+    dirt,
+    ice,
+    lava,
+    mountain,
+    mud,
+    sand,
+    sandstone,
+    snow,
+    soil,
+    stone,
+    water,
+)
+from infinigen.assets.objects import (
+    cactus,
+    cloud,
     creatures,
-    lighting,
-    weather
+    leaves,
+    monocot,
+    particles,
+    rocks,
+    trees,
 )
-from infinigen.terrain import Terrain
-from infinigen.assets.underwater.colourboard import place_colourboard
+from infinigen.assets.scatters import (
+    chopped_trees,
+    coral_reef,
+    decorative_plants,
+    fern,
+    flowerplant,
+    grass,
+    ground_leaves,
+    ground_mushroom,
+    ground_twigs,
+    ivy,
+    jellyfish,
+    lichen,
+    monocots,
+    moss,
+    pebbles,
+    pine_needle,
+    pinecone,
+    seashells,
+    seaweed,
+    slime_mold,
+    snow_layer,
+    urchin,
+    urchin_kina,
+    plasticbag,
+    cocoimageplane,
 
-from infinigen.core.util import (
-    blender as butil,
-    logging as logging_util,
-    pipeline,
 )
-from infinigen.core.util.random import random_general
-from infinigen.core.util.math import int_hash
-from infinigen.core import execute_tasks, surface, init
+from infinigen.assets.objects.underwater.colourboard import place_colourboard
+from infinigen.assets.scatters.utils.selection import scatter_lower, scatter_upward
+from infinigen.core import execute_tasks, init, surface
+from infinigen.core.placement import camera as cam_util
+from infinigen.core.placement import density, placement, split_in_view
+from infinigen.core.util import blender as butil
+from infinigen.core.util import logging as logging_util
+from infinigen.core.util import pipeline
+from infinigen.core.util.math import FixedSeed, int_hash
+from infinigen.core.util.pipeline import RandomStageExecutor
+from infinigen.core.util.random import random_general, sample_registry
+from infinigen.terrain import Terrain
+from infinigen.core.placement import animation_policy
+
+logger = logging.getLogger(__name__)
+
 
 debug = False
 if debug:
@@ -56,65 +101,96 @@ if debug:
 
 
 @gin.configurable
-def compose_scene(output_folder, scene_seed, fps=24, **params):
+def compose_nature(output_folder, scene_seed, fps=24, **params):
     bpy.context.scene.render.fps = fps
     # Set fps globally
     p = pipeline.RandomStageExecutor(scene_seed, output_folder, params)
+    on_the_fly_asset_folder=output_folder / "assets"
 
     def add_coarse_terrain():
-        terrain = Terrain(scene_seed, surface.registry, task='coarse', on_the_fly_asset_folder=output_folder / "assets")
+        terrain = Terrain(
+            scene_seed,
+            surface.registry,
+            task="coarse",
+            on_the_fly_asset_folder=output_folder / "assets",
+        )
         terrain_mesh = terrain.coarse_terrain()
         density.set_tag_dict(terrain.tag_dict)
         return terrain, terrain_mesh
 
-    terrain, terrain_mesh = p.run_stage('terrain', add_coarse_terrain, use_chance=False, default=(None, None))
+    terrain, terrain_mesh = p.run_stage(
+        "terrain", add_coarse_terrain, use_chance=False, default=(None, None)
+    )
 
     if terrain_mesh is None:
         terrain_mesh = butil.create_noise_plane()
         density.set_tag_dict({})
 
-    terrain_bvh = mathutils.bvhtree.BVHTree.FromObject(terrain_mesh, bpy.context.evaluated_depsgraph_get())
+    scene_bvh = mathutils.bvhtree.BVHTree.FromObject(
+        terrain_mesh, bpy.context.evaluated_depsgraph_get()
+    )
 
-    land_domain = params.get('land_domain_tags')
-    underwater_domain = params.get('underwater_domain_tags')
-    nonliving_domain = params.get('nonliving_domain_tags')
+    land_domain = params.get("land_domain_tags")
+    underwater_domain = params.get("underwater_domain_tags")
+    nonliving_domain = params.get("nonliving_domain_tags")
+    
+
 
     def add_boulders(terrain_mesh):
         n_boulder_species = randint(1, params.get("max_boulder_species", 3))
         for i in range(n_boulder_species):
-            selection = density.placement_mask(0.05, tag=nonliving_domain, select_thresh=uniform(0.55, 0.6))
+            selection = density.placement_mask(
+                0.05, tag=nonliving_domain, select_thresh=uniform(0.55, 0.6)
+            )
             fac = rocks.BoulderFactory(int_hash((scene_seed, i)), coarse=True)
-            placement.scatter_placeholders_mesh(terrain_mesh, fac,
-                                                num_placeholders=10,
-                                                overall_density=params.get("boulder_density",
-                                                                           uniform(.02, .05)) / n_boulder_species,
-                                                selection=selection, altitude=-0.25)
+            placement.scatter_placeholders_mesh(
+                terrain_mesh,
+                fac,
+                overall_density=params.get("boulder_density", uniform(0.02, 0.05))
+                / n_boulder_species,
+                selection=selection,
+                altitude=-0.25,
+            )
 
-    p.run_stage('boulders', add_boulders, terrain_mesh)
+    p.run_stage("boulders", add_boulders, terrain_mesh)
 
     def camera_preprocess():
         camera_rigs = cam_util.spawn_camera_rigs()
         cam_util.set_camera_parameters(camera_rigs)
-        scene_preprocessed = cam_util.camera_selection_preprocessing(terrain, terrain_mesh)
+        scene_preprocessed = cam_util.camera_selection_preprocessing(
+            terrain,
+            terrain_mesh,
+            tags_ratio=params.get("camera_selection_tags_ratio"),
+            ranges_ratio=params.get("camera_selection_ranges_ratio"),
+            anim_criterion_keys=params.get(
+                "camera_selection_anim_criterion_keys", False
+            ),
+        )
         return camera_rigs, scene_preprocessed
 
-    camera_rigs, scene_preprocessed = p.run_stage('camera_preprocess', camera_preprocess, use_chance=False)
-
-    bbox = terrain.get_bounding_box() if terrain is not None else butil.bounds(terrain_mesh)
-    p.run_stage(
-        'pose_cameras',
-        lambda: cam_util.configure_cameras(camera_rigs, bbox, scene_preprocessed),
-        use_chance=False
+    camera_rigs, scene_preprocessed = p.run_stage(
+        "camera_preprocess", camera_preprocess, use_chance=False
     )
 
-    # todo: use configuration for setting up lights
+    bbox = (
+        terrain.get_bounding_box()
+        if terrain is not None
+        else butil.bounds(terrain_mesh)
+    )
+    p.run_stage(
+        "pose_cameras",
+        lambda: cam_util.configure_cameras(
+            camera_rigs, scene_preprocessed, init_bounding_box=bbox
+        ),
+        use_chance=False,
+    )
+
     # Set location/rotation of lights to the same as the camera rig and configure lights
     p.run_stage(
         'setup_camera_lights',
         lambda: cam_util.configure_camera_lights(camera_rigs),
         use_chance=False
     )
-
     cam = cam_util.get_camera(0, 0)
 
     p.run_stage('lighting', lighting.sky_lighting.add_lighting, cam, use_chance=False)
@@ -133,7 +209,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
     # Crustaceans
     def add_ground_creatures(target):
         fac_class = creatures.CrustaceanFactory  # sample_registry(params['ground_creature_registry'])
-        fac = fac_class(int_hash((scene_seed, 0)), bvh=terrain_bvh, animation_mode='idle')
+        fac = fac_class(int_hash((scene_seed, 0)), bvh=scene_bvh, animation_mode='idle')
         n = params.get('max_ground_creatures', randint(1, 4))
         selection = density.placement_mask(select_thresh=0, tag=underwater_domain, altitude_range=(-0.5, 0.5)) \
             if fac_class is creatures.CrabFactory else 1
@@ -143,9 +219,13 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     pois += p.run_stage('ground_creatures', add_ground_creatures, target=terrain_center, default=[])
 
-    p.run_stage('animate_cameras', lambda: cam_util.animate_cameras(
-        camera_rigs, scene_preprocessed, pois=pois, policy_registry=animation_policy.AnimPolicyMowTheLawn),
-                use_chance=False)
+    p.run_stage(
+        "animate_cameras",
+        lambda: cam_util.animate_cameras(
+            camera_rigs, bbox, scene_preprocessed, pois=pois, policy_registry=animation_policy.AnimPolicyMowTheLawn
+        ),
+        use_chance=False,
+    )
 
     with logging_util.Timer('Compute coarse terrain frustrums'):
         terrain_inview, *_ = split_in_view.split_inview(
@@ -220,11 +300,19 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                                                                                 normal_thresh=0.0,
                                                                                 tag=underwater_domain),
                                                density=random_general(('uniform', 20, 100))))
-    p.run_stage('cocoimage', lambda: cocoimage.apply(terrain_inview,
-                                               selection=density.placement_mask(scale=0.05, select_thresh=.5,
-                                                                                normal_thresh=0.0,
+
+    def add_coco_images(terrain_inview, classes=[1]):
+        for c in classes:
+            cocoimageplane.apply(terrain_inview,
+                                               scene_seed=int_hash((scene_seed, 0)),
+                                               tmp_image_dir=on_the_fly_asset_folder,
+                                               category_id=c,
+                                               selection=density.placement_mask(scale=0.05, select_thresh=uniform(0.1, 0.3),
+                                                                                normal_thresh=0.4,
                                                                                 tag=underwater_domain),
-                                               density=random_general(('uniform', 20, 100))))
+                                               density=random_general(('uniform', 2, 4)))
+    p.run_stage('cocoimage', add_coco_images, terrain_inview)
+
     p.run_stage('mollusk', lambda: mollusk.apply(terrain_inview,
                                                  selection=density.placement_mask(scale=0.04, select_thresh=.3,
                                                                                   normal_thresh=0.0,
@@ -262,7 +350,7 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
                                                      selection=density.placement_mask(scale=0.05, select_thresh=.5,
                                                                                       tag=underwater_domain)))
 
-    p.run_stage('colourboard', lambda: place_colourboard(cam.parent, terrain_bvh, n=3, alt=0.02, dist_range=(0, 2)))
+    p.run_stage('colourboard', lambda: place_colourboard(cam.parent, scene_bvh, n=3, alt=0.02, dist_range=(0, 2)))
 
     def add_plastic_bags(target):
         selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7,
@@ -271,42 +359,225 @@ def compose_scene(output_folder, scene_seed, fps=24, **params):
 
     p.run_stage('plasticbag', add_plastic_bags, terrain_near)
 
-    def add_marine_snow_particles():
-        return particles.particle_system(
-            emitter=butil.spawn_cube(location=Vector(), size=30),
-            subject=factory.make_asset_collection(weather.particles.DustMoteFactory(scene_seed), 5),
-            settings=particles.marine_snow_setting())
+    cube_emitter = weather.spawn_emitter(
+        camera_rigs[0], "cube", offset=Vector(), size=30
+    )
 
-    particle_systems = [
-        p.run_stage('marine_snow_particles', add_marine_snow_particles),
-    ]
+    butil.constrain_object(
+        cube_emitter, "COPY_LOCATION", use_offset=True, target=camera_rigs[0]
+    )
 
-    for emitter, system in filter(lambda s: s is not None, particle_systems):
-        with logging_util.Timer(f"Baking particle system"):
-            butil.constrain_object(emitter, "COPY_LOCATION", use_offset=True, target=cam.parent)
-            particles.bake(emitter, system)
-        butil.put_in_collection(emitter, butil.get_collection('particles'))
+    def marine_snow_particles():
+        gen = weather.FallingParticles(
+            particles.MarineSnowFactory(randint(1e7)),
+            distribution=weather.marine_snow_param_distribution,
+        )
+        return gen(cube_emitter)
+
+    p.run_stage("marine_snow_particles", marine_snow_particles)
 
     p.save_results(output_folder / 'pipeline_coarse.csv')
-    return terrain, terrain_mesh
+    return {
+        "height_offset": 0,
+        "whole_bbox": None,
+    }
+@gin.configurable
+def populate_scene(output_folder, scene_seed, **params):
+    p = RandomStageExecutor(scene_seed, output_folder, params)
+    camera = [cam_util.get_camera(i, j) for i, j in cam_util.get_cameras_ids()]
+
+    season = p.run_stage(
+        "choose_season", trees.random_season, use_chance=False, default=[]
+    )
+
+    fire_cache_system = fluid.FireCachingSystem() if params.get("cached_fire") else None
+
+    populated = {}
+    populated["trees"] = p.run_stage(
+        "populate_trees",
+        use_chance=False,
+        default=[],
+        fn=lambda: placement.populate_all(
+            trees.TreeFactory, camera, season=season, vis_cull=4
+        ),
+    )  # ,
+    # meshing_camera=camera, adapt_mesh_method='subdivide', cam_meshing_max_dist=8))
+    populated["boulders"] = p.run_stage(
+        "populate_boulders",
+        use_chance=False,
+        default=[],
+        fn=lambda: placement.populate_all(rocks.BoulderFactory, camera, vis_cull=3),
+    )  # ,
+    # meshing_camera=camera, adapt_mesh_method='subdivide', cam_meshing_max_dist=8))
+    populated["bushes"] = p.run_stage(
+        "populate_bushes",
+        use_chance=False,
+        fn=lambda: placement.populate_all(
+            trees.BushFactory, camera, vis_cull=1, adapt_mesh_method="subdivide"
+        ),
+    )
+    p.run_stage(
+        "populate_kelp",
+        use_chance=False,
+        fn=lambda: placement.populate_all(
+            monocot.KelpMonocotFactory, camera, vis_cull=5
+        ),
+    )
+    populated["cactus"] = p.run_stage(
+        "populate_cactus",
+        use_chance=False,
+        fn=lambda: placement.populate_all(cactus.CactusFactory, camera, vis_cull=6),
+    )
+    p.run_stage(
+        "populate_clouds",
+        use_chance=False,
+        fn=lambda: placement.populate_all(
+            cloud.CloudFactory, camera, dist_cull=None, vis_cull=None
+        ),
+    )
+
+
+
+    populated["cached_fire_cactus"] = p.run_stage(
+        "populate_cached_fire_cactus",
+        use_chance=False,
+        fn=lambda: placement.populate_all(
+            fluid.CachedCactusFactory,
+            camera,
+            vis_cull=6,
+            cache_system=fire_cache_system,
+        ),
+    )
+
+    grime_selection_funcs = {
+        "trees": scatter_lower,
+        "boulders": scatter_upward,
+    }
+    grime_types = {
+        "slime_mold": slime_mold.SlimeMold,
+        "lichen": lichen.Lichen,
+        "ivy": ivy.Ivy,
+        "mushroom": ground_mushroom.Mushrooms,
+        "moss": moss.MossCover,
+    }
+
+    def apply_grime(grime_type, surface_cls):
+        surface_fac = surface_cls()
+        for (
+            target_type,
+            results,
+        ) in populated.items():
+            selection_func = grime_selection_funcs.get(target_type, None)
+            for fac_seed, fac_pholders, fac_assets in results:
+                if len(fac_pholders) == 0:
+                    continue
+                for inst_seed, obj in fac_assets:
+                    with FixedSeed(int_hash((grime_type, fac_seed, inst_seed))):
+                        p_k = f"{grime_type}_on_{target_type}_per_instance_chance"
+                        if uniform() > params.get(p_k, 0.4):
+                            continue
+                        logger.debug("Applying {surface_fac} on {obj}")
+                        surface_fac.apply(obj, selection=selection_func)
+
+    for grime_type, surface_cls in grime_types.items():
+        p.run_stage(grime_type, lambda: apply_grime(grime_type, surface_cls))
+
+    def apply_snow_layer(surface_cls):
+        surface_fac = surface_cls()
+        for (
+            target_type,
+            results,
+        ) in populated.items():
+            selection_func = grime_selection_funcs.get(target_type, None)
+            for fac_seed, fac_pholders, fac_assets in results:
+                if len(fac_pholders) == 0:
+                    continue
+                for inst_seed, obj in fac_assets:
+                    tmp = obj.users_collection[0].hide_viewport
+                    obj.users_collection[0].hide_viewport = False
+                    surface_fac.apply(obj, selection=selection_func)
+                    obj.users_collection[0].hide_viewport = tmp
+
+    p.run_stage("snow_layer", lambda: apply_snow_layer(snow_layer.Snowlayer))
+
+    creature_facs = {
+        "beetles": creatures.BeetleFactory,
+        "bird": creatures.BirdFactory,
+        "carnivore": creatures.CarnivoreFactory,
+        "crab": creatures.CrabFactory,
+        "crustacean": creatures.CrustaceanFactory,
+        "dragonfly": creatures.DragonflyFactory,
+        "fish": creatures.FishFactory,
+        "flyingbird": creatures.FlyingBirdFactory,
+        "herbivore": creatures.HerbivoreFactory,
+        "snake": creatures.SnakeFactory,
+    }
+    for k, fac in creature_facs.items():
+        p.run_stage(
+            f"populate_{k}",
+            use_chance=False,
+            fn=lambda: placement.populate_all(fac, camera=None),
+        )
+
+    fire_warmup = params.get("fire_warmup", 50)
+    simulation_duration = (
+        bpy.context.scene.frame_end - bpy.context.scene.frame_start + fire_warmup
+    )
+
+    def set_fire(assets):
+        objs = [o for *_, a in assets for _, o in a]
+        with butil.EnableParentCollections(objs):
+            fluid.set_fire_to_assets(
+                assets,
+                bpy.context.scene.frame_start - fire_warmup,
+                simulation_duration,
+                output_folder,
+            )
+
+    p.run_stage(
+        "trees_fire_on_the_fly", set_fire, populated["trees"], prereq="populate_trees"
+    )
+    p.run_stage(
+        "bushes_fire_on_the_fly",
+        set_fire,
+        populated["bushes"],
+        prereq="populate_bushes",
+    )
+    p.run_stage(
+        "boulders_fire_on_the_fly",
+        set_fire,
+        populated["boulders"],
+        prereq="populate_boulders",
+    )
+    p.run_stage(
+        "cactus_fire_on_the_fly",
+        set_fire,
+        populated["cactus"],
+        prereq="populate_cactus",
+    )
+
+    p.save_results(output_folder / "pipeline_fine.csv")
 
 
 def main(args):
     scene_seed = init.apply_scene_seed(args.seed)
+    mandatory_exclusive = [Path("infinigen_examples/configs_nature/scene_types")]
     init.apply_gin_configs(
-        configs=args.configs,
+        configs=["base_nature.gin"] + args.configs,
         overrides=args.overrides,
-        configs_folder='infinigen_examples/configs',
-        mandatory_folders=['infinigen_examples/configs/scene_types'],
+        config_folders="infinigen_examples/configs_nature",
+        mandatory_folders=mandatory_exclusive,
+        mutually_exclusive_folders=mandatory_exclusive,
     )
 
     execute_tasks.main(
-        compose_scene_func=compose_scene,
+        compose_scene_func=compose_nature,
+        populate_scene_func=populate_scene,
         input_folder=args.input_folder,
         output_folder=args.output_folder,
         task=args.task,
         task_uniqname=args.task_uniqname,
-        scene_seed=scene_seed
+        scene_seed=scene_seed,
     )
 
 

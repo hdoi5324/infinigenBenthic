@@ -16,7 +16,7 @@ from infinigen.core.util.random import random_general as rg
 
 import infinigen.assets.materials.scale
 import infinigen.assets.materials.fishbody
-from infinigen.assets.materials import fishfin, eyeball
+from infinigen.assets.materials import fishfin
 from infinigen.core import surface
 from infinigen.assets.materials.utils.surface_utils import sample_range
 
@@ -27,14 +27,14 @@ from infinigen.assets.creatures.util.genome import Joint
 from infinigen.assets.creatures import parts
 from infinigen.assets.creatures.util import creature, joining
 from infinigen.assets.creatures.util import cloth_sim
-from infinigen.assets.creatures.util.boid_swarm import BoidSwarmFactory
+from infinigen.assets.objects.creatures.util.boid_swarm import BoidSwarmFactory
 
 from infinigen.core.util import blender as butil
 from infinigen.core.util.math import clip_gaussian, FixedSeed
 from infinigen.assets.creatures.util.animation.driver_wiggle import animate_wiggle_bones
 from infinigen.assets.creatures.util.creature_util import offset_center
 
-from infinigen.assets.utils.tag import tag_object, tag_nodegroup
+from infinigen.assets.utils.tag import tag_object
 
 from infinigen.assets.materials import fish_eye_shader
 
