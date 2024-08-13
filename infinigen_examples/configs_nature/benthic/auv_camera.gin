@@ -4,7 +4,6 @@ camera.camera_pose_proposal.pitch = 0 # 0 for downward looking
 camera_offset = 0.05 # Half baseline for stereo
 camera_pitch = 0
 camera_yaw=0
-# camera.camera_pose_proposal.headspace_retries = 5
 # The first camera is ignored later during rendering through hard coded change. Hack to create a higher first camera to increase fine terrain generated.
 hack_camera_height = 8 # Set to 8m for downward looking camera eg camera_pitch = 0
 camera.spawn_camera_rigs.camera_rig_config = [

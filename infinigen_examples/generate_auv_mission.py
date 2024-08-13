@@ -313,7 +313,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
                                                density=random_general(('uniform', 2, 4)))
     p.run_stage('cocoimage', add_coco_images, terrain_inview)
 
-    p.run_stage('mollusk', lambda: mollusk.apply(terrain_inview,
+    p.run_stage('seashells', lambda: seashells.apply(terrain_inview,
                                                  selection=density.placement_mask(scale=0.04, select_thresh=.3,
                                                                                   normal_thresh=0.0,
                                                                                   tag=underwater_domain),
