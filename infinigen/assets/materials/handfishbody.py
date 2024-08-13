@@ -755,7 +755,7 @@ def apply(obj, geo_kwargs=None, shader_kwargs={'rand': False, 'stripefish': Fals
 
 if __name__ == "__main__":
     for i in range(1):
-        bpy.ops.wm.open_mainfile(filepath='../objects/creatures/dev_fish5.blend')
+        bpy.ops.wm.open_mainfile(filepath='../creatures/dev_fish5.blend')
         i = 0
         for obj in bpy.data.objects:
             if obj.name.find('Nurb') >= 0:
