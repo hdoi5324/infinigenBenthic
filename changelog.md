@@ -35,7 +35,13 @@ Scene
 * Added distortion - set_lens_distortion when configuring cameras in coarse and apply_distortion during render. Based on BlenderProc
 * Assets - added plastic bag
 * Materials - added 'complexsand' material
-* 
+
+
+24 July
+* Added Coco Image Plane
+* Tweaked seaweed colours
+* Tweaked kelp size
+* configs - tweaked ground and mountain registries
 
 ### To Do
 * handfish - Update nurb body to be more realistic.  More realistic 'hand/arms'. variations in skin. Test schools
