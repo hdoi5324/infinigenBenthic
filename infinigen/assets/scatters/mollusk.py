@@ -12,7 +12,7 @@ from infinigen.core.placement.factory import make_asset_collection
 from infinigen.core.placement.instance_scatter import scatter_instances
 
 
-def apply(obj, scale=0.1, density=1.0, n=10, selection=None):
+def apply(obj, scale=0.1, density=1.0, n=10, min_spacing=0.5, selection=None):
     with CountInstance("mollusk"):
         n_species = np.random.randint(4, 8)
         factories = list(
@@ -36,7 +36,7 @@ def apply(obj, scale=0.1, density=1.0, n=10, selection=None):
             collection=mollusk,
             density=density,
             scaling=scaling,
-            min_spacing=scale,
+            min_spacing=min_spacing,
             normal=(0, 0, 1),
             selection=selection,
             taper_density=True,

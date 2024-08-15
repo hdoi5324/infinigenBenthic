@@ -33,7 +33,7 @@ from infinigen.core.rendering.post_render import (
     load_flow,
     load_normals,
     load_seg_mask,
-    load_uniq_inst,
+    load_exr
 )
 from infinigen.core.util import blender as butil
 from infinigen.core.util.logging import Timer

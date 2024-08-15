@@ -61,6 +61,7 @@ from infinigen.assets.scatters import (
     ivy,
     jellyfish,
     lichen,
+    mollusk,
     monocots,
     moss,
     pebbles,
@@ -156,7 +157,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
 
     def camera_preprocess():
         camera_rigs = cam_util.spawn_camera_rigs()
-        cam_util.set_camera_parameters(camera_rigs)
+        cam_util.set_camera_parameters(camera_rigs, parameter_dir=output_folder.parent)
         scene_preprocessed = cam_util.camera_selection_preprocessing(
             terrain,
             terrain_mesh,
@@ -252,7 +253,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         n = random_general(params.get("max_fish_schools", 3))
         for i in range(n):
             selection = density.placement_mask(0.1, select_thresh=0, tag=underwater_domain)
-            fac = creatures.FishSchoolFactory(randint(1e7), bvh=terrain_inview_bvh)
+            fac = creatures.FishSchoolFactory(randint(1e7), bvh=terrain_inview_bvh, n=2)
             col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
                                                       overall_density=1, num_placeholders=1, altitude=1.8)
             placement.populate_collection(fac, col)
@@ -313,11 +314,12 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
                                                density=random_general(('uniform', 2, 4)))
     p.run_stage('cocoimage', add_coco_images, terrain_inview)
 
-    p.run_stage('seashells', lambda: seashells.apply(terrain_inview,
+    p.run_stage('mollusk', lambda: mollusk.apply(terrain_inview,
                                                  selection=density.placement_mask(scale=0.04, select_thresh=.3,
                                                                                   normal_thresh=0.0,
                                                                                   tag=underwater_domain),
                                                  density=random_general(('uniform', 1, 10))))
+    
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
                                                  scale=random_general(('clip_gaussian', 0.3, 0.2, 0.1, 0.8)),
                                                  brown_prob=1.0,
@@ -369,8 +371,8 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
 
     def marine_snow_particles():
         gen = weather.FallingParticles(
-            particles.MarineSnowFactory(randint(1e7)),
-            distribution=weather.marine_snow_param_distribution,
+            particles.DustMoteFactory(randint(1e7)),
+            distribution=weather.particles.marine_snow_param_distribution,
         )
         return gen(cube_emitter)
 
@@ -386,21 +388,8 @@ def populate_scene(output_folder, scene_seed, **params):
     p = RandomStageExecutor(scene_seed, output_folder, params)
     camera = [cam_util.get_camera(i, j) for i, j in cam_util.get_cameras_ids()]
 
-    season = p.run_stage(
-        "choose_season", trees.random_season, use_chance=False, default=[]
-    )
-
-    fire_cache_system = fluid.FireCachingSystem() if params.get("cached_fire") else None
-
     populated = {}
-    populated["trees"] = p.run_stage(
-        "populate_trees",
-        use_chance=False,
-        default=[],
-        fn=lambda: placement.populate_all(
-            trees.TreeFactory, camera, season=season, vis_cull=4
-        ),
-    )  # ,
+    # ,
     # meshing_camera=camera, adapt_mesh_method='subdivide', cam_meshing_max_dist=8))
     populated["boulders"] = p.run_stage(
         "populate_boulders",
@@ -409,13 +398,7 @@ def populate_scene(output_folder, scene_seed, **params):
         fn=lambda: placement.populate_all(rocks.BoulderFactory, camera, vis_cull=3),
     )  # ,
     # meshing_camera=camera, adapt_mesh_method='subdivide', cam_meshing_max_dist=8))
-    populated["bushes"] = p.run_stage(
-        "populate_bushes",
-        use_chance=False,
-        fn=lambda: placement.populate_all(
-            trees.BushFactory, camera, vis_cull=1, adapt_mesh_method="subdivide"
-        ),
-    )
+
     p.run_stage(
         "populate_kelp",
         use_chance=False,
@@ -423,94 +406,11 @@ def populate_scene(output_folder, scene_seed, **params):
             monocot.KelpMonocotFactory, camera, vis_cull=5
         ),
     )
-    populated["cactus"] = p.run_stage(
-        "populate_cactus",
-        use_chance=False,
-        fn=lambda: placement.populate_all(cactus.CactusFactory, camera, vis_cull=6),
-    )
-    p.run_stage(
-        "populate_clouds",
-        use_chance=False,
-        fn=lambda: placement.populate_all(
-            cloud.CloudFactory, camera, dist_cull=None, vis_cull=None
-        ),
-    )
-
-
-
-    populated["cached_fire_cactus"] = p.run_stage(
-        "populate_cached_fire_cactus",
-        use_chance=False,
-        fn=lambda: placement.populate_all(
-            fluid.CachedCactusFactory,
-            camera,
-            vis_cull=6,
-            cache_system=fire_cache_system,
-        ),
-    )
-
-    grime_selection_funcs = {
-        "trees": scatter_lower,
-        "boulders": scatter_upward,
-    }
-    grime_types = {
-        "slime_mold": slime_mold.SlimeMold,
-        "lichen": lichen.Lichen,
-        "ivy": ivy.Ivy,
-        "mushroom": ground_mushroom.Mushrooms,
-        "moss": moss.MossCover,
-    }
-
-    def apply_grime(grime_type, surface_cls):
-        surface_fac = surface_cls()
-        for (
-            target_type,
-            results,
-        ) in populated.items():
-            selection_func = grime_selection_funcs.get(target_type, None)
-            for fac_seed, fac_pholders, fac_assets in results:
-                if len(fac_pholders) == 0:
-                    continue
-                for inst_seed, obj in fac_assets:
-                    with FixedSeed(int_hash((grime_type, fac_seed, inst_seed))):
-                        p_k = f"{grime_type}_on_{target_type}_per_instance_chance"
-                        if uniform() > params.get(p_k, 0.4):
-                            continue
-                        logger.debug("Applying {surface_fac} on {obj}")
-                        surface_fac.apply(obj, selection=selection_func)
-
-    for grime_type, surface_cls in grime_types.items():
-        p.run_stage(grime_type, lambda: apply_grime(grime_type, surface_cls))
-
-    def apply_snow_layer(surface_cls):
-        surface_fac = surface_cls()
-        for (
-            target_type,
-            results,
-        ) in populated.items():
-            selection_func = grime_selection_funcs.get(target_type, None)
-            for fac_seed, fac_pholders, fac_assets in results:
-                if len(fac_pholders) == 0:
-                    continue
-                for inst_seed, obj in fac_assets:
-                    tmp = obj.users_collection[0].hide_viewport
-                    obj.users_collection[0].hide_viewport = False
-                    surface_fac.apply(obj, selection=selection_func)
-                    obj.users_collection[0].hide_viewport = tmp
-
-    p.run_stage("snow_layer", lambda: apply_snow_layer(snow_layer.Snowlayer))
 
     creature_facs = {
-        "beetles": creatures.BeetleFactory,
-        "bird": creatures.BirdFactory,
-        "carnivore": creatures.CarnivoreFactory,
         "crab": creatures.CrabFactory,
         "crustacean": creatures.CrustaceanFactory,
-        "dragonfly": creatures.DragonflyFactory,
         "fish": creatures.FishFactory,
-        "flyingbird": creatures.FlyingBirdFactory,
-        "herbivore": creatures.HerbivoreFactory,
-        "snake": creatures.SnakeFactory,
     }
     for k, fac in creature_facs.items():
         p.run_stage(
@@ -518,43 +418,6 @@ def populate_scene(output_folder, scene_seed, **params):
             use_chance=False,
             fn=lambda: placement.populate_all(fac, camera=None),
         )
-
-    fire_warmup = params.get("fire_warmup", 50)
-    simulation_duration = (
-        bpy.context.scene.frame_end - bpy.context.scene.frame_start + fire_warmup
-    )
-
-    def set_fire(assets):
-        objs = [o for *_, a in assets for _, o in a]
-        with butil.EnableParentCollections(objs):
-            fluid.set_fire_to_assets(
-                assets,
-                bpy.context.scene.frame_start - fire_warmup,
-                simulation_duration,
-                output_folder,
-            )
-
-    p.run_stage(
-        "trees_fire_on_the_fly", set_fire, populated["trees"], prereq="populate_trees"
-    )
-    p.run_stage(
-        "bushes_fire_on_the_fly",
-        set_fire,
-        populated["bushes"],
-        prereq="populate_bushes",
-    )
-    p.run_stage(
-        "boulders_fire_on_the_fly",
-        set_fire,
-        populated["boulders"],
-        prereq="populate_boulders",
-    )
-    p.run_stage(
-        "cactus_fire_on_the_fly",
-        set_fire,
-        populated["cactus"],
-        prereq="populate_cactus",
-    )
 
     p.save_results(output_folder / "pipeline_fine.csv")
 

@@ -483,9 +483,11 @@ def get_intrinsics_as_K_matrix(cam_ob, resolution_x_in_px, resolution_y_in_px) -
 
 
 def save_distortion_parameters(cam_ob, mapping_coords, original_resolution, parameter_dir="./"):
+    camera_config_dir = os.path.join(parameter_dir, "camera_config")
+    os.makedirs(camera_config_dir, exist_ok=True)
     cam_name_string = cam_ob.name.replace("/", "_")
-    np.save(os.path.join(parameter_dir, f"{cam_name_string}_mapping_coords.npy"), mapping_coords)
-    np.save(os.path.join(parameter_dir, f"{cam_name_string}_orig_res.npy"), original_resolution)
+    np.save(os.path.join(camera_config_dir, f"{cam_name_string}_mapping_coords.npy"), mapping_coords)
+    np.save(os.path.join(camera_config_dir, f"{cam_name_string}_orig_res.npy"), original_resolution)
     return True
 
 

@@ -1,6 +1,6 @@
 # ROV Camera rig
-camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 4.3)
-camera.camera_pose_proposal.pitch = 45 # 0 for downward looking
+camera.camera_pose_proposal.altitude = ("clip_gaussian", 1.5, .2, 1.2, 4.3)
+camera.camera_pose_proposal.pitch = 60 # 0 for downward looking
 camera_offset = 0.0 # Half baseline for stereo
 camera_pitch = 0 # generally keep 0
 camera_yaw=0
@@ -28,7 +28,7 @@ get_sensor_coords.W = %W
 
 
 # Distortion.  Based on Blenderproc distortion approach
-distort=False
+distort=True
 camera.set_camera_parameters.use_distortion=%distort
 full/render_image.apply_distortion = %distort
 flat/render_image.apply_distortion = %distort
@@ -45,7 +45,7 @@ spawn_camera_rigs.light_offset = 0.3 # nimbus 1.2
 # Render
 render_image.use_dof = True
 render_image.dof_aperture_fstop = 1.4 # AUV 2.0 ROV 1.4
-set_camera_parameters.focus_dist = 2.8 # AUV 1.9 # ROV 6.0 for 60 degrees
+set_camera_parameters.focus_dist = 6.0 # AUV 1.9 # ROV 6.0 for 60 degrees, 2.8 at 45
 compositor_postprocessing.noise = 0.0001
 
 water.shader.volume_density = ("clip_gaussian", 0.6, 0.1, 0.5, 0.7)
