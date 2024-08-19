@@ -14,7 +14,6 @@ from infinigen.core.placement.factory import AssetFactory
 from infinigen.core.util.math import FixedSeed
 from infinigen.core.tagging import tag_object
 from infinigen.core.placement.placement import points_near_camera
-from infinigen.core.placement.factory import make_asset_collection
 
 class ColourboardFactory(AssetFactory):
 
@@ -25,10 +24,7 @@ class ColourboardFactory(AssetFactory):
 
     def create_asset(self, **kwargs) -> bpy.types.Object:
         obj = new_cube()
-        obj.name = "colourboard"
         surface.add_geomod(obj, geometry_nodes, selection=None, attributes=[])
-        #surface.add_material(obj, shader_cb_36)
-        #assign_material(obj, self.materials)
         tag_object(obj, 'colourboard')
         return obj
 
@@ -358,8 +354,8 @@ def place_colourboard(cam, terrain_bvh, n, alt, dist_range):
         dist_range = (0, 1)
     points = points_near_camera(cam, terrain_bvh, n, alt, dist_range)
     alt_offset = 0
-    col = make_asset_collection(ColourboardFactory(1), name='colourboard', n=n)
-    for i in range(n):
-        points[i][-1] += alt_offset
-        col.all_objects[i].location = points[i]
+    for p in points:
+        p[-1] += alt_offset
+        obj = ColourboardFactory(1).create_asset()
+        obj.location = p
         alt_offset += alt

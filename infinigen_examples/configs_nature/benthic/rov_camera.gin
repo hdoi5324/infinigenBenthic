@@ -37,7 +37,7 @@ render_image.motion_blur = ("clip_gaussian", 0.015, 0.01, 0.00, 0.04)
 
 # Lights
 camera.spawn_camera_rigs.light_foreaft=False
-camera.configure_camera_lights.energy = 800
+camera.configure_camera_lights.energy = 1200
 spawn_camera_rigs.light_angle = 0 # nimbus = 10
 spawn_camera_rigs.light_offset = 0.3 # nimbus 1.2
 

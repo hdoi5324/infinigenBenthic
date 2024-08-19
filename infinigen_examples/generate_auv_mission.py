@@ -134,7 +134,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     land_domain = params.get("land_domain_tags")
     underwater_domain = params.get("underwater_domain_tags")
     nonliving_domain = params.get("nonliving_domain_tags")
-    
+
 
 
     def add_boulders(terrain_mesh):
@@ -223,7 +223,8 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     p.run_stage(
         "animate_cameras",
         lambda: cam_util.animate_cameras(
-            camera_rigs, bbox, scene_preprocessed, pois=pois, policy_registry=animation_policy.AnimPolicyMowTheLawn
+            camera_rigs, bbox, scene_preprocessed, pois=pois, 
+            policy_registry=animation_policy.AnimPolicyMowTheLawn
         ),
         use_chance=False,
     )
@@ -319,7 +320,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
                                                                                   normal_thresh=0.0,
                                                                                   tag=underwater_domain),
                                                  density=random_general(('uniform', 1, 10))))
-    
+
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
                                                  scale=random_general(('clip_gaussian', 0.3, 0.2, 0.1, 0.8)),
                                                  brown_prob=1.0,

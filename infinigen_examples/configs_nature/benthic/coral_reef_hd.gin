@@ -14,7 +14,7 @@ surface.registry.mountain_collection = [
     ('cracked_ground', 3),
 #    ('chunkyrock', 1)
 ]
-    
+
 surface.registry.ground_collection = [
     ('sandcomplex', 2),
     ('sand', 3),
@@ -42,7 +42,7 @@ Terrain.bounds = (-30, 30, -30, 30, -30, 2)
 Terrain.populated_bounds = (-20, 20, -20, 20, -30, 5)
 export.spherical = False # if False it uses OcMesher
 
-#build_terrain_bvh_and_attrs.avoid_border ### Use False.  
+#build_terrain_bvh_and_attrs.avoid_border ### Use False.
 
 min_terrain_distance = 1.5 # 2 in base.gin
 keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
@@ -60,9 +60,9 @@ compose_nature.inview_distance = 12
 
 
 # Configure straight path with lower frequency frames. Based on AUV Nimbus
-#animation_policy.AnimPolicyRandomForwardWalk.speed = 0.5
-#animation_policy.AnimPolicyRandomForwardWalk.yaw_dist = 0
-#animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
+animation_policy.AnimPolicyRandomForwardWalk.speed = 0.5
+animation_policy.AnimPolicyRandomForwardWalk.yaw_dist = 0
+animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
 fps = 2
 compose_nature.fps = %fps #24
 animation_policy.AnimPolicyMowTheLawn.speed = 1.0
