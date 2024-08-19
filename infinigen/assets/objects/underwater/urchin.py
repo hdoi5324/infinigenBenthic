@@ -32,7 +32,10 @@ from infinigen.core.util.random import random_general as rg
 class UrchinFactory(AssetFactory):
 
     def __init__(self, factory_seed, coarse=False, spike_hue=("uniform", -0.25, 0.15),
-                 z_scale=(0.8, 1.0), spike_prob=0.98, min_spike_scale=0.5, extrude_height=("log_uniform", 1.0, 5.0)):
+                 z_scale=(0.8, 1.0), spike_prob=0.98, 
+                 min_spike_scale=0.5, extrude_height=("log_uniform", 1.0, 5.0),
+                 species="BlackSpiny"):
+        self.species = species
         super().__init__(factory_seed, coarse)
         with FixedSeed(factory_seed):
             self.factory_seed = factory_seed
@@ -48,6 +51,9 @@ class UrchinFactory(AssetFactory):
             self.materials += [surface.shaderfunc_to_material(shader, self.base_hue) for shader in
                 [self.shader_girdle, self.shader_base]]
             self.freq = 1 / log_uniform(100, 200)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.factory_seed})_{self.species}"
 
     def create_asset(self, placeholder, face_size=0.01, **params):
         obj = new_icosphere(subdivisions=4)

@@ -67,7 +67,7 @@ fps = 2
 compose_nature.fps = %fps #24
 animation_policy.AnimPolicyMowTheLawn.speed = 1.0
 animation_policy.AnimPolicyMowTheLawn.fps = %fps
-animation_policy.AnimPolicyMowTheLawn.transect_multiple = 2
+animation_policy.AnimPolicyMowTheLawn.transect_multiple = 3
 animation_policy.AnimPolicyMowTheLawn.turn_frames = 3
 
 full/render_image.passes_to_save = []

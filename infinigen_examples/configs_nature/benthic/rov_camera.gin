@@ -1,5 +1,5 @@
 # ROV Camera rig
-camera.camera_pose_proposal.altitude = ("clip_gaussian", 1.5, .2, 1.2, 4.3)
+camera.camera_pose_proposal.altitude = ("clip_gaussian", 1.3, .2, 1.0, 4.3)
 camera.camera_pose_proposal.pitch = 60 # 0 for downward looking
 camera_offset = 0.0 # Half baseline for stereo
 camera_pitch = 0 # generally keep 0

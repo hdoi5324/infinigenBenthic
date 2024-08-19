@@ -134,14 +134,14 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     land_domain = params.get("land_domain_tags")
     underwater_domain = params.get("underwater_domain_tags")
     nonliving_domain = params.get("nonliving_domain_tags")
-
+    
 
 
     def add_boulders(terrain_mesh):
-        n_boulder_species = randint(1, params.get("max_boulder_species", 3))
+        n_boulder_species = randint(1, params.get("max_boulder_species", 5))
         for i in range(n_boulder_species):
             selection = density.placement_mask(
-                0.05, tag=nonliving_domain, select_thresh=uniform(0.55, 0.6)
+                0.05, tag=nonliving_domain, select_thresh=uniform(0.35, 0.6)
             )
             fac = rocks.BoulderFactory(int_hash((scene_seed, i)), coarse=True)
             placement.scatter_placeholders_mesh(
