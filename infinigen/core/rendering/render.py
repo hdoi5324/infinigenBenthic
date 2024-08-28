@@ -229,7 +229,7 @@ def shader_random(nw: NodeWrangler):
 
 
 
-def shader_random(nw: NodeWrangler):
+def shader_random_improved(nw: NodeWrangler):
     # Code generated using version 2.6.5 of the node_transpiler
 
     object_info_1 = nw.new_node(Nodes.ObjectInfo_Shader)
@@ -305,7 +305,7 @@ def global_flat_shading():
                 bpy.ops.object.material_slot_remove()
 
     for obj in bpy.context.scene.view_layers["ViewLayer"].objects:
-        surface.add_material(obj, shader_random)
+        surface.add_material(obj, shader_random_improved)
     for mat in bpy.data.materials:
         nw = NodeWrangler(mat.node_tree)
         shader_random(nw)

@@ -21,23 +21,23 @@ from infinigen.core import surface
 
 from infinigen.core.placement.factory import AssetFactory, make_asset_collection
 
-from infinigen.assets.creatures.util import genome
-from infinigen.assets.creatures import parts
-from infinigen.assets.creatures.util import creature, joining
+from infinigen.assets.objects.creatures.util import genome
+from infinigen.assets.objects.creatures import parts
+from infinigen.assets.objects.creatures.util import creature, joining
 from infinigen.assets.objects.creatures.util.boid_swarm import BoidSwarmFactory
 
 from infinigen.core.util import blender as butil
 from infinigen.core.util.math import clip_gaussian, FixedSeed
 from infinigen.core.util.random import random_general as rg
-from infinigen.assets.creatures.util.animation.driver_wiggle import animate_wiggle_bones
-from infinigen.assets.creatures.util.creature_util import offset_center
+from infinigen.assets.objects.creatures.util.animation.driver_wiggle import animate_wiggle_bones
+from infinigen.assets.objects.creatures.util.creature_util import offset_center
 
 from infinigen.core.tagging import tag_object
 
 from infinigen.assets.materials import fish_eye_shader, handfishfin
-from infinigen.assets.creatures.fish import fin_params, fish_fin_cloth_sim_params, fish_genome, simulate_fish_cloth
+from infinigen.assets.objects.creatures.fish import fin_params, fish_fin_cloth_sim_params, fish_genome, simulate_fish_cloth
 from infinigen.core.placement import detail
-from infinigen.assets.creatures.util.genome import Joint
+from infinigen.assets.objects.creatures.util.genome import Joint
 
 
 def handfish_genome():
@@ -269,7 +269,7 @@ class HandfishSchoolFactory(BoidSwarmFactory):
             settings = self.fish_school_params()
             col = make_asset_collection(HandfishFactory(factory_seed=randint(1e7),
                                                     animation_mode='idle',
-                                                    scale=1.0, n=3))
+                                                    scale=1.0), n=3)
         super().__init__(
             factory_seed, child_col=col,
             collider_col=bpy.data.collections.get('colliders'),
