@@ -30,7 +30,7 @@ for d in dirs:
         print(randomseed)
 
 # Open the file in write mode
-with open(f'{campaign}_rerun_blender_gt.sh', 'w') as fp:
+with open(f'{campaign}_rerun_blender_gt_v2.sh', 'w') as fp:
     for item in new_script:
         # Write each name on a new line
         fp.write(f"{item}\n")
