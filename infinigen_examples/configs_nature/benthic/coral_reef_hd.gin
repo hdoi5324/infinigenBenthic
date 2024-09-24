@@ -1,6 +1,6 @@
 include 'infinigen_examples/configs_nature/disable_assets/no_assets.gin'
 include 'infinigen_examples/configs_nature/scene_types/under_water.gin'
-include 'infinigen_examples/configs_nature/benthic/rov_camera.gin'
+include 'infinigen_examples/configs_nature/benthic/auv_camera.gin'
 
 include 'infinigen_examples/configs_nature/performance/fast_terrain_assets.gin'
 #include 'infinigen_examples/configs_nature/performance/high_quality_terrain.gin'
@@ -12,14 +12,14 @@ surface.registry.mountain_collection = [
     ("sandstone", 5),
     ("sand", 5),
     ('cracked_ground', 3),
-#    ('chunkyrock', 1)
+    ('chunkyrock', 1)
 ]
 
 surface.registry.ground_collection = [
     ('sandcomplex', 2),
     ('sand', 3),
     ('cracked_ground', 3),
-#    ('chunkyrock', 1),
+    ('chunkyrock', 1),
     ('sandstone', 1),
 ]
 
@@ -100,24 +100,25 @@ populate_scene.moss_chance = 0.3
 compose_nature.grass_chance = 0.00
 
 compose_nature.lighting_enabled = True
-nishita_lighting.strength = 0.0
+#nishita_lighting.strength = ("uniform", 0.18, 0.28)
+nishita_lighting.sun_elevation = ("clip_gaussian", 90, 25, 40, 100)
 
 compose_nature.caustics_chance = 0.0
 
-water.geo.water_detail = 0
-water.geo.water_height = ("uniform", 0.05, 0.15)
-water.geo.with_ripples = 0
-water.geo.with_waves=False
+#water.geo.water_detail = 5
+#water.geo.water_height = ("uniform", 0.05, 0.15)
+#water.geo.with_ripples = 0
+#water.geo.with_waves=True
 #Absorption
-water.shader.volume_density = ("clip_gaussian", 0.9, 0.1, 0.75, 1.1)
+water.shader.volume_density = ("clip_gaussian", 0.8, 0.1, 0.55, 1.1)
 water.shader.color = ("color_category", 'seawater')
 #Scattering
 water.shader.scatter_color = ("color_category", 'seawater_scatter')
 water.shader.anisotropy = ("clip_gaussian", 0.7, 0.2, 0.6, 0.8)
-water.shader.scatter_density=("clip_gaussian", 0.015, 0.015, 0.008, 0.04)
+water.shader.scatter_density=("clip_gaussian", 0.015, 0.015, 0.000, 0.04)
 water.shader.colored = 1 #True
-water.shader.emissive_foam = 0
-water.is_ocean = False
+#water.shader.emissive_foam = 0
+#water.is_ocean = True
 
 compose_nature.turbulence_chance = 0.0
 
@@ -125,5 +126,5 @@ compose_nature.turbulence_chance = 0.0
 LandTiles.tile_heights = [-20]
 Ground.height = -20
 
-multi_mountains_params.height = ("uniform", 3, 2)
+#multi_mountains_params.height = ("uniform", 3, 2)
 
