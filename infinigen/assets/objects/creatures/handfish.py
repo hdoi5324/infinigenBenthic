@@ -11,6 +11,7 @@ from collections import defaultdict
 import bpy
 import gin
 import numpy as np
+import random
 from numpy.random import uniform as U, normal as N, randint
 
 import infinigen.assets.materials.scale
@@ -51,14 +52,14 @@ def handfish_genome():
     body = genome.part(body_params)
 
     # Positions (u, v, radius)
-    dorsal_fin1_coord = (U(0.45, 0.6), 1.0, U(0.6, 0.8))
+    dorsal_fin1_coord = (U(0.55, 0.8), 1.0, U(0.6, 0.8))
     dorsal_fin2_coord = (U(0.25, 0.45), 1.0, U(0.6, 0.8))
     pectoral_fin_coord = (0.9, 0.1, .5) # Front fin
     hind_fin_coord = (U(0.3, 0.4), N(36, 1)/180, .9) #(U(0.2, 0.3), N(36, 5)/180, .9)
-    hand_fin_coord = (0.60, 75/180, 0.9)
+    hand_fin_coord = (0.60, 75/180, 0.7)
     eye_coord = (0.9, 0.6, 1.0)
 
-    pectoral_params = fin_params((0.06, 0.5, 0.3))
+    pectoral_params = fin_params((0.1, 0.5, 0.2))
     hind_fin_params = fin_params((0.1, 0.5, 0.3)) # ((0.06, 0.2, 0.9))
     tail_params = fin_params((0.1, 0.1, 0.35))
     tail_params['RoundWeight'] = 0.8
@@ -66,22 +67,29 @@ def handfish_genome():
     fish_hand_params['RoundWeight'] = 0.8
 
     # Dorsal Fins
-    for fin_coord in [dorsal_fin1_coord, dorsal_fin2_coord]:
+    dorsal_fin_p = 0.7
+    dorsal_fin_coords = []
+    if random.random() > dorsal_fin_p:
+        dorsal_fin_coords.append(dorsal_fin2_coord)
+    if random.random() > dorsal_fin_p:
+        dorsal_fin_coords.append(dorsal_fin1_coord)
+    for fin_coord in dorsal_fin_coords:
         dorsal_fin = parts.ridged_fin.FishFin(fin_params((U(0.3, 0.5), 0.5, 0.2), dorsal=True), rig=False)
         genome.attach(genome.part(dorsal_fin), body, coord=fin_coord, joint=Joint(rest=(0, -100, 0)))
 
     rot = lambda r: np.array((60, r, 45)) + N(0, 7, 3)
 
     # Pectoral Fins - front fin
-    pectoral_fin = parts.ridged_fin.FishFin(pectoral_params) #(0.07, 0.1, 0.20)))
-    for side in [-1, 1]:
-        genome.attach(genome.part(pectoral_fin), body, coord=pectoral_fin_coord,
-            joint=Joint(rest=(60, 35, 45)), side=side)
+    if random.random() > 0.6:
+        pectoral_fin = parts.ridged_fin.FishFin(pectoral_params) #(0.07, 0.1, 0.20)))
+        for side in [-1, 1]:
+            genome.attach(genome.part(pectoral_fin), body, coord=pectoral_fin_coord,
+                joint=Joint(rest=(60, 35, 45)), side=side)
 
     # Hind Fin - Small towards the back
-    hind_fin = parts.ridged_fin.FishFin(hind_fin_params) #(0.1, 0.5, 0.3)
-    for side in [-1, 1]:
-        genome.attach(genome.part(hind_fin), body, coord=hind_fin_coord, joint=Joint(rest=(-30, 120, -15)), side=side) #(20, r, -205)
+    #hind_fin = parts.ridged_fin.FishFin(hind_fin_params) #(0.1, 0.5, 0.3)
+    #for side in [-1, 1]:
+    #    genome.attach(genome.part(hind_fin), body, coord=hind_fin_coord, joint=Joint(rest=(-30, 120, -15)), side=side) #(20, r, -205)
 
     # Tail Fin
     angle = U(170, 210)
@@ -95,7 +103,7 @@ def handfish_genome():
 
     fish_hand = infinigen.assets.objects.creatures.parts.leg.FishHand(params=params) # backleg_fac
     for side in [-1, 1]:
-        arm = genome.attach(genome.part(fish_hand_fin), genome.part(fish_hand), coord=(0.8, 0, 0.2), joint=Joint(rest=(30, -70, -40)), rotation_basis='normal') #, coord=(0.9, .5, .9), joint=Joint(rest=(90, -60, 130)))
+        arm = genome.attach(genome.part(fish_hand_fin), genome.part(fish_hand), coord=(0.8, 0.0, 0.2), joint=Joint(rest=(30, -70, -40)), rotation_basis='normal') #, coord=(0.9, .5, .9), joint=Joint(rest=(90, -60, 130)))
         genome.attach(arm, body, coord=hand_fin_coord,
             joint=Joint(rest=(120, 40, U(140, 160))), #, bounds=shoulder_bounds),
             rotation_basis='global', side=side)#, smooth_rad=0.06)#, bridge_rad=0.1)
@@ -211,8 +219,12 @@ def fish_postprocessing(body_parts, extras, params):
     main_template = surface.registry.sample_registry(params['surface_registry'])
     main_template.apply(body_parts + get_extras('BodyExtra'))
 
-    handfishfin.apply(get_extras('Fin'))
-
+    mat = body_parts[0].active_material
+    spotted = mat is not None and "spotted" in mat.name
+    body_parts[0].active_material.name.lower() or U() < 0.1
+    #fishfin.apply(get_extras("Fin"), shader_kwargs={"goldfish": gold})
+    handfishfin.apply(get_extras('Fin'), geo_kwargs={"spotted": spotted})
+    
     fish_eye_shader.apply(get_extras('Eyeball'))
     eyeball.apply(get_extras('Eyeball'), shader_kwargs={"coord": "X"})
 def fish_swim_params():

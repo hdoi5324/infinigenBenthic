@@ -381,234 +381,49 @@ def nodegroup_scales(nw: NodeWrangler):
                                              'attr5': capture_attribute_4.outputs["Attribute"]})
 
 
-def shader_fish_body_handfish(nw: NodeWrangler, rand=True, **input_kwargs):
-    # Code generated using version 2.4.3 of the node_transpiler
 
-    texture_coordinate_1 = nw.new_node(Nodes.TextureCoord)
+def shader_fish_body_handfish_spotted(nw: NodeWrangler):
+    # Code generated using version 2.6.5 of the node_transpiler
 
-    mapping_1 = nw.new_node(Nodes.Mapping,
-                            input_kwargs={'Vector': texture_coordinate_1.outputs["Generated"]})
+    texture_coordinate = nw.new_node(Nodes.TextureCoord)
 
-    noise_texture_6 = nw.new_node(Nodes.NoiseTexture,
-                                  input_kwargs={'Vector': mapping_1, 'W': 0.8, 'Scale': 50.0},
-                                  attrs={'noise_dimensions': '4D'})
-    if rand:
-        noise_texture_6.inputs['W'].default_value = sample_range(-2, 2)
+    voronoi_texture = nw.new_node(Nodes.VoronoiTexture,
+        input_kwargs={'Vector': texture_coordinate.outputs["Generated"], 'Scale': 40.0000, 'Randomness': 1.0000, 'Smoothness': 0.8},
+        attrs={'feature': 'SMOOTH_F1'})
 
-    colorramp_15 = nw.new_node(Nodes.ColorRamp,
-                               input_kwargs={'Fac': noise_texture_6.outputs["Fac"]})
-    colorramp_15.color_ramp.elements[0].position = 0.3523
-    colorramp_15.color_ramp.elements[0].color = (0.0, 0.0, 0.0, 1.0)
-    colorramp_15.color_ramp.elements[1].position = 0.3727
-    colorramp_15.color_ramp.elements[1].color = (1.0, 1.0, 1.0, 1.0)
+    color_ramp = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': voronoi_texture.outputs["Distance"]})
+    color_ramp.color_ramp.interpolation = "B_SPLINE"
+    color_ramp.color_ramp.elements.new(0)
+    color_ramp.color_ramp.elements[0].position = 0.0000
+    color_ramp.color_ramp.elements[0].color = [0.0369, 0.0130, 0.0048, 1.0000]
+    color_ramp.color_ramp.elements[1].position = 0.4341
+    color_ramp.color_ramp.elements[1].color = [0.1286, 0.0444, 0.0109, 1.0000]
+    color_ramp.color_ramp.elements[2].position = 1.0000
+    color_ramp.color_ramp.elements[2].color = [1.0000, 0.7662, 0.6669, 1.0000]
 
-    attribute_3 = nw.new_node(Nodes.Attribute,
-                              attrs={'attribute_name': 'offset2'})
+    principled_bsdf = nw.new_node(Nodes.PrincipledBSDF,
+        input_kwargs={'Base Color': color_ramp.outputs["Color"], 'Metallic': 0.4000, 'Specular': 0.2000})
 
-    greater_than = nw.new_node(Nodes.Math,
-                               input_kwargs={0: attribute_3.outputs["Vector"], 1: 0.01},
-                               attrs={'operation': 'GREATER_THAN'})
+    material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': principled_bsdf}, attrs={'is_active_output': True})
+    
+def shader_fish_body_handfish(nw: NodeWrangler):
+    # Code generated using version 2.6.5 of the node_transpiler
 
-    texture_coordinate_5 = nw.new_node(Nodes.TextureCoord)
+    musgrave_texture = nw.new_node(Nodes.MusgraveTexture)
+    
+    color_ramp_9 = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': musgrave_texture})
+    color_ramp_9.color_ramp.elements[0].position = 0.0000
+    color_ramp_9.color_ramp.elements[0].color = [1.0000, 0.4847, 0.3725, 1.0000]
+    color_ramp_9.color_ramp.elements[1].position = 0.7609
+    color_ramp_9.color_ramp.elements[1].color = [0.4575, 0.2438, 0.2134, 1.0000]
+    
+    principled_bsdf = nw.new_node(Nodes.PrincipledBSDF,
+        input_kwargs={'Base Color': color_ramp_9.outputs["Color"], 'Subsurface Radius': (0.3600, 0.4600, 0.6000), 'Subsurface Color': (1.0000, 0.9405, 0.7747, 1.0000), 'Metallic': 0.5000, 'Specular': 0.7000, 'IOR': 1.6900},
+        attrs={'subsurface_method': 'BURLEY'})
+    
+    material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': principled_bsdf}, attrs={'is_active_output': True})
 
-    separate_xyz_2 = nw.new_node(Nodes.SeparateXYZ,
-                                 input_kwargs={'Vector': texture_coordinate_5.outputs["Normal"]})
-
-    add = nw.new_node(Nodes.Math,
-                      input_kwargs={0: separate_xyz_2.outputs["Z"], 1: 0.5})
-    if rand:
-        add.inputs[1].default_value = sample_range(0.45, 0.6)
-
-    colorramp_14 = nw.new_node(Nodes.ColorRamp,
-                               input_kwargs={'Fac': add})
-    colorramp_14.color_ramp.elements[0].position = 0.0
-    colorramp_14.color_ramp.elements[0].color = (0.0, 0.0, 0.0, 1.0)
-    colorramp_14.color_ramp.elements[1].position = 0.2341
-    colorramp_14.color_ramp.elements[1].color = (1.0, 1.0, 1.0, 1.0)
-
-    attribute_5 = nw.new_node(Nodes.Attribute,
-                              attrs={'attribute_name': 'Color variations'})
-
-    separate_xyz = nw.new_node(Nodes.SeparateXYZ,
-                               input_kwargs={'Vector': attribute_5.outputs["Vector"]})
-
-    multiply = nw.new_node(Nodes.Math,
-                           input_kwargs={0: separate_xyz.outputs["Y"]},
-                           attrs={'operation': 'MULTIPLY'})
-
-    subtract = nw.new_node(Nodes.Math,
-                           input_kwargs={0: separate_xyz.outputs["X"], 1: multiply},
-                           attrs={'operation': 'SUBTRACT'})
-
-    map_range = nw.new_node(Nodes.MapRange,
-                            input_kwargs={'Value': subtract, 1: -0.2})
-
-    colorramp_12 = nw.new_node(Nodes.ColorRamp,
-                               input_kwargs={'Fac': map_range.outputs["Result"]})
-    colorramp_12.color_ramp.elements[0].position = 0.0
-    colorramp_12.color_ramp.elements[0].color = (0.0, 0.0, 0.0, 1.0)
-    colorramp_12.color_ramp.elements[1].position = 0.2518
-    colorramp_12.color_ramp.elements[1].color = (1.0, 1.0, 1.0, 1.0)
-
-    texture_coordinate_3 = nw.new_node(Nodes.TextureCoord)
-
-    separate_xyz_1 = nw.new_node(Nodes.SeparateXYZ,
-                                 input_kwargs={'Vector': texture_coordinate_3.outputs["Generated"]})
-
-    invert_1 = nw.new_node(Nodes.Invert,
-                           input_kwargs={'Color': separate_xyz_1.outputs["Z"]})
-
-    subtract_1 = nw.new_node(Nodes.Math,
-                             input_kwargs={0: separate_xyz_1.outputs["X"], 1: 0.57},
-                             attrs={'operation': 'SUBTRACT'})
-
-    absolute = nw.new_node(Nodes.Math,
-                           input_kwargs={0: subtract_1},
-                           attrs={'operation': 'ABSOLUTE'})
-
-    multiply_1 = nw.new_node(Nodes.Math,
-                             input_kwargs={0: absolute, 1: 0.4},
-                             attrs={'operation': 'MULTIPLY'})
-
-    map_range_1 = nw.new_node(Nodes.MapRange,
-                              input_kwargs={'Value': multiply_1})
-
-    subtract_2 = nw.new_node(Nodes.Math,
-                             input_kwargs={0: invert_1, 1: map_range_1.outputs["Result"]},
-                             attrs={'operation': 'SUBTRACT'})
-
-    add_1 = nw.new_node(Nodes.Math,
-                        input_kwargs={0: subtract_2, 1: 0.1})
-
-    colorramp_13 = nw.new_node(Nodes.ColorRamp,
-                               input_kwargs={'Fac': map_range.outputs["Result"]})
-    colorramp_13.color_ramp.elements[0].position = 0.0
-    colorramp_13.color_ramp.elements[0].color = (1.0, 1.0, 1.0, 1.0)
-    colorramp_13.color_ramp.elements[1].position = 0.6727
-    colorramp_13.color_ramp.elements[1].color = (0.0685, 0.0685, 0.0685, 1.0)
-
-    texture_coordinate_2 = nw.new_node(Nodes.TextureCoord)
-
-    noise_texture_9 = nw.new_node(Nodes.NoiseTexture,
-                                  input_kwargs={'Vector': texture_coordinate_2.outputs["Generated"]})
-
-    mix_7 = nw.new_node(Nodes.MixRGB,
-                        input_kwargs={'Fac': 0.9042, 'Color1': noise_texture_9.outputs["Color"],
-                                      'Color2': texture_coordinate_2.outputs["Generated"]})
-
-    wave_texture = nw.new_node(Nodes.WaveTexture,
-                               input_kwargs={'Vector': mix_7, 'Scale': 2.5, 'Distortion': 1.3, 'Detail': 0.0,
-                                             'Detail Roughness': 0.0, 'Phase Offset': 0.2})
-    if rand:
-        wave_texture.inputs['Scale'].default_value = sample_ratio(2, 0.5, 2)
-        wave_texture.inputs['Phase Offset'].default_value = sample_range(0, 10)
-        wave_texture.inputs['Distortion'].default_value = sample_range(0, 3)
-
-    colorramp_8 = nw.new_node(Nodes.ColorRamp,
-                              input_kwargs={'Fac': wave_texture.outputs["Color"]})
-    colorramp_8.color_ramp.elements[0].position = 0.0795
-    colorramp_8.color_ramp.elements[0].color = (0.0, 0.0, 0.0, 1.0)
-    colorramp_8.color_ramp.elements[1].position = 1.0
-    colorramp_8.color_ramp.elements[1].color = (1.0, 1.0, 1.0, 1.0)
-    if rand:
-        colorramp_8.color_ramp.elements[0].position = sample_range(0, 0.2)
-
-    add_2 = nw.new_node(Nodes.Math,
-                        input_kwargs={0: colorramp_8.outputs["Color"], 1: -0.5})
-
-    divide = nw.new_node(Nodes.Math,
-                         input_kwargs={0: add_2, 1: 2.0},
-                         attrs={'operation': 'DIVIDE'})
-
-    invert = nw.new_node(Nodes.Invert,
-                         input_kwargs={'Color': separate_xyz_1.outputs["Z"]})
-    if rand:
-        invert.inputs['Fac'].default_value = sample_range(0.5, 1)
-
-    add_3 = nw.new_node(Nodes.Math,
-                        input_kwargs={0: divide, 1: invert})
-
-    mix_10 = nw.new_node(Nodes.MixRGB,
-                         input_kwargs={'Fac': 1.0, 'Color1': colorramp_13.outputs["Color"], 'Color2': add_3},
-                         attrs={'blend_type': 'MULTIPLY'})
-
-    # main body colour
-    colorramp_9 = nw.new_node(Nodes.ColorRamp,
-                              input_kwargs={'Fac': mix_10})
-    colorramp_9.color_ramp.elements.new(0)
-    colorramp_9.color_ramp.elements[0].position = 0.0
-    colorramp_9.color_ramp.elements[0].color = (0.6, 0.466, 0.3, 1.0)
-    colorramp_9.color_ramp.elements[1].position = 0.2318
-    colorramp_9.color_ramp.elements[1].color = (0.70, 0.466, 0.416, 1.0)
-    colorramp_9.color_ramp.elements[2].position = 1.0
-    colorramp_9.color_ramp.elements[2].color = (0.0, 0.0, 0.0, 1.0)
-    if rand:
-        sample_color(colorramp_9.color_ramp.elements[1].color) # Random colour choice
-        colorramp_9.color_ramp.elements[1].position = sample_range(0.1, 0.4) # Random colour position
-
-    noise_texture = nw.new_node(Nodes.NoiseTexture,
-                                input_kwargs={'Scale': 3.0})
-
-    colorramp_3 = nw.new_node(Nodes.ColorRamp,
-                              input_kwargs={'Fac': noise_texture.outputs["Fac"]})
-    colorramp_3.color_ramp.elements[0].position = 0.2614
-    colorramp_3.color_ramp.elements[0].color = (0.0059, 0.0028, 0.0002, 1.0)
-    colorramp_3.color_ramp.elements[1].position = 0.5795
-    colorramp_3.color_ramp.elements[1].color = (1.0, 1.0, 1.0, 1.0)
-
-    mix_5 = nw.new_node(Nodes.MixRGB,
-                        input_kwargs={'Fac': 1.0, 'Color1': colorramp_9.outputs["Color"],
-                                      'Color2': colorramp_3.outputs["Color"]},
-                        attrs={'blend_type': 'MULTIPLY'})
-
-    mix_9 = nw.new_node(Nodes.MixRGB,
-                        input_kwargs={'Fac': add_1, 'Color1': (0.021, 0.0158, 0.0026, 1.0), 'Color2': mix_5})
-
-    mix_8 = nw.new_node(Nodes.MixRGB,
-                        input_kwargs={'Fac': colorramp_12.outputs["Color"], 'Color1': (1.0, 1.0, 1.0, 1.0),
-                                      'Color2': mix_9})
-
-    colorramp_4 = nw.new_node(Nodes.ColorRamp,
-                              input_kwargs={'Fac': noise_texture_6.outputs["Fac"]})
-    colorramp_4.color_ramp.elements[0].position = 0.2455
-    colorramp_4.color_ramp.elements[0].color = (0.0642, 0.0339, 0.006, 1.0)
-    colorramp_4.color_ramp.elements[1].position = 0.4886
-    colorramp_4.color_ramp.elements[1].color = (0.1224, 0.3306, 0.261, 1.0)
-
-    mix_6 = nw.new_node(Nodes.MixRGB,
-                        input_kwargs={'Fac': 0.0, 'Color1': mix_8, 'Color2': colorramp_4.outputs["Color"]},
-                        attrs={'blend_type': 'ADD'})
-
-    mix_11 = nw.new_node(Nodes.MixRGB,
-                         input_kwargs={'Fac': colorramp_14.outputs["Color"], 'Color1': (0.4072, 0.4072, 0.4072, 1.0),
-                                       'Color2': mix_5})
-
-    colorramp_7 = nw.new_node(Nodes.ColorRamp,
-                              input_kwargs={'Fac': greater_than})
-    colorramp_7.color_ramp.elements[0].position = 0.0
-    colorramp_7.color_ramp.elements[0].color = (1.0, 1.0, 1.0, 1.0)
-    colorramp_7.color_ramp.elements[1].position = 0.7682
-    colorramp_7.color_ramp.elements[1].color = (0.0228, 0.0165, 0.0, 1.0)  # Large speckle color
-
-    mix_4 = nw.new_node(Nodes.MixRGB,
-                        input_kwargs={'Fac': greater_than, 'Color1': mix_11, 'Color2': colorramp_7.outputs["Color"]})
-
-    mix_12 = nw.new_node(Nodes.MixRGB,
-                         input_kwargs={'Fac': colorramp_15.outputs["Color"], 'Color1': (0.0119, 0.0078, 0.0086, 1.0),
-                                       'Color2': mix_4})  # Color1: small speckle colour
-    if rand:
-        sample_color(mix_12.inputs[6].default_value, keep_sum=True)
-
-    principled_bsdf_1 = nw.new_node(Nodes.PrincipledBSDF,
-                                    input_kwargs={'Base Color': mix_12, 'Subsurface Radius': (0.36, 0.46, 0.6),
-                                                  'Subsurface Color': (1.0, 0.9405, 0.7747, 1.0), 'Metallic': 0.8,
-                                                  'Specular': .9, 'Roughness': 0.3, 'IOR': 1.69},
-                                    attrs={'subsurface_method': 'BURLEY'})
-
-    material_output = nw.new_node(Nodes.MaterialOutput,
-                                  input_kwargs={'Surface': principled_bsdf_1})
-
-
+    
 def geometry_fish_body(nw: NodeWrangler, rand=True, **input_kwargs):
     # Code generated using version 2.4.3 of the node_transpiler
     group_input = nw.new_node(Nodes.GroupInput)
@@ -742,13 +557,16 @@ def nodegroup_noise_color(nw: NodeWrangler):
                                input_kwargs={"Color": mix_12})
 
 
-def apply(obj, geo_kwargs=None, shader_kwargs={'rand': False, 'stripefish': False}, **kwargs):
+def apply(obj, geo_kwargs=None, shader_kwargs={}, **kwargs):
     attributes = [
         'Color variations',
         'offset2'
     ]
 
-    shader = shader_fish_body_handfish
+    if random.random() < 0.5:
+        shader = shader_fish_body_handfish
+    else:
+        shader = shader_fish_body_handfish_spotted
     surface.add_geomod(obj, geometry_fish_body, input_kwargs=geo_kwargs, attributes=attributes, apply=True)
     surface.add_material(obj, shader, input_kwargs=shader_kwargs)
 

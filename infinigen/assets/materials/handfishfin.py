@@ -60,6 +60,47 @@ def shader_fin_handfish(nw: NodeWrangler):
                                   attrs={'is_active_output': True})
 
 
+def shader_fin_handfish_spotted(nw: NodeWrangler):
+    # Code generated using version 2.6.5 of the node_transpiler
+
+    attribute = nw.new_node(Nodes.Attribute, attrs={'attribute_name': 'Bump'})
+    
+    color_ramp = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': attribute.outputs["Color"]})
+    color_ramp.color_ramp.elements[0].position = 0.0809
+    color_ramp.color_ramp.elements[0].color = [0.0000, 0.0000, 0.0000, 1.0000]
+    color_ramp.color_ramp.elements[1].position = 0.3868
+    color_ramp.color_ramp.elements[1].color = [1.0000, 1.0000, 1.0000, 1.0000]
+    
+    noise_texture = nw.new_node(Nodes.NoiseTexture, input_kwargs={'W': -0.7867, 'Scale': 20.0000}, attrs={'noise_dimensions': '4D'})
+    
+    color_ramp_1 = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': noise_texture.outputs["Fac"]})
+    color_ramp_1.color_ramp.elements.new(0)
+    color_ramp_1.color_ramp.elements[0].position = 0.0000
+    color_ramp_1.color_ramp.elements[0].color = [0.1215, 0.0435, 0.0062, 1.0000]
+    color_ramp_1.color_ramp.elements[1].position = 0.6727
+    color_ramp_1.color_ramp.elements[1].color = [0.5711, 0.5647, 0.5456, 1.0000]
+    color_ramp_1.color_ramp.elements[2].position = 1.0000
+    color_ramp_1.color_ramp.elements[2].color = [0.1026, 0.0513, 0.0321, 1.0000]
+    
+    noise_texture_1 = nw.new_node(Nodes.NoiseTexture, input_kwargs={'W': 1.9311, 'Scale': 10.0000}, attrs={'noise_dimensions': '4D'})
+    
+    color_ramp_2 = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': noise_texture_1.outputs["Fac"]})
+    color_ramp_2.color_ramp.elements[0].position = 0.0045
+    color_ramp_2.color_ramp.elements[0].color = [0.1100, 0.0567, 0.0409, 1.0000]
+    color_ramp_2.color_ramp.elements[1].position = 0.5364
+    color_ramp_2.color_ramp.elements[1].color = [0.7000, 0.5993, 0.5404, 1.0000]
+    
+    mix = nw.new_node(Nodes.Mix,
+        input_kwargs={0: color_ramp.outputs["Color"], 6: color_ramp_1.outputs["Color"], 7: color_ramp_2.outputs["Color"]},
+        attrs={'data_type': 'RGBA'})
+    
+    principled_bsdf = nw.new_node(Nodes.PrincipledBSDF, input_kwargs={'Base Color': mix.outputs[2]})
+    
+    material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': principled_bsdf}, attrs={'is_active_output': True})
+
 def apply(obj, geo_kwargs={}, shader_kwargs={}, **kwargs):
-    shader = shader_fin_handfish
+    if geo_kwargs.get("spotted", False):
+        shader = shader_fin_handfish_spotted
+    else:
+        shader = shader_fin_handfish
     surface.add_material(obj, shader, input_kwargs=shader_kwargs)
