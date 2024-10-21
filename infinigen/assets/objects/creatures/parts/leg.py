@@ -607,9 +607,11 @@ class FishHand(PartFactory):
             'Thigh Rad1 Rad2 Fullness': np.array((0.07, 0.07, 2.26)) * N(1, 0.1, 3),
             'Shin Rad1 Rad2 Fullness': np.array((0.06, 0.04, 1.0)) * N(1, 0.1, 3)
         }
+    
+    
     def make_part(self, params):
         part = nodegroup_to_part(nodegroup_fish_hand, params)
-        angle_bound = 60
+        angle_bound = 40
         part.joints = {
             0: Joint(rest=(0,0,0), bounds=np.array([[-angle_bound, 0, -angle_bound*2], [angle_bound, 0, angle_bound*2]])), # shoulder
             0.5: Joint(rest=(0,0,0), bounds=np.array([[-angle_bound, 0, -angle_bound*2], [angle_bound, 0, angle_bound*2]])), # elbow

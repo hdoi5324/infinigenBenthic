@@ -8,6 +8,7 @@
 import os, sys, random
 import numpy as np
 import math as ma
+from numpy.random import uniform
 
 import infinigen.assets.materials.fishfin
 from infinigen.assets.materials.utils.surface_utils import clip, sample_range, sample_ratio, sample_color, \
@@ -19,6 +20,9 @@ from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
 from infinigen.core.nodes import node_utils
 from infinigen.core.util.color import color_category
 from infinigen.core import surface
+from infinigen.core.util.random import log_uniform
+from infinigen.core.util.color import hsv2rgba
+from infinigen.core.nodes.node_utils import build_color_ramp
 
 
 @node_utils.to_nodegroup('nodegroup_node_grid', singleton=False, type='GeometryNodeTree')
@@ -409,19 +413,60 @@ def shader_fish_body_handfish_spotted(nw: NodeWrangler):
 def shader_fish_body_handfish(nw: NodeWrangler):
     # Code generated using version 2.6.5 of the node_transpiler
 
-    musgrave_texture = nw.new_node(Nodes.MusgraveTexture)
-    
-    color_ramp_9 = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': musgrave_texture})
-    color_ramp_9.color_ramp.elements[0].position = 0.0000
-    color_ramp_9.color_ramp.elements[0].color = [1.0000, 0.4847, 0.3725, 1.0000]
-    color_ramp_9.color_ramp.elements[1].position = 0.7609
-    color_ramp_9.color_ramp.elements[1].color = [0.4575, 0.2438, 0.2134, 1.0000]
-    
-    principled_bsdf = nw.new_node(Nodes.PrincipledBSDF,
-        input_kwargs={'Base Color': color_ramp_9.outputs["Color"], 'Subsurface Radius': (0.3600, 0.4600, 0.6000), 'Subsurface Color': (1.0000, 0.9405, 0.7747, 1.0000), 'Metallic': 0.5000, 'Specular': 0.7000, 'IOR': 1.6900},
-        attrs={'subsurface_method': 'BURLEY'})
-    
-    material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': principled_bsdf}, attrs={'is_active_output': True})
+    value_shift = log_uniform(2, 10)
+
+    base_hue = uniform(0, 0.02)
+
+    bright_color = hsv2rgba(
+        base_hue, uniform(0.6, .8), log_uniform(0.2, 0.4) 
+    )
+    dark_color = hsv2rgba(
+        (base_hue + uniform(-0.02, 0.02)) % 1,
+        uniform(0.6, .8),
+        log_uniform(0.1, 0.2) 
+    )
+    light_color = hsv2rgba(base_hue, uniform(0.0, 0.1), log_uniform(0.2, 1.0))
+    specular = uniform(0.6, 0.8)
+    specular_tint = uniform(0, 1)
+    clearcoat = uniform(0.2, 0.8)
+    roughness = uniform(0.4, 0.6)
+    metallic = uniform(0.4, 0.5)
+    x, y, z = nw.separate(nw.new_node(Nodes.NewGeometry).outputs["Position"])
+    color = build_color_ramp(
+        nw,
+        nw.new_node(
+            Nodes.MapRange,
+            [
+                nw.new_node(
+                    Nodes.MusgraveTexture,
+                    [nw.combine(x, nw.math("ABSOLUTE", y), z)],
+                    input_kwargs={"Scale": log_uniform(5, 8)},
+                ),
+                -1,
+                1,
+                0,
+                1,
+            ],
+        ),
+        [0.0, 0.3, 0.7, 1.0],
+        [bright_color, bright_color, dark_color, dark_color],
+    )
+    ratio = nw.new_node(Nodes.Attribute, attrs={"attribute_name": "ratio"}).outputs[
+        "Fac"
+    ]
+    #color = nw.new_node(Nodes.MixRGB, [ratio, light_color, color])
+    bsdf = nw.new_node(
+        Nodes.PrincipledBSDF,
+        input_kwargs={
+            "Base Color": color,
+            "Metallic": metallic,
+            "Roughness": roughness,
+            "Specular": specular,
+            "Specular Tint": specular_tint,
+            "Clearcoat": clearcoat,
+        },
+    )
+    return bsdf
 
     
 def geometry_fish_body(nw: NodeWrangler, rand=True, **input_kwargs):

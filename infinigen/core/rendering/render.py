@@ -163,6 +163,7 @@ def configure_compositor_output(
     image_noisy,
     passes_to_save,
     saving_ground_truth,
+    hide_water=False
 ):
     file_output_node = nw.new_node(
         Nodes.OutputFile,
@@ -197,6 +198,8 @@ def configure_compositor_output(
     nw.links.new(image, file_output_node.inputs["Image"])
     if saving_ground_truth:
         slot_input.path = "UniqueInstances"
+    elif hide_water:
+        slot_input.path = "ImageNoWater"
     else:
         image_exr_output_node = nw.new_node(
             Nodes.OutputFile,
@@ -314,8 +317,8 @@ def global_flat_shading():
     for link in nw.links:
         nw.links.remove(link)
 
-def postprocess_blendergt_outputs(frames_folder, output_stem, frame, tmp_dir):
 
+def postprocess_blendergt_outputs(frames_folder, output_stem):
     # Save flow visualization
     flow_dst_path = frames_folder / f"Vector{output_stem}.exr"
     flow_array = load_flow(flow_dst_path)
@@ -374,6 +377,7 @@ def configure_compositor(
     frames_folder: Path,
     passes_to_save: list,
     flat_shading: bool,
+    hide_water=False
 ):
     compositor_node_tree = bpy.context.scene.node_tree
     nw = NodeWrangler(compositor_node_tree)
@@ -398,6 +402,7 @@ def configure_compositor(
         image_noisy=final_image_noisy,
         passes_to_save=passes_to_save,
         saving_ground_truth=flat_shading,
+        hide_water=hide_water
     )
 
 
@@ -485,9 +490,9 @@ def render_image(
     use_dof=False,
     dof_aperture_fstop=2.8,
     apply_distortion=False,
-    motion_blur=0.0
+    motion_blur=0.0,
+    hide_water=False
 ):
-    
     tic = time.time()
 
     camera_rig_id, subcam_id = camera_id
@@ -496,7 +501,7 @@ def render_image(
         bpy.data.objects[exclude].hide_render = True
 
     init.configure_cycles_devices()
-    # todo: set file format?
+
     tmp_dir = frames_folder.parent.resolve() / "tmp"
     tmp_dir.mkdir(exist_ok=True)
     bpy.context.scene.render.filepath = f"{tmp_dir}{os.sep}"
@@ -536,7 +541,7 @@ def render_image(
 
     if not bpy.context.scene.use_nodes:
         bpy.context.scene.use_nodes = True
-    file_slot_nodes = configure_compositor(frames_folder, passes_to_save, flat_shading)
+    file_slot_nodes = configure_compositor(frames_folder, passes_to_save, flat_shading, hide_water)
 
     indices = dict(cam_rig=camera_rig_id, resample=0, subcam=subcam_id)
 
@@ -579,9 +584,10 @@ def render_image(
                 suffix = get_suffix(dict(frame=frame, **indices))
                 if apply_distortion:
                     # Note:  Need to have used set_lens_distortion when configuring cameras
+                    output = "Image" if not hide_water else "ImageNoWater"
                     camera_dir = frames_folder.parent.resolve() / "camera_config"
                     postprocess_apply_distortion(camera_id, frames_folder, suffix, flat_shading, 
-                                                 camera_dir=camera_dir, output="Image")
+                                                 camera_dir=camera_dir, output=output)
                 cam_util.save_camera_parameters(
                     camera_ids=cam_util.get_cameras_ids(),
                     output_folder=frames_folder,

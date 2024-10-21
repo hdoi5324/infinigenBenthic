@@ -8,7 +8,7 @@ include 'infinigen_examples/configs_nature/performance/fast_terrain_assets.gin'
 run_erosion.n_iters = [1,1]
 
 surface.registry.mountain_collection = [
-    ('sandcomplex', 5),
+    ('sandcomplex', 3),
     ("sandstone", 5),
     ("sand", 5),
     ('cracked_ground', 3),
@@ -44,7 +44,7 @@ export.spherical = False # if False it uses OcMesher
 
 #build_terrain_bvh_and_attrs.avoid_border ### Use False.
 
-min_terrain_distance = 1.5 # 2 in base.gin
+min_terrain_distance = 0.8 # 2 in base.gin
 keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
 SphericalMesher.r_min = %min_terrain_distance
 
@@ -72,12 +72,13 @@ animation_policy.AnimPolicyMowTheLawn.turn_frames = 3
 
 full/render_image.passes_to_save = []
 
-compose_nature.urchin_chance = 1.0
-compose_nature.urchinkina_chance = 0.0
-compose_nature.handfish_chance = 0.0
+compose_nature.urchin_chance = 0.2
+compose_nature.urchinkina_chance = 0.1
+compose_nature.handfish_chance = 1.0
+compose_nature.handfish_school_chance = 0.0
 compose_nature.fish_school_chance = 0.3
 compose_nature.colourboard_chance = 1.0
-compose_nature.plasticbag_chance = 0.1
+compose_nature.plasticbag_chance = 0.2
 compose_nature.cocoimage_chance = 0.0
 compose_nature.seaweed_chance = 0.3
 compose_nature.lichen_chance = 0.3
@@ -91,7 +92,8 @@ compose_nature.scolymia_chance = 0.0
 compose_nature.jellyfish_chance = 0.1
 compose_nature.marine_snow_particles_chance = 0.3
 compose_nature.boulders_chance = 0.3
-compose_nature.ground_creatures_chance = 0.3 #crustaceans
+compose_nature.ground_creatures_chance = 0.2 #crustaceans
+compose_nature.max_handfish = 10
 
 populate_scene.slime_mold_chance = 0.3
 populate_scene.lichen_chance = 0.3
@@ -123,8 +125,8 @@ water.shader.colored = 1 #True
 compose_nature.turbulence_chance = 0.0
 
 # scene composition config
-LandTiles.tile_heights = [-20]
-Ground.height = -20
+#LandTiles.tile_heights = [-4] #[-20]
+#Ground.height = -4 # -20
 
 #multi_mountains_params.height = ("uniform", 3, 2)
 

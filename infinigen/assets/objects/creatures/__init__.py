@@ -12,4 +12,4 @@ from .herbivore import HerbivoreFactory
 from .insects.dragonfly import DragonflyFactory
 from .jellyfish import JellyfishFactory
 from .reptile import FrogFactory, LizardFactory, SnakeFactory
-from .handfish import HandfishFactory, HandfishSchoolFactory
+from .handfish import HandfishFactory

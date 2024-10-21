@@ -220,6 +220,27 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
 
     pois += p.run_stage('ground_creatures', add_ground_creatures, target=terrain_center, default=[])
 
+    def add_handfish(target):
+        pois = []
+        n_handfish_species = params.get("max_handfish", 5)
+        for i in range(n_handfish_species):
+            fac = creatures.HandfishFactory(int_hash((scene_seed+i, 0)), bvh=scene_bvh, animation_mode='idle')
+            selection = density.placement_mask(
+                scale=0.05, tag=underwater_domain, select_thresh=0.4
+            )
+            col = placement.scatter_placeholders_mesh(
+                target,
+                fac,
+                altitude=0.05,
+                overall_density=0.5 / n_handfish_species,
+                selection=selection,
+                distance_min=1,
+            )
+            pois += list(col.objects)
+        return pois
+
+    pois += p.run_stage('handfish', add_handfish, target=terrain_center, default=[])
+
     p.run_stage(
         "animate_cameras",
         lambda: cam_util.animate_cameras(
@@ -260,15 +281,6 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
             placement.populate_collection(fac, col)
 
     p.run_stage('fish_school', add_fish_school, default=[])
-
-    def add_handfish():
-        selection = density.placement_mask(scale=0.05, select_thresh=uniform(0.1, 0.3), tag=underwater_domain)
-        fac = creatures.HandfishSchoolFactory(randint(1e7 + 55), bvh=terrain_inview_bvh)
-        col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
-                                                  overall_density=1, num_placeholders=1, altitude=.1)
-        placement.populate_collection(fac, col)
-
-    p.run_stage('handfish', add_handfish, default=[])
 
     def add_rocks(target):
         selection = density.placement_mask(scale=0.15, select_thresh=0.4,
@@ -329,7 +341,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
                                                                                   normal_thresh=0.4,
                                                                                   tag=underwater_domain)))
 
-    urchin_density = random_general(('uniform', .5, 4))  # no per square metre
+    urchin_density = random_general(('uniform', .5, 1))  # no per square metre
     urchin_select_threshold = uniform(0.0, 0.1)  # Lower covers more of the terrain_inview
 
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
@@ -412,6 +424,7 @@ def populate_scene(output_folder, scene_seed, **params):
         "crab": creatures.CrabFactory,
         "crustacean": creatures.CrustaceanFactory,
         "fish": creatures.FishFactory,
+        "handfish": creatures.HandfishFactory
     }
     for k, fac in creature_facs.items():
         p.run_stage(
@@ -451,7 +464,7 @@ if __name__ == "__main__":
     parser.add_argument('--input_folder', type=Path, default=None)
     parser.add_argument('-s', '--seed', default=None, help="The seed used to generate the scene")
     parser.add_argument('-t', '--task', nargs='+', default=['coarse'],
-                        choices=['coarse', 'populate', 'fine_terrain', 'ground_truth', 'render', 'mesh_save'])
+                        choices=['coarse', 'populate', 'fine_terrain', 'ground_truth', 'render', 'mesh_save', 'renderhidewater'])
     parser.add_argument('-g', '--configs', nargs='+', default=['base'],
                         help='Set of config files for gin (separated by spaces) '
                              'e.g. --gin_config file1 file2 (exclude .gin from path)')

@@ -288,7 +288,7 @@ class FishFactory(AssetFactory):
         factory_seed=None,
         bvh=None,
         coarse=False,
-        animation_mode=None,
+        animation_mode='idle',
         species_variety=None,
         clothsim_skin: bool = False,
         scale: tuple = ("uniform", 0.2, .3),

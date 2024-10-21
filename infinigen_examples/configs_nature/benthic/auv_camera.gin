@@ -7,7 +7,7 @@ camera_yaw=0
 # The first camera is ignored later during rendering through hard coded change. Hack to create a higher first camera to increase fine terrain generated.
 hack_camera_height = 8 # Set to 8m for downward looking camera eg camera_pitch = 0
 camera.spawn_camera_rigs.camera_rig_config = [
-    {'loc': (0, 0, %hack_camera_height), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # Hack camera particularly for downward looking camera.  ignored during render.
+#    {'loc': (0, 0, %hack_camera_height), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # Hack camera particularly for downward looking camera.  ignored during render.
     {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 #    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 ]
@@ -29,11 +29,11 @@ distort=True
 camera.set_camera_parameters.use_distortion=%distort
 full/render_image.apply_distortion = %distort
 flat/render_image.apply_distortion = %distort
-render_image.motion_blur = ("clip_gaussian", 0.015, 0.01, 0.00, 0.04)
+render_image.motion_blur = ("clip_gaussian", 0.010, 0.005, 0.00, 0.04)
 
 
 # Lights
-camera.configure_camera_lights.energy = 500
+camera.configure_camera_lights.energy = 150
 spawn_camera_rigs.light_angle = 10 # nimbus = 10
 spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
 
@@ -41,8 +41,8 @@ spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
 # Render
 render_image.use_dof = True
 render_image.dof_aperture_fstop = 2.0 # AUV 2.0 ROV 1.4
-set_camera_parameters.focus_dist = 1.9 # AUV 1.9 # ROV 3.0
-compositor_postprocessing.noise = 0.0001
+set_camera_parameters.focus_dist = 2.0 # AUV 1.9 # ROV 3.0
+compositor_postprocessing.noise = 0.00001
 
 
 
