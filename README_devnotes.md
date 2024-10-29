@@ -149,3 +149,11 @@ python -m infinigen.datagen.manage_jobs -- --output_folder outputs/benthic_demo 
 ```commandline
 bash ./scripts/copy_output.sh
 ```
+
+
+
+### Copying datasets
+
+```commandline
+rsync -avr --include '/train2023_nowater/***' --include '/test2023_nowater/***' --include '/train2023/***' --include '/test2023/***' --include '/annotations/***'  --exclude '*' /media/data/phd_data/infinigen/collated_outputs/nudi_handfish_auv_v1/ hdoi5324@saga.sigma2.no:/cluster/home/hdoi5324/aldi0107/datasets/collated_outputs/nudi_handfish_auv_v1/
+```

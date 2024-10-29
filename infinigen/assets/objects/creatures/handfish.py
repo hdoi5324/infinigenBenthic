@@ -42,7 +42,7 @@ from infinigen.assets.objects.creatures.util.genome import Joint
 
 
 def handfish_genome():
-    temp_dict = defaultdict(lambda: 0.001, {'body_handfish': 0.95})
+    temp_dict = defaultdict(lambda: .2, {'body_handfish': 0.95})
     body_params = parts.generic_nurbs.NurbsBody(
         prefix='body_handfish', tags=['body'], var=U(0.3, 1),
         temperature=temp_dict,
@@ -54,25 +54,27 @@ def handfish_genome():
     # Positions (u, v, radius)
 
     # Dorsal Fins
-    dorsal_fin1_coord = (U(0.6, 0.75), 1.0, U(0.6, 0.8))
-    dorsal_fin2_coord = (U(0.35, 0.45), 1.0, U(0.6, 0.8))
-    dorsal_fin = parts.ridged_fin.FishFin(fin_params((U(0.4, 0.45), 0.5, U(0.1, 0.17)), dorsal=True), 
+    dorsal_fin1_coord = (U(0.6, 0.75), 1.0, U(0.7, 0.95))
+    dorsal_fin_1 = parts.ridged_fin.FishFin(fin_params((U(0.4, 0.6), 0.5, U(0.1, 0.2)), dorsal=True), 
                                           rig=False)
-    genome.attach(genome.part(dorsal_fin), body, coord=dorsal_fin2_coord, joint=Joint(rest=(0, -100, 0)))
+    genome.attach(genome.part(dorsal_fin_1), body, coord=dorsal_fin1_coord, joint=Joint(rest=(0, -90, 0)))
 
-    if random.random() > 0.7:
-        dorsal_fin = parts.ridged_fin.FishFin(fin_params((U(0.3, 0.5), 0.5, U(0.1, 0.25)), dorsal=True), rig=False)
-        genome.attach(genome.part(dorsal_fin), body, coord=dorsal_fin1_coord, joint=Joint(rest=(0, -80, 0)))
+    dorsal_fin2_coord = (U(0.35, 0.45), 1.0, U(0.7, 0.9))
+    if random.random() > 0.0:
+        width = U(0.06, 0.08)
+        dorsal_fin_2_params = fin_params((width, 4.5, .1), dorsal=False)
+        dorsal_fin_2 = parts.ridged_fin.FishFin(dorsal_fin_2_params, rig=False)
+        genome.attach(genome.part(dorsal_fin_2), body, coord=dorsal_fin2_coord, joint=Joint(rest=(0, -40, 180)))
 
     # Pectoral Fins - front fin
     pectoral_fin_coord = (0.9, .15, .9) 
     pectoral_params = fin_params((0.07, 4.0, 0.1), dorsal=True)
     pectoral_params['RoundingWeight'] = 1.0
-    if random.random() > 0.5:
+    if random.random() > 0.0:
         pectoral_fin = parts.ridged_fin.FishFin(pectoral_params) #(0.07, 0.1, 0.20)))
         for side in [-1, 1]:
             genome.attach(genome.part(pectoral_fin), body, coord=pectoral_fin_coord,
-                joint=Joint(rest=(120,30,30)), side=side) #(95,95,30)
+                joint=Joint(rest=(120,90,90)), side=side) #(95,95,30)
 
     # Tail Fin
     tail_params = fin_params((0.1, 0.1, 0.3))
@@ -82,18 +84,18 @@ def handfish_genome():
     for vdir in [-1, 1]:
         genome.attach(genome.part(tail_fin), body, coord=(0.1, .1, 0), joint=Joint((0, -angle * vdir, 0)))
 
-    # Hand (Arm)
-    fish_hand_fin_params = fin_params((0.1, 1.0, 0.12), dorsal=True)
+    # Hand (Arm)2
+    fish_hand_fin_params = fin_params((0.07, 1.0, 0.07), dorsal=True)
     fish_hand_fin = parts.ridged_fin.FishFin(fish_hand_fin_params, rig=False) # foot_fac
 
     hand_fin_arm_params = infinigen.assets.objects.creatures.parts.leg.FishHand().sample_params()
     hand_fin_arm = infinigen.assets.objects.creatures.parts.leg.FishHand(params=hand_fin_arm_params) # backleg_fac
-    hand_fin_arm_coord = (0.70, 75/180, .6) # good
+    hand_fin_arm_coord = (0.70, 90/180, .7) # good
 
     for side in [-1, 1]:
-        arm = genome.attach(genome.part(fish_hand_fin), genome.part(hand_fin_arm), coord=(.9, 0.0, 0.4), joint=Joint(rest=(0,-45,30)), rotation_basis='normal') #, coord=(0.9, .5, .9), joint=Joint(rest=(90, -60, 130)))
+        arm = genome.attach(genome.part(fish_hand_fin), genome.part(hand_fin_arm), coord=(.9, 0.0, 0.4), joint=Joint(rest=(0,-45,50)), rotation_basis='normal') #, coord=(0.9, .5, .9), joint=Joint(rest=(90, -60, 130)))
         genome.attach(arm, body, coord=hand_fin_arm_coord,
-            joint=Joint(rest=(120, 40, U(140, 160))), #, bounds=shoulder_bounds), 120, 40, U(140, 160))
+            joint=Joint(rest=(U(-20, -80), U(180,200), U(5,-20))), #, bounds=shoulder_bounds), 120, 40, U(140, 160))
             side=side)#, smooth_rad=0.06)#, bridge_rad=0.1)
 
     # Eye
@@ -127,7 +129,7 @@ class HandfishFactory(AssetFactory):
         animation_mode='idle',
         species_variety=None,
         clothsim_skin: bool = False,
-        scale: tuple = ("uniform", 0.09, 0.15),
+        scale: tuple = ("uniform", 0.07, 0.12),
         **_,
     ):
         super().__init__(factory_seed, coarse)
@@ -153,7 +155,7 @@ class HandfishFactory(AssetFactory):
             instance_genome, name=f"handfish({self.factory_seed}, {i})"
         )
         offset_center(root, x=True, z=False)
-        
+
         # Force material consistency across a whole species of fish
         # TODO: Replace once Generator class is stnadardized
         def seeded_fish_postprocess(*args, **kwargs):
