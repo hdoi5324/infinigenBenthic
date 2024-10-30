@@ -5,24 +5,21 @@
 # Acknowledgment: This file draws inspiration from https://www.youtube.com/watch?v=mJVuodaPHTQ and https://www.youtube.com/watch?v=v7a4ouBLIow by Lance Phan
 
 
-import os, sys, random
-import numpy as np
-import math as ma
+import os
+import random
+
+import bpy
 from numpy.random import uniform
+from numpy.random import uniform as U
 
 import infinigen.assets.materials.fishfin
-from infinigen.assets.materials.utils.surface_utils import clip, sample_range, sample_ratio, sample_color, \
-    geo_voronoi_noise
-import bpy
-import mathutils
-from numpy.random import uniform as U, normal as N, randint
-from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
-from infinigen.core.nodes import node_utils
-from infinigen.core.util.color import color_category
+from infinigen.assets.materials.utils.surface_utils import sample_range, sample_ratio
 from infinigen.core import surface
-from infinigen.core.util.random import log_uniform
-from infinigen.core.util.color import hsv2rgba
+from infinigen.core.nodes import node_utils
 from infinigen.core.nodes.node_utils import build_color_ramp
+from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
+from infinigen.core.util.color import hsv2rgba
+from infinigen.core.util.random import log_uniform
 
 
 @node_utils.to_nodegroup('nodegroup_node_grid', singleton=False, type='GeometryNodeTree')
@@ -385,31 +382,39 @@ def nodegroup_scales(nw: NodeWrangler):
                                              'attr5': capture_attribute_4.outputs["Attribute"]})
 
 
-
 def shader_fish_body_handfish_spotted(nw: NodeWrangler):
     # Code generated using version 2.6.5 of the node_transpiler
 
     texture_coordinate = nw.new_node(Nodes.TextureCoord)
 
     voronoi_texture = nw.new_node(Nodes.VoronoiTexture,
-        input_kwargs={'Vector': texture_coordinate.outputs["Generated"], 'Scale': 40.0000, 'Randomness': 1.0000, 'Smoothness': 0.8},
-        attrs={'feature': 'SMOOTH_F1'})
+                                  input_kwargs={'Vector': texture_coordinate.outputs["Generated"], 'Scale': 40.0000,
+                                                'Randomness': 1.0000, 'Smoothness': 0.8},
+                                  attrs={'feature': 'SMOOTH_F1'})
 
+    base_hue = U(0.05, 0.055)
+    bright_color = hsv2rgba(
+        base_hue, U(0.3, .6), U(0.5, 0.8))
+    dark_color = hsv2rgba(
+        base_hue, U(0.8, .9), U(0.0, 0.1))
     color_ramp = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': voronoi_texture.outputs["Distance"]})
-    color_ramp.color_ramp.interpolation = "B_SPLINE"
+    color_ramp.color_ramp.interpolation = "EASE"
     color_ramp.color_ramp.elements.new(0)
     color_ramp.color_ramp.elements[0].position = 0.0000
-    color_ramp.color_ramp.elements[0].color = [0.0369, 0.0130, 0.0048, 1.0000]
-    color_ramp.color_ramp.elements[1].position = 0.4341
+    color_ramp.color_ramp.elements[0].color = dark_color
+    color_ramp.color_ramp.elements[1].position = U(0.05, 0.2)
     color_ramp.color_ramp.elements[1].color = [0.1286, 0.0444, 0.0109, 1.0000]
     color_ramp.color_ramp.elements[2].position = 1.0000
-    color_ramp.color_ramp.elements[2].color = [1.0000, 0.7662, 0.6669, 1.0000]
+    color_ramp.color_ramp.elements[2].color = bright_color
 
     principled_bsdf = nw.new_node(Nodes.PrincipledBSDF,
-        input_kwargs={'Base Color': color_ramp.outputs["Color"], 'Metallic': 0.4000, 'Specular': 0.2000})
+                                  input_kwargs={'Base Color': color_ramp.outputs["Color"], 'Metallic': 0.4000,
+                                                'Specular': 0.2000})
 
-    material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': principled_bsdf}, attrs={'is_active_output': True})
-    
+    material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': principled_bsdf},
+                                  attrs={'is_active_output': True})
+
+
 def shader_fish_body_handfish(nw: NodeWrangler):
     # Code generated using version 2.6.5 of the node_transpiler
 
@@ -418,12 +423,12 @@ def shader_fish_body_handfish(nw: NodeWrangler):
     base_hue = uniform(0, 0.02)
 
     bright_color = hsv2rgba(
-        base_hue, uniform(0.6, .8), log_uniform(0.2, 0.4) 
+        base_hue, uniform(0.6, .8), log_uniform(0.2, 0.4)
     )
     dark_color = hsv2rgba(
         (base_hue + uniform(-0.02, 0.02)) % 1,
         uniform(0.6, .8),
-        log_uniform(0.1, 0.2) 
+        log_uniform(0.1, 0.2)
     )
     light_color = hsv2rgba(base_hue, uniform(0.0, 0.1), log_uniform(0.2, 1.0))
     specular = uniform(0.6, 0.8)
@@ -454,7 +459,7 @@ def shader_fish_body_handfish(nw: NodeWrangler):
     ratio = nw.new_node(Nodes.Attribute, attrs={"attribute_name": "ratio"}).outputs[
         "Fac"
     ]
-    #color = nw.new_node(Nodes.MixRGB, [ratio, light_color, color])
+    # color = nw.new_node(Nodes.MixRGB, [ratio, light_color, color])
     bsdf = nw.new_node(
         Nodes.PrincipledBSDF,
         input_kwargs={
@@ -468,7 +473,7 @@ def shader_fish_body_handfish(nw: NodeWrangler):
     )
     return bsdf
 
-    
+
 def geometry_fish_body(nw: NodeWrangler, rand=True, **input_kwargs):
     # Code generated using version 2.4.3 of the node_transpiler
     group_input = nw.new_node(Nodes.GroupInput)

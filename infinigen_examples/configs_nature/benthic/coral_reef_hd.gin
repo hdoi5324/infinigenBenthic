@@ -9,21 +9,22 @@ run_erosion.n_iters = [1,1]
 
 surface.registry.mountain_collection = [
     ('sandcomplex', 3),
-    ("sandstone", 5),
-    ("sand", 5),
+    ("sandstone", 3),
+    ("sand", 3),
     ('cracked_ground', 3),
-    ('chunkyrock', 1)
+    ('chunkyrock', 2)
 ]
 
 surface.registry.ground_collection = [
-    ('sandcomplex', 2),
+    ('sandcomplex', 3),
     ('sand', 3),
     ('cracked_ground', 3),
-    ('chunkyrock', 1),
-    ('sandstone', 1),
+    ('chunkyrock', 2),
+    ('sandstone', 2),
 ]
 
 surface.registry.eroded = [
+    ('sandcomplex', 1),
     ('sand', 1),
     ('cracked_ground', 1),
     ('stone', 1),
@@ -38,8 +39,8 @@ full/configure_render_cycles.num_samples = 256
 configure_render_cycles.min_samples = 0
 configure_render_cycles.num_samples = 256
 
-Terrain.bounds = (-30, 30, -30, 30, -30, 2)
-Terrain.populated_bounds = (-20, 20, -20, 20, -30, 5)
+Terrain.bounds = (-20, 20, -20, 20, -20, 2)
+Terrain.populated_bounds = (-8, 8, -8, 8, -20, 2)
 export.spherical = False # if False it uses OcMesher
 
 #build_terrain_bvh_and_attrs.avoid_border ### Use False.
@@ -53,10 +54,10 @@ OpaqueSphericalMesher.pixels_per_cube = 0.92 # hifi 0.92 lofi 4
 TransparentSphericalMesher.pixels_per_cube = 1.38 # hifi 1.38 lofi 4
 target_face_size.global_multiplier = 2 # use this for dev. Not sure it gets used for my assets
 
-compose_nature.inview_distance = 12
-#placement.populate_all.dist_cull = 12
-#compose_nature.near_distance = 12
-#compose_nature.center_distance = 15  # Used for creature animation
+compose_nature.inview_distance = 10 # distance for placeholders
+#placement.populate_all.dist_cull = 8
+compose_nature.near_distance = 8 # how far to scatter small particles eg pine needles
+compose_nature.center_distance = 10  # Used for creature animation
 
 
 # Configure straight path with lower frequency frames. Based on AUV Nimbus
@@ -73,25 +74,25 @@ animation_policy.AnimPolicyMowTheLawn.turn_frames = 3
 full/render_image.passes_to_save = []
 
 compose_nature.urchin_chance = 0.2
-compose_nature.urchinkina_chance = 0.1
+compose_nature.urchinkina_chance = 0.3
 compose_nature.handfish_chance = 1.0
 compose_nature.handfish_school_chance = 0.0
-compose_nature.fish_school_chance = 0.3
+compose_nature.fish_school_chance = 0.7
 compose_nature.colourboard_chance = 1.0
-compose_nature.plasticbag_chance = 0.2
+compose_nature.plasticbag_chance = 0.1
 compose_nature.cocoimage_chance = 0.0
-compose_nature.seaweed_chance = 0.3
+compose_nature.seaweed_chance = 0.2
 compose_nature.lichen_chance = 0.3
-compose_nature.kelp_chance = 0.3
+compose_nature.kelp_chance = 0.2
 compose_nature.corals_chance = 0.3
 compose_nature.coral_density = 0.4
 compose_nature.horizontal_coral_density = 0.3
-compose_nature.rocks_chance = 0.1
-compose_nature.mollusk_chance = 0.3
+compose_nature.rocks_chance = 0.3
+compose_nature.mollusk_chance = 0.5
 compose_nature.scolymia_chance = 0.0
 compose_nature.jellyfish_chance = 0.1
 compose_nature.marine_snow_particles_chance = 0.3
-compose_nature.boulders_chance = 0.3
+compose_nature.boulders_chance = 0.4
 compose_nature.ground_creatures_chance = 0.2 #crustaceans
 compose_nature.max_handfish = 10
 
@@ -126,7 +127,7 @@ compose_nature.turbulence_chance = 0.0
 
 # scene composition config
 #LandTiles.tile_heights = [-4] #[-20]
-#Ground.height = -4 # -20
+Ground.height = -20
 
-#multi_mountains_params.height = ("uniform", 3, 2)
+multi_mountains_params.height = ("uniform", 3, 8)
 

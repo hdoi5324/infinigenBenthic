@@ -366,7 +366,7 @@ class FishSchoolFactory(BoidSwarmFactory):
             use_climb=False,
             rules=[
                 dict(type="SEPARATE"),
-                dict(type="GOAL"),
+                dict(type="AVERAGE_SPEED"),
                 dict(type="FLOCK"),
             ],
             air_speed_max=U(5, 10),
@@ -392,19 +392,19 @@ class FishSchoolFactory(BoidSwarmFactory):
             boids_settings=boids_settings,
         )
 
-    def __init__(self, factory_seed, bvh=None, coarse=False, n=3):
+    def __init__(self, factory_seed, bvh=None, coarse=False):
         with FixedSeed(factory_seed):
             settings = self.fish_school_params()
-            col = make_asset_collection(FishFactory(factory_seed=randint(1e7),
-                                                    animation_mode='idle',
-                                                    scale=("clip_gaussian", 0.3, 0.2, 0.2, .6)), n=n)
+            col = make_asset_collection(
+                FishFactory(factory_seed=randint(1e7), animation_mode="idle"), n=3
+            )
         super().__init__(
             factory_seed,
             child_col=col,
             collider_col=bpy.data.collections.get("colliders"),
             settings=settings,
             bvh=bvh,
-            volume=("uniform", 1, 3),
+            volume=("uniform", 1, 2),
             coarse=coarse,
         )
 
