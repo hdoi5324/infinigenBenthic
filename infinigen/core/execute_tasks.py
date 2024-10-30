@@ -52,14 +52,14 @@ def render(
     resample_idx=None,
     hide_water=False,
 ):
-    if hide_water and "water_fine" in bpy.data.objects:
-        logger.info("Hiding water fine")
-        bpy.data.objects["water_fine"].hide_render = True
-        bpy.data.objects["water_fine"].hide_viewport = True
+    if hide_water and "liquid_fine" in bpy.data.objects:
+        logger.info("Hiding water fine (liquid_fine)")
+        bpy.data.objects["liquid_fine"].hide_render = True
+        bpy.data.objects["liquid_fine"].hide_viewport = True
     if resample_idx is not None and resample_idx != 0:
         resample_scene(int_hash((scene_seed, resample_idx)))
     with Timer("Render Frames"):
-        render_image_func(frames_folder=Path(output_folder), camera_id=camera_id)
+        render_image_func(frames_folder=Path(output_folder), camera_id=camera_id, hide_water=hide_water)
 
 
 @gin.configurable
@@ -271,7 +271,7 @@ def execute_tasks(
         if optimize_terrain_diskusage:
             terrain.load_glb(output_folder)
 
-    if Task.Render in task or Task.GroundTruth in task:
+    if Task.Render in task or Task.GroundTruth in task or Task.RenderHideWater in task:
         render(
             scene_seed,
             output_folder=output_folder,

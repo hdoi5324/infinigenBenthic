@@ -125,6 +125,10 @@ python -m infinigen.datagen.manage_jobs --output_folder outputs/hello_world --nu
 --configs desert.gin simple.gin --pipeline_configs local_16GB.gin monocular.gin asset_demo.gin
 ```
 
+#### Exporting nurbs for creatures
+
+pip install mathutils
+
 ### Asset configuration
 
 #### Scaling assets

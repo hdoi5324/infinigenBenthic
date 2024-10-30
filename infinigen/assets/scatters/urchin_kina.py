@@ -19,8 +19,9 @@ def apply(obj, n=5, selection=None, density=U(0.3, .7)):
                                    z_scale=(0.6, 0.9),
                                    extrude_height=("log_uniform", 0.6, 0.8),
                                    min_spike_scale=0.8,
-                                   spike_hue=U(0.365, 0.38)) for i in range(n_species))
-    urchin = make_asset_collection(factories, name='kina',
+                                   spike_hue=U(0.365, 0.38),
+                                   species="Kina") for i in range(n_species))
+    urchin = make_asset_collection(factories, name='Kina',
                                               weights=np.random.uniform(0.5, 1, len(factories)), n=n,
                                               verbose=True)
 

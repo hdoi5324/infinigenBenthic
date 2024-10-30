@@ -1,19 +1,16 @@
 # ROV Camera rig
-camera.camera_pose_proposal.altitude = ("clip_gaussian", 1.5, .2, 1.2, 4.3)
+camera.camera_pose_proposal.altitude = ("clip_gaussian", 1.3, .2, 1.0, 4.3)
 camera.camera_pose_proposal.pitch = 60 # 0 for downward looking
 camera_offset = 0.0 # Half baseline for stereo
 camera_pitch = 0 # generally keep 0
 camera_yaw=0
-# The first camera is ignored later during rendering through hard coded change. Hack to create a higher first camera to increase fine terrain generated.
-hack_camera_height = 0 # Set to 8m for downward looking camera eg camera_pitch = 0
 camera.spawn_camera_rigs.camera_rig_config = [
-    {'loc': (0, 0, %hack_camera_height), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # Hack camera particularly for downward looking camera.  ignored during render.
     {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 #    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 ]
 
 # Terrain
-#compose_scene.inview_distance = 20
+compose_nature.inview_distance = 12
 
 # Lens and resolution
 camera.set_camera_parameters.focal_mm=15.89 # Sirius 15.89 Nimbus 13.89
@@ -28,23 +25,23 @@ get_sensor_coords.W = %W
 
 
 # Distortion.  Based on Blenderproc distortion approach
-distort=True
+distort=False
 camera.set_camera_parameters.use_distortion=%distort
 full/render_image.apply_distortion = %distort
 flat/render_image.apply_distortion = %distort
-render_image.motion_blur = ("clip_gaussian", 0.015, 0.01, 0.00, 0.04)
+render_image.motion_blur = ("clip_gaussian", 0.00, 0.01, 0.00, 0.04)
 
 
 # Lights
 camera.spawn_camera_rigs.light_foreaft=False
-camera.configure_camera_lights.energy = 800
+camera.configure_camera_lights.energy = 1200
 spawn_camera_rigs.light_angle = 0 # nimbus = 10
 spawn_camera_rigs.light_offset = 0.3 # nimbus 1.2
 
 
 # Render
-render_image.use_dof = True
-render_image.dof_aperture_fstop = 1.4 # AUV 2.0 ROV 1.4
+render_image.use_dof = False
+render_image.dof_aperture_fstop = 2.0 # AUV 2.0 ROV 1.4
 set_camera_parameters.focus_dist = 6.0 # AUV 1.9 # ROV 6.0 for 60 degrees, 2.8 at 45
 compositor_postprocessing.noise = 0.0001
 

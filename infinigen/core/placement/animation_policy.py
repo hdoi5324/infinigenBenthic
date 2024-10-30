@@ -150,7 +150,7 @@ class AnimPolicyMowTheLawn:
 
         rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
 
-        return Vector(pos), Vector(rot), time, "BEZIER"
+        return Vector(pos), Vector(rot), time, "LINEAR"
 
 @gin.configurable
 class AnimPolicyPan:

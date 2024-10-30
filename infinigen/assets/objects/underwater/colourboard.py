@@ -14,7 +14,7 @@ from infinigen.core.placement.factory import AssetFactory
 from infinigen.core.util.math import FixedSeed
 from infinigen.core.tagging import tag_object
 from infinigen.core.placement.placement import points_near_camera
-from infinigen.core.placement.factory import make_asset_collection
+from infinigen.core.util import blender as butil
 
 class ColourboardFactory(AssetFactory):
 
@@ -341,13 +341,9 @@ def geometry_nodes(nw: NodeWrangler):
     group_output = nw.new_node(Nodes.GroupOutput, input_kwargs={'Geometry': set_material_23}, attrs={'is_active_output': True})
 
 
-
 def apply(obj, selection=None, **kwargs):
     surface.add_geomod(obj, geometry_nodes, selection=selection, attributes=[])
     surface.add_material(obj, shader_cb_36, selection=selection)
-
-
-
 
 def place_colourboard(cam, terrain_bvh, n, alt, dist_range):
     if n is None:
@@ -358,8 +354,10 @@ def place_colourboard(cam, terrain_bvh, n, alt, dist_range):
         dist_range = (0, 1)
     points = points_near_camera(cam, terrain_bvh, n, alt, dist_range)
     alt_offset = 0
-    col = make_asset_collection(ColourboardFactory(1), name='colourboard', n=n)
+    col = butil.get_collection("scatters:colourboard")
     for i in range(n):
         points[i][-1] += alt_offset
-        col.all_objects[i].location = points[i]
+        obj = ColourboardFactory(i).create_asset()
+        obj.location = points[i]
+        butil.put_in_collection(obj, col)
         alt_offset += alt

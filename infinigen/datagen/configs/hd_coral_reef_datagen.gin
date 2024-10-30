@@ -1,25 +1,32 @@
+# Rendering - Hide Water
+queue_render_hidewater.cpus = 4
+queue_render_hidewater.submit_cmd = @local_submit_cmd
+queue_render_hidewater.hours = 24
+queue_render_hidewater.render_type = "full"
+queue_render_hidewater.gpus = 1
+
 iterate_scene_tasks.global_tasks = [
     {'name': 'coarse', 'func': @queue_coarse},
     {'name': "fineterrain", 'func': @queue_fine_terrain},
     {'name': "populate", 'func': @queue_populate},
     {'name': 'backuppopulate', 'func': @renderbackup/queue_populate, 'condition': 'prev_failed'}
 ]
+
 iterate_scene_tasks.view_dependent_tasks = []
 iterate_scene_tasks.camera_dependent_tasks = [
     {'name': 'rendershort', 'func': @rendershort/queue_render},
     {'name': 'renderbackup', 'func': @renderbackup/queue_render, 'condition': 'prev_failed'},
-    {'name': 'blendergt', 'func': @ground_truth/queue_render}
+    {'name': 'blendergt', 'func': @ground_truth/queue_render},
+    {'name': 'renderhidewater', 'func': @renderhidewater/queue_render_hidewater},
 ]
 
 frames = 24
-sub_frames = 36
+sub_frames = 24
 iterate_scene_tasks.frame_range=[1,%frames]
 iterate_scene_tasks.render_frame_range=[1,%frames]
 iterate_scene_tasks.view_block_size=%sub_frames
 iterate_scene_tasks.cam_block_size = %sub_frames
-iterate_scene_tasks.cam_id_ranges =(1, 2)
-
-iterate_scene_tasks.ignore_first_camera = True # This is a hack to ignore the first camera which is added to get detailed scene for downward looking camera.
+iterate_scene_tasks.cam_id_ranges =(1, 1)
 
 get_cmd.driver_script='infinigen_examples.generate_auv_mission'
 

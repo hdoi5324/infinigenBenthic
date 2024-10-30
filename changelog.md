@@ -43,6 +43,11 @@ Scene
 * Tweaked kelp size
 * configs - tweaked ground and mountain registries
 
+18 October
+* Removed first camera hack - don't seem to need it. removed from monitor_tasks.py and hd_coral_reef_datagen.gin
+* Improved handfish animation, material and shape
+* Added task Render Hide Water - saves image without water effects
+* 
 ### To Do
 * handfish - Update nurb body to be more realistic.  More realistic 'hand/arms'. variations in skin. Test schools
 * Assets - place assets along camera path
