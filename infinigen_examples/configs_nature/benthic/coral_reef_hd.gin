@@ -1,11 +1,12 @@
 include 'infinigen_examples/configs_nature/disable_assets/no_assets.gin'
 include 'infinigen_examples/configs_nature/scene_types/under_water.gin'
-include 'infinigen_examples/configs_nature/benthic/auv_camera.gin'
+include 'infinigen_examples/configs_nature/benthic/rov_camera.gin'
 
 include 'infinigen_examples/configs_nature/performance/fast_terrain_assets.gin'
 #include 'infinigen_examples/configs_nature/performance/high_quality_terrain.gin'
 # include 'infinigen_examples/configs_nature/performance/dev.gin'
 run_erosion.n_iters = [1,1]
+
 
 surface.registry.mountain_collection = [
     ('sandcomplex', 3),
@@ -129,5 +130,5 @@ compose_nature.turbulence_chance = 0.0
 #LandTiles.tile_heights = [-4] #[-20]
 Ground.height = -20
 
-multi_mountains_params.height = ("uniform", 3, 8)
+multi_mountains_params.height = ("uniform", 4, 10)
 
