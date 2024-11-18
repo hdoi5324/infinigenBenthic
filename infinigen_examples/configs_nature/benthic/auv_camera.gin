@@ -17,6 +17,7 @@ H = 1100 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
 # execute_tasks.generate_resolution = (%W, %H) ## NO LONGER USED
 camera.set_camera_parameters.image_height=%H
 camera.set_camera_parameters.image_width=%W
+#camera.set_camera_parameters.k1_k2_p1_p2_k3=[0.0013905747881166105,-0.0028716137582161317,-0.0008590010061810562,0.00025306998011800837,0.00]
 get_sensor_coords.H = %H
 get_sensor_coords.W = %W
 

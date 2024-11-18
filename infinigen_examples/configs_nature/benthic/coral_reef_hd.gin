@@ -1,6 +1,6 @@
 include 'infinigen_examples/configs_nature/disable_assets/no_assets.gin'
 include 'infinigen_examples/configs_nature/scene_types/under_water.gin'
-include 'infinigen_examples/configs_nature/benthic/rov_camera.gin'
+include 'infinigen_examples/configs_nature/benthic/auv_camera.gin'
 
 include 'infinigen_examples/configs_nature/performance/fast_terrain_assets.gin'
 #include 'infinigen_examples/configs_nature/performance/high_quality_terrain.gin'
@@ -9,24 +9,24 @@ run_erosion.n_iters = [1,1]
 
 
 surface.registry.mountain_collection = [
-    ('sandcomplex', 3),
+    ('sandcomplex', 1),
     ("sandstone", 3),
     ("sand", 3),
     ('cracked_ground', 3),
-    ('chunkyrock', 2)
+    ('chunkyrock', 1)
 ]
 
 surface.registry.ground_collection = [
-    ('sandcomplex', 3),
+    ('sandcomplex', 1),
     ('sand', 3),
     ('cracked_ground', 3),
-    ('chunkyrock', 2),
+    ('chunkyrock', 1),
     ('sandstone', 2),
 ]
 
 surface.registry.eroded = [
     ('sandcomplex', 1),
-    ('sand', 1),
+    ('sand', 3),
     ('cracked_ground', 1),
     ('stone', 1),
     ('soil', 1),
@@ -40,8 +40,8 @@ full/configure_render_cycles.num_samples = 256
 configure_render_cycles.min_samples = 0
 configure_render_cycles.num_samples = 256
 
-Terrain.bounds = (-20, 20, -20, 20, -20, 2)
-Terrain.populated_bounds = (-8, 8, -8, 8, -20, 2)
+Terrain.bounds = (-20, 20, -20, 20, -25, 2)
+Terrain.populated_bounds = (-8, 8, -8, 8, -25, 2)
 export.spherical = False # if False it uses OcMesher
 
 #build_terrain_bvh_and_attrs.avoid_border ### Use False.
@@ -55,7 +55,7 @@ OpaqueSphericalMesher.pixels_per_cube = 0.92 # hifi 0.92 lofi 4
 TransparentSphericalMesher.pixels_per_cube = 1.38 # hifi 1.38 lofi 4
 target_face_size.global_multiplier = 2 # use this for dev. Not sure it gets used for my assets
 
-compose_nature.inview_distance = 10 # distance for placeholders
+compose_nature.inview_distance = 15 # distance for placeholders
 #placement.populate_all.dist_cull = 8
 compose_nature.near_distance = 8 # how far to scatter small particles eg pine needles
 compose_nature.center_distance = 10  # Used for creature animation
@@ -65,13 +65,12 @@ compose_nature.center_distance = 10  # Used for creature animation
 animation_policy.AnimPolicyRandomForwardWalk.speed = 0.5
 animation_policy.AnimPolicyRandomForwardWalk.yaw_dist = 0
 animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
-fps = 2
+fps = 24
 compose_nature.fps = %fps #24
 animation_policy.AnimPolicyMowTheLawn.speed = 1.0
 animation_policy.AnimPolicyMowTheLawn.fps = %fps
 animation_policy.AnimPolicyMowTheLawn.transect_multiple = 3
-animation_policy.AnimPolicyMowTheLawn.turn_frames = 3
-
+animation_policy.AnimPolicyMowTheLawn.turn_frames = 15
 full/render_image.passes_to_save = []
 
 compose_nature.urchin_chance = 0.2
@@ -114,12 +113,12 @@ compose_nature.caustics_chance = 0.0
 #water.geo.with_ripples = 0
 #water.geo.with_waves=True
 #Absorption
-water.shader.volume_density = ("clip_gaussian", 0.8, 0.1, 0.55, 1.1)
+water.shader.volume_density = ("clip_gaussian", 0.6, 0.15, 0.45, .9)
 water.shader.color = ("color_category", 'seawater')
 #Scattering
 water.shader.scatter_color = ("color_category", 'seawater_scatter')
+water.shader.scatter_density=("clip_gaussian", 0.007, 0.015, 0.000, 0.02)
 water.shader.anisotropy = ("clip_gaussian", 0.7, 0.2, 0.6, 0.8)
-water.shader.scatter_density=("clip_gaussian", 0.015, 0.015, 0.000, 0.04)
 water.shader.colored = 1 #True
 #water.shader.emissive_foam = 0
 #water.is_ocean = True
@@ -130,5 +129,5 @@ compose_nature.turbulence_chance = 0.0
 #LandTiles.tile_heights = [-4] #[-20]
 Ground.height = -20
 
-multi_mountains_params.height = ("uniform", 4, 10)
+multi_mountains_params.height = ("uniform", 2, 7)
 
