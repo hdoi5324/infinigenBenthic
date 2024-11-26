@@ -244,7 +244,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     p.run_stage(
         "animate_cameras",
         lambda: cam_util.animate_cameras(
-            camera_rigs, bbox, scene_preprocessed, pois=pois, 
+            camera_rigs, bbox, scene_preprocessed, pois=None, 
             policy_registry=animation_policy.AnimPolicyMowTheLawn
         ),
         use_chance=False,
