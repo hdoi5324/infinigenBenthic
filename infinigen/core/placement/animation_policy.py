@@ -111,47 +111,6 @@ class AnimPolicyBrownian:
         return Vector(pos), Vector(rot), time, "BEZIER"
 
 
-
-
-@gin.configurable
-class AnimPolicyMowTheLawn:
-
-    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, percent_var=0.1, turn_frames=4, transect_multiple=5):
-        self.speed = speed
-        self.fps = fps
-        self.percent_var = percent_var
-        self.transect_frames = turn_frames * transect_multiple
-        self.turn_frames = turn_frames
-
-    def __call__(self, obj, frame_curr, bvh, retry_pct):
-        speed = random_general(self.speed)
-        frames_in_leg = self.transect_frames + self.turn_frames
-        leg_no = frame_curr // frames_in_leg
-        leg_position = frame_curr % frames_in_leg
-        if leg_position == self.transect_frames:
-            left = leg_no % 2 == 0
-            z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
-        elif leg_position == 0:
-            left = leg_no % 2 == 1
-            z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
-        else:
-            z_offset = 0
-
-        yaw = obj.rotation_euler[2] + np.pi/2
-        x = speed/self.fps*np.cos(yaw) #* -1
-        y = speed/self.fps*np.sin(yaw) #* -1
-        var_x = np.abs(x * self.percent_var)
-        var_y = np.abs(y * self.percent_var)
-
-        #sampler = lambda: [0.0, speed/self.fps, 0.5]
-        sampler = lambda: [N(x, var_x), N(y, var_y), N(0, 0.2)]
-        pos = walk_same_altitude(obj.location, sampler, bvh)
-        time = 1 / self.fps - 0.001 # Make the time slightly less than one frame so that it always moves forward one frame.
-
-        rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
-
-        return Vector(pos), Vector(rot), time, "LINEAR"
-
 @gin.configurable
 class AnimPolicyPan:
     def __init__(self, speed=3, dist=("uniform", 5, 20), rot_var=[10, 0, 20]):
@@ -225,7 +184,7 @@ class AnimPolicyRandomWalkLookaround:
         yaw_sampler=("uniform", -20, 20),
         step_range=("clip_gaussian", 3, 5, 0.5, 10),
         rot_vars=(5, 0, 5),
-        motion_dir_zoff=("clip_gaussian", 0, 90, 0, 180),
+        motion_dir_zoff=("uniform", 0, 360),
         force_single_keyframe=False,
     ):
         self.speed = random_general(speed)
@@ -361,6 +320,46 @@ class AnimPolicyFollowObject:
         pos = self.follow_obj.matrix_world.translation + new_off
 
         return Vector(pos), None, time, "BEZIER"
+
+
+@gin.configurable
+class AnimPolicyMowTheLawn:
+
+    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, percent_var=0.1, turn_frames=4, transect_multiple=5):
+        self.speed = speed
+        self.fps = fps
+        self.percent_var = percent_var
+        self.transect_frames = turn_frames * transect_multiple
+        self.turn_frames = turn_frames
+
+    def __call__(self, obj, frame_curr, bvh, retry_pct):
+        speed = random_general(self.speed)
+        frames_in_leg = self.transect_frames + self.turn_frames
+        leg_no = frame_curr // frames_in_leg
+        leg_position = frame_curr % frames_in_leg
+        if leg_position == self.transect_frames:
+            left = leg_no % 2 == 0
+            z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
+        elif leg_position == 0:
+            left = leg_no % 2 == 1
+            z_offset = np.deg2rad(90) if left else np.deg2rad(-90)
+        else:
+            z_offset = 0
+
+        yaw = obj.rotation_euler[2] + np.pi/2
+        x = speed/self.fps*np.cos(yaw) #* -1
+        y = speed/self.fps*np.sin(yaw) #* -1
+        var_x = np.abs(x * self.percent_var)
+        var_y = np.abs(y * self.percent_var)
+
+        #sampler = lambda: [0.0, speed/self.fps, 0.5]
+        sampler = lambda: [N(x, var_x), N(y, var_y), N(0, 0.2)]
+        pos = walk_same_altitude(obj.location, sampler, bvh)
+        time = 1 / self.fps - 0.001 # Make the time slightly less than one frame so that it always moves forward one frame.
+
+        rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
+
+        return Vector(pos), Vector(rot), time, "LINEAR"
 
 
 def validate_keyframe_range(
