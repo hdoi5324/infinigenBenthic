@@ -12,14 +12,12 @@ import logging
 import os
 import time
 from pathlib import Path
-import warnings
-import cv2
-import shutil
 
 import bpy
 import gin
 import numpy as np
 from imageio import imwrite
+import cv2
 
 from infinigen.core import init, surface
 from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
@@ -33,16 +31,15 @@ from infinigen.core.rendering.post_render import (
     load_flow,
     load_normals,
     load_seg_mask,
-    load_exr
+    load_uniq_inst,
+    load_exr,
 )
 from infinigen.core.util import blender as butil
 from infinigen.core.util.logging import Timer
 from infinigen.tools.datarelease_toolkit import reorganize_old_framesfolder
 from infinigen.tools.suffixes import get_suffix
-from infinigen.core.placement.camera_utility import apply_lens_distortion, load_distortion_parameters
-from numpy.random import uniform as U
 from infinigen.core.util.random import random_general
-
+from infinigen.core.placement.camera_utility import apply_lens_distortion, load_distortion_parameters
 
 TRANSPARENT_SHADERS = {Nodes.TranslucentBSDF, Nodes.TransparentBSDF}
 
@@ -97,6 +94,17 @@ def set_pass_indices():
     return tree_output
 
 
+def set_material_pass_indices():
+    output_material_properties = {}
+    mat_index = 1
+    for mat in bpy.data.materials:
+        if mat.pass_index == 0:
+            mat.pass_index = mat_index
+            mat_index += 1
+        output_material_properties[mat.name] = {"pass_index": mat.pass_index}
+    return output_material_properties
+
+
 # Can be pasted directly into the blender console
 def make_clay():
     clay_material = bpy.data.materials.new(name="clay")
@@ -112,16 +120,13 @@ def make_clay():
 
 @gin.configurable
 def compositor_postprocessing(
-        nw, 
-        source, 
-        show=True, 
-        color_correct=True, 
-        distort=0, 
-        glare=False, 
-        noise=0,
-        saving_ground_truth=True
+    nw,
+    source,
+    show=True,
+    color_correct=True,
+    distort=0,
+    glare=False,
 ):
-
     if distort > 0:
         source = nw.new_node(
             Nodes.LensDistortion, input_kwargs={"Image": source, "Dispersion": distort}
@@ -133,15 +138,6 @@ def compositor_postprocessing(
             input_kwargs={"Image": source, "Bright": 1.0, "Contrast": 4.0},
         )
 
-    if noise > 0 and not saving_ground_truth:
-        noise_texture = bpy.data.textures.new( "TEXTURE", "NOISE")
-        #noise.noise_scale = 0.025
-        noise_texture_node = nw.new_node(Nodes.CompositorNodeTexture)
-        noise_texture_node.texture = noise_texture
-
-        source = nw.new_node(Nodes.CompositorNodeMixRGB, [noise, source, noise_texture_node])
-        source.blend_type = "SCREEN"
-        
     if glare:
         source = nw.new_node(
             Nodes.Glare,
@@ -163,15 +159,25 @@ def configure_compositor_output(
     image_noisy,
     passes_to_save,
     saving_ground_truth,
-    hide_water=False
 ):
-    file_output_node = nw.new_node(
+    file_output_node_png = nw.new_node(
         Nodes.OutputFile,
         attrs={
             "base_path": str(frames_folder),
-            "format.file_format": "OPEN_EXR" if saving_ground_truth else "PNG",
+            "format.file_format": "PNG",
             "format.color_mode": "RGB",
         },
+    )
+    file_output_node_exr = nw.new_node(
+        Nodes.OutputFile,
+        attrs={
+            "base_path": str(frames_folder),
+            "format.file_format": "OPEN_EXR",
+            "format.color_mode": "RGB",
+        },
+    )
+    default_file_output_node = (
+        file_output_node_exr if saving_ground_truth else file_output_node_png
     )
     file_slot_list = []
     viewlayer = bpy.context.scene.view_layers["ViewLayer"]
@@ -181,40 +187,126 @@ def configure_compositor_output(
             setattr(viewlayer, f"use_pass_{viewlayer_pass}", True)
         else:
             setattr(viewlayer.cycles, f"use_pass_{viewlayer_pass}", True)
+        # must save the material pass index as EXR
+        file_output_node = (
+            default_file_output_node
+            if viewlayer_pass != "material_index"
+            else file_output_node_exr
+        )
+
         slot_input = file_output_node.file_slots.new(socket_name)
         render_socket = render_layers.outputs[socket_name]
-        if viewlayer_pass == "vector":
-            separate_color = nw.new_node(Nodes.CompSeparateColor, [render_socket])
-            comnbine_color = nw.new_node(
-                Nodes.CompCombineColor, [0, (separate_color, 3), (separate_color, 2), 0]
-            )
-            nw.links.new(comnbine_color.outputs[0], slot_input)
-        else:
-            nw.links.new(render_socket, slot_input)
+        match viewlayer_pass:
+            case "vector":
+                separate_color = nw.new_node(Nodes.CompSeparateColor, [render_socket])
+                comnbine_color = nw.new_node(
+                    Nodes.CompCombineColor,
+                    [0, (separate_color, 3), (separate_color, 2), 0],
+                )
+                nw.links.new(comnbine_color.outputs[0], slot_input)
+            case "normal":
+                color = nw.new_node(
+                    Nodes.CompositorMixRGB,
+                    [None, render_socket, (0, 0, 0, 0)],
+                    attrs={"blend_type": "ADD"},
+                ).outputs[0]
+                nw.links.new(color, slot_input)
+            case _:
+                nw.links.new(render_socket, slot_input)
         file_slot_list.append(file_output_node.file_slots[slot_input.name])
 
-    slot_input = file_output_node.file_slots["Image"]
+    slot_input = default_file_output_node.file_slots["Image"]
     image = image_denoised if image_denoised is not None else image_noisy
-    nw.links.new(image, file_output_node.inputs["Image"])
+    nw.links.new(image, default_file_output_node.inputs["Image"])
+    if saving_ground_truth:
+        slot_input.path = "UniqueInstances"
+    else:
+        nw.links.new(image, file_output_node_exr.inputs["Image"])
+        file_slot_list.append(file_output_node_exr.file_slots[slot_input.path])
+    file_slot_list.append(default_file_output_node.file_slots[slot_input.path])
+
+    return file_slot_list
+
+
+@gin.configurable
+def configure_compositor_output_benthic(
+    nw,
+    frames_folder,
+    image_denoised,
+    image_noisy,
+    passes_to_save,
+    saving_ground_truth,
+    hide_water=False
+):
+    file_output_node_png = nw.new_node(
+        Nodes.OutputFile,
+        attrs={
+            "base_path": str(frames_folder),
+            "format.file_format": "PNG",
+            "format.color_mode": "RGB",
+        },
+    )
+    file_output_node_exr = nw.new_node(
+        Nodes.OutputFile,
+        attrs={
+            "base_path": str(frames_folder),
+            "format.file_format": "OPEN_EXR",
+            "format.color_mode": "RGB",
+        },
+    )
+    default_file_output_node = (
+        file_output_node_exr if saving_ground_truth else file_output_node_png
+    )
+    file_slot_list = []
+    viewlayer = bpy.context.scene.view_layers["ViewLayer"]
+    render_layers = nw.new_node(Nodes.RenderLayers)
+    for viewlayer_pass, socket_name in passes_to_save:
+        if hasattr(viewlayer, f"use_pass_{viewlayer_pass}"):
+            setattr(viewlayer, f"use_pass_{viewlayer_pass}", True)
+        else:
+            setattr(viewlayer.cycles, f"use_pass_{viewlayer_pass}", True)
+        # must save the material pass index as EXR
+        file_output_node = (
+            default_file_output_node
+            if viewlayer_pass != "material_index"
+            else file_output_node_exr
+        )
+
+        slot_input = file_output_node.file_slots.new(socket_name)
+        render_socket = render_layers.outputs[socket_name]
+        match viewlayer_pass:
+            case "vector":
+                separate_color = nw.new_node(Nodes.CompSeparateColor, [render_socket])
+                comnbine_color = nw.new_node(
+                    Nodes.CompCombineColor,
+                    [0, (separate_color, 3), (separate_color, 2), 0],
+                )
+                nw.links.new(comnbine_color.outputs[0], slot_input)
+            case "normal":
+                color = nw.new_node(
+                    Nodes.CompositorMixRGB,
+                    [None, render_socket, (0, 0, 0, 0)],
+                    attrs={"blend_type": "ADD"},
+                ).outputs[0]
+                nw.links.new(color, slot_input)
+            case _:
+                nw.links.new(render_socket, slot_input)
+        file_slot_list.append(file_output_node.file_slots[slot_input.name])
+
+    slot_input = default_file_output_node.file_slots["Image"]
+    image = image_denoised if image_denoised is not None else image_noisy
+    nw.links.new(image, default_file_output_node.inputs["Image"])
     if saving_ground_truth:
         slot_input.path = "UniqueInstances"
     elif hide_water:
         slot_input.path = "ImageNoWater"
     else:
-        image_exr_output_node = nw.new_node(
-            Nodes.OutputFile,
-            attrs={
-                "base_path": str(frames_folder),
-                "format.file_format": "OPEN_EXR",
-                "format.color_mode": "RGB",
-            },
-        )
-        rgb_exr_slot_input = file_output_node.file_slots["Image"]
-        nw.links.new(image, image_exr_output_node.inputs["Image"])
-        file_slot_list.append(image_exr_output_node.file_slots[rgb_exr_slot_input.path])
-    file_slot_list.append(file_output_node.file_slots[slot_input.path])
+        nw.links.new(image, file_output_node_exr.inputs["Image"])
+        file_slot_list.append(file_output_node_exr.file_slots[slot_input.path])
+    file_slot_list.append(default_file_output_node.file_slots[slot_input.path])
 
     return file_slot_list
+
 
 def shader_random(nw: NodeWrangler):
     # Code generated using version 2.4.3 of the node_transpiler
@@ -231,59 +323,11 @@ def shader_random(nw: NodeWrangler):
     )
 
 
-
-def shader_random_improved(nw: NodeWrangler):
-    # Code generated using version 2.6.5 of the node_transpiler
-
-    object_info_1 = nw.new_node(Nodes.ObjectInfo_Shader)
-
-    value = nw.new_node(Nodes.Value)
-    value.outputs[0].default_value = 10
-
-    divide = nw.new_node(Nodes.Math, input_kwargs={0: 1.0000, 1: value}, attrs={'operation': 'DIVIDE'})
-
-    divide_1 = nw.new_node(Nodes.Math, input_kwargs={0: object_info_1.outputs["Random"], 1: divide},
-                           attrs={'operation': 'DIVIDE'})
-
-    floor = nw.new_node(Nodes.Math, input_kwargs={0: divide_1}, attrs={'operation': 'FLOOR'})
-
-    multiply = nw.new_node(Nodes.Math, input_kwargs={0: floor, 1: divide}, attrs={'operation': 'MULTIPLY'})
-
-    divide_2 = nw.new_node(Nodes.Math, input_kwargs={0: object_info_1.outputs["Random"], 1: divide},
-                           attrs={'operation': 'DIVIDE'})
-
-    fract = nw.new_node(Nodes.Math, input_kwargs={0: divide_2}, attrs={'operation': 'FRACT'})
-
-    divide_3 = nw.new_node(Nodes.Math, input_kwargs={0: fract, 1: divide}, attrs={'operation': 'DIVIDE'})
-
-    floor_1 = nw.new_node(Nodes.Math, input_kwargs={0: divide_3}, attrs={'operation': 'FLOOR'})
-
-    multiply_1 = nw.new_node(Nodes.Math, input_kwargs={0: floor_1, 1: divide}, attrs={'operation': 'MULTIPLY'})
-
-    divide_4 = nw.new_node(Nodes.Math, input_kwargs={0: divide_2, 1: divide}, attrs={'operation': 'DIVIDE'})
-
-    fract_1 = nw.new_node(Nodes.Math, input_kwargs={0: divide_4}, attrs={'operation': 'FRACT'})
-
-    divide_5 = nw.new_node(Nodes.Math, input_kwargs={0: fract_1, 1: divide}, attrs={'operation': 'DIVIDE'})
-
-    floor_2 = nw.new_node(Nodes.Math, input_kwargs={0: divide_5}, attrs={'operation': 'FLOOR'})
-
-    multiply_2 = nw.new_node(Nodes.Math, input_kwargs={0: floor_2, 1: divide}, attrs={'operation': 'MULTIPLY'})
-
-    combine_color = nw.new_node(Nodes.CombineColor,
-                                input_kwargs={'Red': multiply, 'Green': multiply_1, 'Blue': multiply_2})
-
-    emission = nw.new_node(
-        "ShaderNodeEmission", input_kwargs={"Color": combine_color, "Strength": 0.5})
-    _ = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': emission})
-
-
-
 def global_flat_shading():
     for obj in bpy.context.scene.view_layers["ViewLayer"].objects:
         if "fire_system_type" in obj and obj["fire_system_type"] == "volume":
             continue
-        if obj.name.lower() in {"atmosphere", "atmosphere_fine", "liquid", "liquid_fine"}:
+        if obj.name.lower() in {"atmosphere", "atmosphere_fine"}:
             bpy.data.objects.remove(obj)
         elif obj.active_material is not None:
             nw = obj.active_material.node_tree
@@ -308,7 +352,7 @@ def global_flat_shading():
                 bpy.ops.object.material_slot_remove()
 
     for obj in bpy.context.scene.view_layers["ViewLayer"].objects:
-        surface.add_material(obj, shader_random_improved)
+        surface.add_material(obj, shader_random)
     for mat in bpy.data.materials:
         nw = NodeWrangler(mat.node_tree)
         shader_random(nw)
@@ -318,7 +362,7 @@ def global_flat_shading():
         nw.links.remove(link)
 
 
-def postprocess_blendergt_outputs(frames_folder, output_stem, frame, tmp_dir):
+def postprocess_blendergt_outputs(frames_folder, output_stem):
     # Save flow visualization
     flow_dst_path = frames_folder / f"Vector{output_stem}.exr"
     flow_array = load_flow(flow_dst_path)
@@ -365,19 +409,38 @@ def postprocess_blendergt_outputs(frames_folder, output_stem, frame, tmp_dir):
 
     # Save unique instances visualization
     uniq_inst_path = frames_folder / f"UniqueInstances{output_stem}.exr"
-    #uniq_inst_array = load_uniq_inst(uniq_inst_path)
-    uniq_inst_tmp_path = f"{tmp_dir}/{frame:04d}.png"
-    uniq_inst_array = cv2.imread(uniq_inst_tmp_path)
-    np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
-    shutil.copy(uniq_inst_tmp_path, str(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.png")))
+    uniq_inst_array = load_uniq_inst(uniq_inst_path)
+    np.save(
+        flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"),
+        uniq_inst_array,
+    )
+    imwrite(
+        uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"),
+        colorize_int_array(uniq_inst_array),
+    )
     uniq_inst_path.unlink()
+
+
+def postprocess_materialgt_output(frames_folder, output_stem):
+    # Save material segmentation visualization if present
+    ma_seg_dst_path = frames_folder / f"IndexMA{output_stem}.exr"
+    if ma_seg_dst_path.is_file():
+        ma_seg_mask_array = load_seg_mask(ma_seg_dst_path)
+        np.save(
+            ma_seg_dst_path.with_name(f"MaterialSegmentation{output_stem}.npy"),
+            ma_seg_mask_array,
+        )
+        imwrite(
+            ma_seg_dst_path.with_name(f"MaterialSegmentation{output_stem}.png"),
+            colorize_int_array(ma_seg_mask_array),
+        )
+        ma_seg_dst_path.unlink()
 
 
 def configure_compositor(
     frames_folder: Path,
     passes_to_save: list,
     flat_shading: bool,
-    hide_water=False
 ):
     compositor_node_tree = bpy.context.scene.node_tree
     nw = NodeWrangler(compositor_node_tree)
@@ -402,14 +465,282 @@ def configure_compositor(
         image_noisy=final_image_noisy,
         passes_to_save=passes_to_save,
         saving_ground_truth=flat_shading,
+    )
+
+def configure_compositor_benthic(
+    frames_folder: Path,
+    passes_to_save: list,
+    flat_shading: bool,
+    hide_water=False
+):
+    compositor_node_tree = bpy.context.scene.node_tree
+    nw = NodeWrangler(compositor_node_tree)
+
+    render_layers = nw.new_node(Nodes.RenderLayers)
+    final_image_denoised = compositor_postprocessing(
+        nw, source=render_layers.outputs["Image"]
+    )
+
+    final_image_noisy = (
+        compositor_postprocessing(
+            nw, source=render_layers.outputs["Noisy Image"], show=False
+        )
+        if bpy.context.scene.cycles.use_denoising
+        else None
+    )
+
+    return configure_compositor_output_benthic(
+        nw,
+        frames_folder,
+        image_denoised=final_image_denoised,
+        image_noisy=final_image_noisy,
+        passes_to_save=passes_to_save,
+        saving_ground_truth=flat_shading,
         hide_water=hide_water
     )
 
 
-def postprocess_blendergt_outputs_with_distortion(frames_folder, output_stem, camera_id, frame, 
+@gin.configurable
+def render_image(
+    camera: bpy.types.Object,
+    frames_folder,
+    passes_to_save,
+    flat_shading=False,
+    render_resolution_override=None,
+    excludes=[],
+    use_dof=False,
+    dof_aperture_fstop=2.8,
+):
+    tic = time.time()
+
+    for exclude in excludes:
+        bpy.data.objects[exclude].hide_render = True
+
+    init.configure_cycles_devices()
+
+    tmp_dir = frames_folder.parent.resolve() / "tmp"
+    tmp_dir.mkdir(exist_ok=True)
+    bpy.context.scene.render.filepath = f"{tmp_dir}{os.sep}"
+
+    camrig_id, subcam_id = cam_util.get_id(camera)
+
+    if flat_shading:
+        with Timer("Set object indices"):
+            object_data = set_pass_indices()
+            json_object = json.dumps(object_data, indent=4)
+            first_frame = bpy.context.scene.frame_start
+            suffix = get_suffix(
+                dict(
+                    cam_rig=camrig_id,
+                    resample=0,
+                    frame=first_frame,
+                    subcam=subcam_id,
+                )
+            )
+            (frames_folder / f"Objects{suffix}.json").write_text(json_object)
+
+        with Timer("Flat Shading"):
+            global_flat_shading()
+    else:
+        segment_materials = "material_index" in (x[0] for x in passes_to_save)
+        if segment_materials:
+            with Timer("Set material indices"):
+                material_data = set_material_pass_indices()
+                json_object = json.dumps(material_data, indent=4)
+                first_frame = bpy.context.scene.frame_start
+                suffix = get_suffix(
+                    dict(
+                        cam_rig=camrig_id,
+                        resample=0,
+                        frame=first_frame,
+                        subcam=subcam_id,
+                    )
+                )
+                (frames_folder / f"Materials{suffix}.json").write_text(json_object)
+
+    if not bpy.context.scene.use_nodes:
+        bpy.context.scene.use_nodes = True
+    file_slot_nodes = configure_compositor(frames_folder, passes_to_save, flat_shading)
+
+    indices = dict(cam_rig=camrig_id, resample=0, subcam=subcam_id)
+
+    ## Update output names
+    fileslot_suffix = get_suffix({"frame": "####", **indices})
+    for file_slot in file_slot_nodes:
+        file_slot.path = f"{file_slot.path}{fileslot_suffix}"
+
+    if use_dof == "IF_TARGET_SET":
+        use_dof = camera.data.dof.focus_object is not None
+    elif use_dof is not None:
+        camera.data.dof.use_dof = use_dof
+        camera.data.dof.aperture_fstop = dof_aperture_fstop
+
+    if render_resolution_override is not None:
+        bpy.context.scene.render.resolution_x = render_resolution_override[0]
+        bpy.context.scene.render.resolution_y = render_resolution_override[1]
+
+    # Render the scene
+    bpy.context.scene.camera = camera
+    with Timer("Actual rendering"):
+        bpy.ops.render.render(animation=True)
+
+    with Timer("Post Processing"):
+        for frame in range(
+            bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1
+        ):
+            if flat_shading:
+                bpy.context.scene.frame_set(frame)
+                suffix = get_suffix(dict(frame=frame, **indices))
+                postprocess_blendergt_outputs(frames_folder, suffix)
+            else:
+                cam_util.save_camera_parameters(
+                    camera,
+                    output_folder=frames_folder,
+                    frame=frame,
+                )
+                bpy.context.scene.frame_set(frame)
+                suffix = get_suffix(dict(frame=frame, **indices))
+                postprocess_materialgt_output(frames_folder, suffix)
+
+    for file in tmp_dir.glob("*.png"):
+        file.unlink()
+
+    reorganize_old_framesfolder(frames_folder)
+
+    logger.info(f"rendering time: {time.time() - tic}")
+
+
+@gin.configurable
+def render_image_benthic(
+    camera: bpy.types.Object,
+    frames_folder,
+    passes_to_save,
+    flat_shading=False,
+    render_resolution_override=None,
+    excludes=[],
+    use_dof=False,
+    dof_aperture_fstop=2.8,
+    apply_distortion=False,
+    motion_blur=0.0,
+    hide_water=False
+):
+    tic = time.time()
+
+    for exclude in excludes:
+        bpy.data.objects[exclude].hide_render = True
+
+    init.configure_cycles_devices()
+
+    tmp_dir = frames_folder.parent.resolve() / "tmp"
+    tmp_dir.mkdir(exist_ok=True)
+    bpy.context.scene.render.filepath = f"{tmp_dir}{os.sep}"
+
+    camrig_id, subcam_id = cam_util.get_id(camera)
+
+    if flat_shading:
+        with Timer("Set object indices"):
+            object_data = set_pass_indices()
+            json_object = json.dumps(object_data, indent=4)
+            first_frame = bpy.context.scene.frame_start
+            suffix = get_suffix(
+                dict(
+                    cam_rig=camrig_id,
+                    resample=0,
+                    frame=first_frame,
+                    subcam=subcam_id,
+                )
+            )
+            (frames_folder / f"Objects{suffix}.json").write_text(json_object)
+
+        with Timer("Flat Shading"):
+            global_flat_shading()
+    else:
+        segment_materials = "material_index" in (x[0] for x in passes_to_save)
+        if segment_materials:
+            with Timer("Set material indices"):
+                material_data = set_material_pass_indices()
+                json_object = json.dumps(material_data, indent=4)
+                first_frame = bpy.context.scene.frame_start
+                suffix = get_suffix(
+                    dict(
+                        cam_rig=camrig_id,
+                        resample=0,
+                        frame=first_frame,
+                        subcam=subcam_id,
+                    )
+                )
+                (frames_folder / f"Materials{suffix}.json").write_text(json_object)
+
+    motion_blur = random_general(motion_blur)
+    if not flat_shading and motion_blur > 0.0:
+        bpy.context.scene.render.use_motion_blur = True
+        bpy.context.scene.render.motion_blur_shutter = motion_blur
+
+    if not bpy.context.scene.use_nodes:
+        bpy.context.scene.use_nodes = True
+    file_slot_nodes = configure_compositor_benthic(frames_folder, passes_to_save, flat_shading, hide_water)
+
+    indices = dict(cam_rig=camrig_id, resample=0, subcam=subcam_id)
+
+    ## Update output names
+    fileslot_suffix = get_suffix({"frame": "####", **indices})
+    for file_slot in file_slot_nodes:
+        file_slot.path = f"{file_slot.path}{fileslot_suffix}"
+
+    if use_dof == "IF_TARGET_SET":
+        use_dof = camera.data.dof.focus_object is not None
+    elif use_dof is not None:
+        camera.data.dof.use_dof = use_dof
+        camera.data.dof.aperture_fstop = dof_aperture_fstop
+
+    if render_resolution_override is not None:
+        bpy.context.scene.render.resolution_x = render_resolution_override[0]
+        bpy.context.scene.render.resolution_y = render_resolution_override[1]
+
+    # Render the scene
+    bpy.context.scene.camera = camera
+    with Timer("Actual rendering"):
+        bpy.ops.render.render(animation=True)
+
+    with Timer("Post Processing"):
+        for frame in range(
+            bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1
+        ):
+            if flat_shading:
+                bpy.context.scene.frame_set(frame)
+                suffix = get_suffix(dict(frame=frame, **indices))
+                if apply_distortion:
+                    camera_dir = frames_folder.parent.resolve() / "camera_config"
+                    postprocess_blendergt_outputs_with_distortion(frames_folder, suffix, camera, frame,
+                                                                  tmp_dir, flat_shading, camera_dir=camera_dir)
+                else:
+                    postprocess_blendergt_outputs(frames_folder, suffix, frame, tmp_dir)
+            else:
+                cam_util.save_camera_parameters(
+                    camera,
+                    output_folder=frames_folder,
+                    frame=frame,
+                )
+                bpy.context.scene.frame_set(frame)
+                suffix = get_suffix(dict(frame=frame, **indices))
+                if apply_distortion:
+                    # Note:  Need to have used set_lens_distortion when configuring cameras
+                    output = "Image" if not hide_water else "ImageNoWater"
+                    camera_dir = frames_folder.parent.resolve() / "camera_config"
+                    postprocess_apply_distortion(camera, frames_folder, suffix, flat_shading,
+                                                 camera_dir=camera_dir, output=output)
+
+
+    for file in tmp_dir.glob("*.png"):
+        file.unlink()
+
+    reorganize_old_framesfolder(frames_folder)
+
+    logger.info(f"rendering time: {time.time() - tic}")
+
+def postprocess_blendergt_outputs_with_distortion(frames_folder, output_stem, camera, frame,
                                                   tmp_dir, flat_shading, camera_dir="/tmp/"):
-    cam_ob = cam_util.get_camera(*camera_id)
-    mapping_coords, orig_res = load_distortion_parameters(cam_ob, camera_dir)
+    mapping_coords, orig_res = load_distortion_parameters(camera, camera_dir)
 
     # Save flow visualization
     flow_dst_path = frames_folder / f"Vector{output_stem}.exr"
@@ -463,11 +794,10 @@ def postprocess_blendergt_outputs_with_distortion(frames_folder, output_stem, ca
     cv2.imwrite(str(uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png")), uniq_inst_array)
     uniq_inst_path.unlink()
 
-def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_ground_truth, 
+def postprocess_apply_distortion(camera, frames_folder, output_stem, saving_ground_truth,
                                  camera_dir="/tmp/", output="Image"):
     # Distort Apply distortion
-    cam_ob = cam_util.get_camera(*camera_id)
-    mapping_coords, orig_res = load_distortion_parameters(cam_ob, camera_dir)
+    mapping_coords, orig_res = load_distortion_parameters(camera, camera_dir)
 
     image_dst_path = frames_folder / f"{output}{output_stem}.png"
     image_array = cv2.imread(str(image_dst_path))
@@ -479,124 +809,3 @@ def postprocess_apply_distortion(camera_id, frames_folder, output_stem, saving_g
     cv2.imwrite(str(image_dst_path.with_name(f"{output}{output_stem}.png")), image_array)
 
 
-@gin.configurable
-def render_image(
-    camera_id,
-    frames_folder,
-    passes_to_save,
-    flat_shading=False,
-    render_resolution_override=None,
-    excludes=[],
-    use_dof=False,
-    dof_aperture_fstop=2.8,
-    apply_distortion=False,
-    motion_blur=0.0,
-    hide_water=False
-):
-    tic = time.time()
-
-    camera_rig_id, subcam_id = camera_id
-
-    for exclude in excludes:
-        bpy.data.objects[exclude].hide_render = True
-
-    init.configure_cycles_devices()
-
-    tmp_dir = frames_folder.parent.resolve() / "tmp"
-    tmp_dir.mkdir(exist_ok=True)
-    bpy.context.scene.render.filepath = f"{tmp_dir}{os.sep}"
-
-    if flat_shading:
-        with Timer("Set object indices"):
-            object_data = set_pass_indices()
-            json_object = json.dumps(object_data, indent=4)
-            first_frame = bpy.context.scene.frame_start
-            suffix = get_suffix(
-                dict(
-                    cam_rig=camera_rig_id,
-                    resample=0,
-                    frame=first_frame,
-                    subcam=subcam_id,
-                )
-            )
-            (frames_folder / f"Objects{suffix}.json").write_text(json_object)
-
-        with Timer("Flat Shading"):
-            bpy.context.scene.cycles.samples = 1
-            bpy.context.scene.cycles.use_adaptive_sampling = False
-            bpy.context.scene.cycles.diffuse_bounces = 1
-            bpy.context.scene.cycles.glossy_bounces = 0
-            bpy.context.scene.cycles.ao_bounces_render = 0
-            bpy.context.scene.cycles.max_bounces = 1
-            bpy.context.scene.cycles.transmission_bounces = 0
-            bpy.context.scene.cycles.transparent_max_bounces = 8
-            bpy.context.scene.cycles.volume_bounces = 0
-            bpy.context.scene.cycles.feature_set = 'EXPERIMENTAL'
-            global_flat_shading()
-
-    motion_blur = random_general(motion_blur)
-    if not flat_shading and motion_blur > 0.0:
-        bpy.context.scene.render.use_motion_blur = True
-        bpy.context.scene.render.motion_blur_shutter = motion_blur
-
-    if not bpy.context.scene.use_nodes:
-        bpy.context.scene.use_nodes = True
-    file_slot_nodes = configure_compositor(frames_folder, passes_to_save, flat_shading, hide_water)
-
-    indices = dict(cam_rig=camera_rig_id, resample=0, subcam=subcam_id)
-
-    ## Update output names
-    fileslot_suffix = get_suffix({"frame": "####", **indices})
-    for file_slot in file_slot_nodes:
-        file_slot.path = f"{file_slot.path}{fileslot_suffix}"
-
-    camera = cam_util.get_camera(camera_rig_id, subcam_id)
-    if use_dof == "IF_TARGET_SET":
-        use_dof = camera.data.dof.focus_object is not None
-    if use_dof is not None:
-        camera.data.dof.use_dof = use_dof
-        camera.data.dof.aperture_fstop = dof_aperture_fstop
-
-    if render_resolution_override is not None:
-        bpy.context.scene.render.resolution_x = render_resolution_override[0]
-        bpy.context.scene.render.resolution_y = render_resolution_override[1]
-
-    # Render the scene
-    bpy.context.scene.camera = camera
-    with Timer("Actual rendering"):
-        bpy.ops.render.render(animation=True)
-
-    with Timer("Post Processing"):
-        for frame in range(
-            bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1
-        ):
-            if flat_shading:
-                bpy.context.scene.frame_set(frame)
-                suffix = get_suffix(dict(frame=frame, **indices))
-                if apply_distortion:
-                    camera_dir = frames_folder.parent.resolve() / "camera_config"
-                    postprocess_blendergt_outputs_with_distortion(frames_folder, suffix, camera_id, frame,
-                                                                  tmp_dir, flat_shading, camera_dir=camera_dir)
-                else:
-                    postprocess_blendergt_outputs(frames_folder, suffix, frame, tmp_dir)
-            else:
-                bpy.context.scene.frame_set(frame)
-                suffix = get_suffix(dict(frame=frame, **indices))
-                if apply_distortion:
-                    # Note:  Need to have used set_lens_distortion when configuring cameras
-                    output = "Image" if not hide_water else "ImageNoWater"
-                    camera_dir = frames_folder.parent.resolve() / "camera_config"
-                    postprocess_apply_distortion(camera_id, frames_folder, suffix, flat_shading, 
-                                                 camera_dir=camera_dir, output=output)
-                cam_util.save_camera_parameters(
-                    camera_ids=cam_util.get_cameras_ids(),
-                    output_folder=frames_folder,
-                    frame=frame,
-                )
-
-    for file in list(tmp_dir.glob('*png')) + list(tmp_dir.glob('*jpg')):
-        file.unlink()
-
-    reorganize_old_framesfolder(frames_folder)
-
-    logger.info(f"rendering time: {time.time() - tic}")

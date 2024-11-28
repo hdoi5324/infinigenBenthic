@@ -137,7 +137,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     land_domain = params.get("land_domain_tags")
     underwater_domain = params.get("underwater_domain_tags")
     nonliving_domain = params.get("nonliving_domain_tags")
-    
+
 
 
     def add_boulders(terrain_mesh):
@@ -160,7 +160,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
 
     def camera_preprocess():
         camera_rigs = cam_util.spawn_camera_rigs() #todo: do onboard lights later?
-        
+
         # Set camera lens parameters including distortion
         set_camera_parameters(camera_rigs, parameter_dir=output_folder.parent)
         scene_preprocessed = cam_util.camera_selection_preprocessing(
@@ -201,7 +201,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         lambda: cam_util.configure_camera_lights(camera_rigs),
         use_chance=False
     )
- 
+
     p.run_stage(
         "lighting",
         lighting.sky_lighting.add_lighting,
@@ -275,8 +275,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     pois += p.run_stage('handfish', add_handfish, target=terrain_center, default=[])
 
     def animate_cameras():
-        cam_util.animate_cameras(camera_rigs, bbox, scene_preprocessed, pois=pois, 
-            policy_registry=animation_policy.AnimPolicyMowTheLawn
+        cam_util.animate_cameras(camera_rigs, bbox, scene_preprocessed, pois=pois,
         )
 
         frames_folder = output_folder.parent / "frames"
@@ -350,11 +349,11 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         selection = density.placement_mask(scale=0.05, select_thresh=uniform(0.1, 0.3), tag=underwater_domain)
         fac = creatures.HandfishSchoolFactory(randint(1e7 + 55), bvh=terrain_inview_bvh)
         col = placement.scatter_placeholders_mesh(
-            terrain_near, 
-            fac, 
+            terrain_near,
+            fac,
             selection=selection,
-            overall_density=1, 
-            num_placeholders=1, 
+            overall_density=1,
+            num_placeholders=1,
             altitude=.1
         )
         placement.populate_collection(fac, col)

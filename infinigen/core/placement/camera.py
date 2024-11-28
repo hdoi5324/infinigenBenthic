@@ -126,7 +126,6 @@ def spawn_camera_rigs(
     rigs_col = butil.get_collection("camera_rigs")
     cams_col = butil.get_collection("cameras")
 
-    #todo: work out when lights need to be added.
     def spawn_rig(i):
         rig_parent = butil.spawn_empty(f"camrig.{i}")
         butil.put_in_collection(rig_parent, rigs_col)
@@ -153,6 +152,7 @@ def get_camera_rigs() -> list[bpy.types.Object]:
 
     for i, rig in enumerate(result):
         for j, child in enumerate(rig.children):
+            if not child.type == "CAMERA": continue
             expected = cam_name(i, j)
             if child.name != expected:
                 raise ValueError(f"child {i=} {j}  was {child.name=}, {expected=}")
@@ -823,7 +823,7 @@ def save_camera_parameters(
 
 if __name__ == "__main__":
     """
-    This interactive section generates a depth map by raycasting through each pixel. 
+    This interactive section generates a depth map by raycasting through each pixel.
     It is very useful for debugging camera.py.
     """
     cam = bpy.context.scene.camera

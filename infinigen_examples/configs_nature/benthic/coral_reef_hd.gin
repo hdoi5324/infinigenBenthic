@@ -61,15 +61,24 @@ compose_nature.center_distance = 10  # Used for creature animation
 
 
 # Configure straight path with lower frequency frames. Based on AUV Nimbus
-animation_policy.AnimPolicyRandomForwardWalk.speed = 0.5
-animation_policy.AnimPolicyRandomForwardWalk.yaw_dist = 0
-animation_policy.AnimPolicyRandomForwardWalk.step_range = (1, 2)
+animate_cameras.policy_registry = @cam/AnimPolicyRandomForwardWalk
+cam/AnimPolicyRandomForwardWalk.forward_vec = (0,0,-1)
+cam/AnimPolicyRandomForwardWalk.speed = 0.5
+cam/AnimPolicyRandomForwardWalk.step_range = (1, 2)
+cam/AnimPolicyRandomForwardWalk.yaw_dist = 0
+
+# Mow the Lawn path
+#animate_cameras.policy_registry = @cam/AnimPolicyMowTheLawn
+#cam/AnimPolicyMowTheLawn.speed = 1.0
+#cam/AnimPolicyMowTheLawn.fps = %fps
+#cam/AnimPolicyMowTheLawn.transect_multiple = 3
+#cam/AnimPolicyMowTheLawn.turn_frames = 2
+
+render.render_image_func=@rend/render_image_benthic
+
 fps = 24
 compose_nature.fps = %fps #24
-animation_policy.AnimPolicyMowTheLawn.speed = 1.0
-animation_policy.AnimPolicyMowTheLawn.fps = %fps
-animation_policy.AnimPolicyMowTheLawn.transect_multiple = 3
-animation_policy.AnimPolicyMowTheLawn.turn_frames = 2
+
 full/render_image.passes_to_save = []
 
 compose_nature.urchin_chance = 0.0 #0.2

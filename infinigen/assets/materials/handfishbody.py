@@ -432,7 +432,7 @@ def shader_fish_body_handfish(nw: NodeWrangler):
     )
     light_color = hsv2rgba(base_hue, uniform(0.0, 0.1), log_uniform(0.2, 1.0))
     specular = uniform(0.6, 0.8)
-    specular_tint = uniform(0, 1)
+    specular_tint = *([uniform(0, 1)] * 3), 1
     clearcoat = uniform(0.2, 0.8)
     roughness = uniform(0.4, 0.6)
     metallic = uniform(0.4, 0.5)
@@ -466,9 +466,9 @@ def shader_fish_body_handfish(nw: NodeWrangler):
             "Base Color": color,
             "Metallic": metallic,
             "Roughness": roughness,
-            "Specular": specular,
-            "Specular Tint": specular_tint,
-            "Clearcoat": clearcoat,
+            "Specular IOR Level": specular,
+            "Specular_Tint": specular_tint, #check this is ok
+            "Coat Weight": clearcoat,
         },
     )
     return bsdf

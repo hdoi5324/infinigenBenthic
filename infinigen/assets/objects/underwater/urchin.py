@@ -32,7 +32,7 @@ from infinigen.core.util.random import random_general as rg
 class UrchinFactory(AssetFactory):
 
     def __init__(self, factory_seed, coarse=False, spike_hue=("uniform", -0.25, 0.15),
-                 z_scale=(0.8, 1.0), spike_prob=0.98, 
+                 z_scale=(0.8, 1.0), spike_prob=0.98,
                  min_spike_scale=0.5, extrude_height=("log_uniform", 1.0, 5.0),
                  species="BlackSpiny"):
         self.species = species
@@ -127,9 +127,9 @@ class UrchinFactory(AssetFactory):
             input_kwargs={
                 "Base Color": color,
                 "Roughness": roughness,
-                "Subsurface": subsurface,
+                "Subsurface Weight": subsurface,
                 "Subsurface Color": color,
-                "Transmission": transmission,
+                "Transmission Weight": transmission,
             },
         )
         return principled_bsdf
