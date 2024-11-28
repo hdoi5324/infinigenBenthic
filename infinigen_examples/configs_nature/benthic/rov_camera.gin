@@ -4,16 +4,19 @@ camera.camera_pose_proposal.pitch = 60 # 0 for downward looking
 camera_offset = 0.0 # Half baseline for stereo
 camera_pitch = 0 # generally keep 0 Euler
 camera_yaw=0
+camera.spawn_camera_rigs.n_camera_rigs = 1
 camera.spawn_camera_rigs.camera_rig_config = [
     {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 #    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 ]
 
 # Terrain
-compose_nature.inview_distance = 12
+####compose_nature.inview_distance = 12
 
 # Lens and resolution
-camera_utility.set_camera_parameters.focal_mm=15.89 # Sirius 15.89 Nimbus 13.89
+focal_mm = 15.89 # Sirius 15.89 Nimbus 13.89
+camera_utility.set_camera_parameters.focal_mm=%focal_mm
+camera.camera_pose_proposal.focal_length=%focal_mm
 camera_utility.set_camera_parameters.pixel_size_in_mm=0.01035 # Sirius 0.00345 Nimbus 0.00454
 W = 1368 # Sirius 4112  Nimbus 2752 Scaled down 1250 1360
 H = 1000 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
@@ -26,10 +29,10 @@ get_sensor_coords.W = %W
 
 # Distortion.  Based on Blenderproc distortion approach
 distort=True
-camera_utility.set_camera_parameters.use_distortion=%distort
-full/render_image.apply_distortion = %distort
-flat/render_image.apply_distortion = %distort
-render_image.motion_blur = ("clip_gaussian", 0.00, 0.01, 0.00, 0.02)
+#camera_utility.set_camera_parameters.use_distortion=%distort
+#full/render_image_benthic.apply_distortion = %distort
+#flat/render_image_benthic.apply_distortion = False
+#full/render_image_benthic.motion_blur = ("clip_gaussian", 0.00, 0.01, 0.00, 0.02)
 
 
 # Lights

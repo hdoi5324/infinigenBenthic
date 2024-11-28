@@ -225,7 +225,7 @@ class CameraProposal:
 
         if self.focal_length is not None:
             for cam in cam_rig.children:
-                if not cam.type =='CAMERA': continue
+                if not cam.type == "CAMERA": continue
                 cam.data.lens = self.focal_length
 
 

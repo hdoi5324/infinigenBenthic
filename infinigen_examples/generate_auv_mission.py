@@ -1,13 +1,13 @@
-# Copyright (c) Princeton University.
+# Copyright (C) 2023, Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
 import argparse
+import itertools
 import logging
 from pathlib import Path
 
 import bpy
 import gin
-import os
 import mathutils
 from mathutils import Vector
 from numpy.random import randint, uniform
@@ -92,7 +92,6 @@ from infinigen.core.util.organization import Tags, Task
 from infinigen.core.util.pipeline import RandomStageExecutor
 from infinigen.core.util.random import random_general, sample_registry
 from infinigen.terrain import Terrain
-from infinigen.core.placement import animation_policy
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +108,6 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     bpy.context.scene.render.fps = fps
     # Set fps globally
     p = pipeline.RandomStageExecutor(scene_seed, output_folder, params)
-    #on_the_fly_asset_folder=output_folder / "assets"
 
     def add_coarse_terrain():
         terrain = Terrain(
@@ -275,8 +273,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     pois += p.run_stage('handfish', add_handfish, target=terrain_center, default=[])
 
     def animate_cameras():
-        cam_util.animate_cameras(camera_rigs, bbox, scene_preprocessed, pois=pois,
-        )
+        cam_util.animate_cameras(camera_rigs, bbox, scene_preprocessed, pois=pois)
 
         frames_folder = output_folder.parent / "frames"
         animated_cams = [cam for cam in camera_rigs if cam.animation_data is not None]
@@ -494,10 +491,15 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         "height_offset": 0,
         "whole_bbox": None,
     }
+
+
 @gin.configurable
-def populate_scene(output_folder, scene_seed, **params):
+def populate_scene(
+    output_folder: Path, scene_seed: int, camera_rigs: list[bpy.types.Object], **params
+):
     p = RandomStageExecutor(scene_seed, output_folder, params)
-    camera = [cam_util.get_camera(i, j) for i, j in cam_util.get_cameras_ids()]
+
+    primary_cams = [rig.children[0] for rig in camera_rigs]
 
     populated = {}
     # ,
@@ -506,7 +508,9 @@ def populate_scene(output_folder, scene_seed, **params):
         "populate_boulders",
         use_chance=False,
         default=[],
-        fn=lambda: placement.populate_all(rocks.BoulderFactory, camera, vis_cull=3),
+        fn=lambda: placement.populate_all(
+            rocks.BoulderFactory, primary_cams, vis_cull=3
+        ),
     )  # ,
     # meshing_camera=camera, adapt_mesh_method='subdivide', cam_meshing_max_dist=8))
 
@@ -514,7 +518,7 @@ def populate_scene(output_folder, scene_seed, **params):
         "populate_kelp",
         use_chance=False,
         fn=lambda: placement.populate_all(
-            monocot.KelpMonocotFactory, camera, vis_cull=5
+            monocot.KelpMonocotFactory, primary_cams, vis_cull=5
         ),
     )
 
@@ -528,7 +532,7 @@ def populate_scene(output_folder, scene_seed, **params):
         p.run_stage(
             f"populate_{k}",
             use_chance=False,
-            fn=lambda: placement.populate_all(fac, camera=None),
+            fn=lambda: placement.populate_all(fac, cameras=None),
         )
 
     p.save_results(output_folder / "pipeline_fine.csv")

@@ -126,6 +126,8 @@ def compositor_postprocessing(
     color_correct=True,
     distort=0,
     glare=False,
+    noise=0,
+    saving_ground_truth=True
 ):
     if distort > 0:
         source = nw.new_node(
@@ -138,6 +140,15 @@ def compositor_postprocessing(
             input_kwargs={"Image": source, "Bright": 1.0, "Contrast": 4.0},
         )
 
+    if noise > 0 and not saving_ground_truth:
+        noise_texture = bpy.data.textures.new("TEXTURE", "NOISE")
+        # noise.noise_scale = 0.025
+        noise_texture_node = nw.new_node(Nodes.CompositorNodeTexture)
+        noise_texture_node.texture = noise_texture
+
+        source = nw.new_node(Nodes.CompositorNodeMixRGB, [noise, source, noise_texture_node])
+        source.blend_type = "SCREEN"
+
     if glare:
         source = nw.new_node(
             Nodes.Glare,
@@ -149,7 +160,6 @@ def compositor_postprocessing(
         nw.new_node(Nodes.Composite, input_kwargs={"Image": source})
 
     return source.outputs[0] if hasattr(source, "outputs") else source
-
 
 @gin.configurable
 def configure_compositor_output(
@@ -323,6 +333,52 @@ def shader_random(nw: NodeWrangler):
     )
 
 
+def shader_random_improved(nw: NodeWrangler):
+    # Code generated using version 2.6.5 of the node_transpiler
+
+    object_info_1 = nw.new_node(Nodes.ObjectInfo_Shader)
+
+    value = nw.new_node(Nodes.Value)
+    value.outputs[0].default_value = 10
+
+    divide = nw.new_node(Nodes.Math, input_kwargs={0: 1.0000, 1: value}, attrs={'operation': 'DIVIDE'})
+
+    divide_1 = nw.new_node(Nodes.Math, input_kwargs={0: object_info_1.outputs["Random"], 1: divide},
+                           attrs={'operation': 'DIVIDE'})
+
+    floor = nw.new_node(Nodes.Math, input_kwargs={0: divide_1}, attrs={'operation': 'FLOOR'})
+
+    multiply = nw.new_node(Nodes.Math, input_kwargs={0: floor, 1: divide}, attrs={'operation': 'MULTIPLY'})
+
+    divide_2 = nw.new_node(Nodes.Math, input_kwargs={0: object_info_1.outputs["Random"], 1: divide},
+                           attrs={'operation': 'DIVIDE'})
+
+    fract = nw.new_node(Nodes.Math, input_kwargs={0: divide_2}, attrs={'operation': 'FRACT'})
+
+    divide_3 = nw.new_node(Nodes.Math, input_kwargs={0: fract, 1: divide}, attrs={'operation': 'DIVIDE'})
+
+    floor_1 = nw.new_node(Nodes.Math, input_kwargs={0: divide_3}, attrs={'operation': 'FLOOR'})
+
+    multiply_1 = nw.new_node(Nodes.Math, input_kwargs={0: floor_1, 1: divide}, attrs={'operation': 'MULTIPLY'})
+
+    divide_4 = nw.new_node(Nodes.Math, input_kwargs={0: divide_2, 1: divide}, attrs={'operation': 'DIVIDE'})
+
+    fract_1 = nw.new_node(Nodes.Math, input_kwargs={0: divide_4}, attrs={'operation': 'FRACT'})
+
+    divide_5 = nw.new_node(Nodes.Math, input_kwargs={0: fract_1, 1: divide}, attrs={'operation': 'DIVIDE'})
+
+    floor_2 = nw.new_node(Nodes.Math, input_kwargs={0: divide_5}, attrs={'operation': 'FLOOR'})
+
+    multiply_2 = nw.new_node(Nodes.Math, input_kwargs={0: floor_2, 1: divide}, attrs={'operation': 'MULTIPLY'})
+
+    combine_color = nw.new_node(Nodes.CombineColor,
+                                input_kwargs={'Red': multiply, 'Green': multiply_1, 'Blue': multiply_2})
+
+    emission = nw.new_node(
+        "ShaderNodeEmission", input_kwargs={"Color": combine_color, "Strength": 0.5})
+    _ = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': emission})
+
+
 def global_flat_shading():
     for obj in bpy.context.scene.view_layers["ViewLayer"].objects:
         if "fire_system_type" in obj and obj["fire_system_type"] == "volume":
@@ -352,7 +408,7 @@ def global_flat_shading():
                 bpy.ops.object.material_slot_remove()
 
     for obj in bpy.context.scene.view_layers["ViewLayer"].objects:
-        surface.add_material(obj, shader_random)
+        surface.add_material(obj, shader_random_improved)
     for mat in bpy.data.materials:
         nw = NodeWrangler(mat.node_tree)
         shader_random(nw)

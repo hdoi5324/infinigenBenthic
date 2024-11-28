@@ -86,4 +86,7 @@ python -m infinigen.datagen.manage_jobs -- --output_folder outputs/benthic_demo 
 * move assets, materials from octo 
 * render_image - apply distortion, motion blur, dof
 * update water shader for scattering and absorption
+* Bug: OcMesher doesn't create vertex_attributes for 'eroded'.  Logged in github
+* Bug: SphericalMesher doesn't work with wide FOV.
+* Bug: SphericalMesher crashes
 * 

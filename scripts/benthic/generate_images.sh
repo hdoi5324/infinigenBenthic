@@ -13,7 +13,7 @@ for i in 0
 do
   option=${options[i]}
   python -m infinigen.datagen.manage_jobs -o outputs/${outputfolder} ${overwrite} ${cleanfiles} --num_scenes ${num_scenes} \
-  --configs coral_reef_hd.gin --pipeline_configs local_16GB.gin monocular.gin cuda_terrain.gin hd_coral_reef_datagen.gin \
+  --configs coral_reef_hd.gin no_assets.gin --pipeline_configs local_16GB.gin monocular.gin cuda_terrain.gin hd_coral_reef_datagen.gin \
   ${pipeline_overrides}
 done
 

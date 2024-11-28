@@ -274,7 +274,7 @@ def execute_tasks(
 
         terrain.fine_terrain(
             output_folder,
-            cameras=[c for rig in camera_rigs for c in rig.children],
+            cameras=[c for rig in camera_rigs for c in rig.children if c.type == "CAMERA"],
             optimize_terrain_diskusage=optimize_terrain_diskusage,
         )
 
