@@ -232,6 +232,7 @@ def execute_tasks(
     bpy.context.scene.frame_end = int(frame_range[1])
     bpy.context.scene.frame_set(int(frame_range[0]))
     bpy.context.scene.render.fps = fps
+    # Set this with camera.get_sensor_coords in config instead to allow distortion to work.
     #bpy.context.scene.render.resolution_x = generate_resolution[0]
     #bpy.context.scene.render.resolution_y = generate_resolution[1]
     bpy.context.view_layer.update()

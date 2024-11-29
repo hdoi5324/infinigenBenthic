@@ -22,21 +22,22 @@ def adjust_camera_sensor(cam, sensor_height=18., W=None, H=None):
     # assert sensor_width.is_integer(), (18, W, H)
     cam.data.sensor_height = sensor_height
     cam.data.sensor_width = sensor_width
+    bpy.context.view_layer.update()
 
 
 @gin.configurable
 def set_camera_parameters(cam_rigs,
-                          focal_mm=15.89,
-                          pixel_size_in_mm=0.00343,
+                          focal_mm=50.00,
+                          pixel_size_in_mm=0.01875,
                           image_width=1920,
                           image_height=1080,
                           use_distortion=False,
                           parameter_dir="/tmp",
-                          k1_k2_p1_p2_k3=[0.08294964878778682,
-                                          0.3280632761758799,
-                                          -0.004615317367818974,
-                                          0.001986514143891786,
-                                          0.007061125986068614],
+                          k1_k2_p1_p2_k3=[0.0013,
+                                          -0.03,
+                                          0.0,
+                                          0.0,
+                                          0.0],
                           #f=4633,
                           cx=None,
                           cy=None,
@@ -142,6 +143,7 @@ def set_intrinsics_from_blender_params(cam_ob, lens: float = None, image_width: 
         cam.shift_x = shift_x
     if shift_y is not None:
         cam.shift_y = shift_y
+    bpy.context.view_layer.update()
 
 
 def set_intrinsics_from_K_matrix(cam_ob, K: Union[np.ndarray, Matrix], image_width: int, image_height: int,
@@ -406,7 +408,7 @@ def set_lens_distortion(cam: bpy.types.Camera, resolution_y, resolution_x,
 
     # Update sensor size using new resolution but keeping same px size.
     pixel_size_in_mm = get_sensor_size(cam.data) / resolution_x
-    adjust_camera_sensor(cam, sensor_height=pixel_size_in_mm * columns_needed, W=columns_needed, H=rows_needed)
+    adjust_camera_sensor(cam, sensor_height=pixel_size_in_mm * rows_needed, W=columns_needed, H=rows_needed)
 
     # Adapt/shift the mapping function coordinates to the new_image_resolution resolution
     # (if we didn't, the mapping would only be valid for same resolution mapping)

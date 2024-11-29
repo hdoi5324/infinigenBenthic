@@ -1,17 +1,24 @@
 ## [Synthetic image generation for benthic object detection training](https://infinigen.org)
 
-This repository adds to the Infinigen blender framework ([https://infinigen.org](https://infinigen.org)) with the aim of generating realistic underwater scenes to create synthetic images from an AUV or other robotic underwater vehicle.
+This repository builds on the infinigen framework for generating natural scenes with Blender ([https://infinigen.org](https://infinigen.org)).  The replacement code enhances infinigen with features to generate images from an underwater vehicle with onboard lighting.  Other enhancements include:
+* camera features including lens distortion, motion blur, sensor noise
+* Updates to underwater assets (urchins, kelp, seaweed) and new assets (handfish, colourboard, plastic bag)
+* Mow the lawn animation path similar to automated survey paths.
 
-This repository can be copied on top of the infinigen repository (version 1.11.1).  Installation instructions below.
+
+Installation is described below and requires installation of the infinigen framework then copying the files from this repository to the infinigen directory.
+
+This code base is completely dependeint infinigen and also uses code based on BlenderProc (distortion model, instance segmentation for generating bounding boxes).  BlenderProc
 
 ## Installation
+Installation requires installing infinigen following it's instructions followed by copying the code from this repository to infinigen.  Several files are replaced.
 
-#### Infinigen
-Please install version 1.11.1 of infinigen following the installation process found at https://github.com/princeton-vl/infinigen.
+#### 1. infinigen installation
+Please install version 1.11.x of infinigen following the installation process found at https://github.com/princeton-vl/infinigen.
 
-See Installation instructions for "Installing Infinigen as a Python Module".  Use the full install.
+Follow the installation instructions for "Installing Infinigen as a Python Module".  Use the full install.
 
-If you want to use the Blender tool, also run the "Installing Infinigen as a Blender Python script" so that it installs the same version of blender.
+If you want to use the Blender interface as well, also run the "Installing Infinigen as a Blender Python script" so that it installs the same version of blender.
 
 ###### Troubleshooting
 If you're getting some compile errors (eg it can't find the right header files), try to change the setting of the environment variables to below if these aren't set already.
@@ -23,23 +30,26 @@ export LD_LIBRARY_PATH=$CONDA_PREFIX/lib
 ```
 
 
-Add to the conda environment
-```commandline
-pip install pycocotools
-```
-#### infinigenBenthic installation
+#### 2. infinigenBenthic installation
 'infinigenBenthic' copies over some of the infinigen code to give some updated features.  See Enhancements below.
 
 After installing infinigen, infinigenBenthic can be downloaded and copied to the infinigen directory.  
 
+Starting from the infinigen directory...
 ```bash
+cd ..
 git clone https://github.com/hdoi5324/infinigenBenthic.git
 cd infinigenBenthic
+mv README.md README_infinigenBenthic.md
 cp -r * ../infinigen
 ```
+Update the conda environment with the following.
+```commandline
+pip install pycocotools
+```
 
-#### Running benthic scenes
-From the infinigen director execute the following.
+## Generating benthic scenes
+From the infinigen directory execute the following.
 ```commandline
 conda activate infinigen
 bash scripts/benthic/generate_images.sh
@@ -51,42 +61,40 @@ Edit `generate_images.sh` for location of output and number of scenes.
 
 `infinigen_examples/generate_auv_mission.py` is based on `generate_nature.py` and focuses just on underwater scenes.
 
-## Enhancements
-The infinigen blender framework has been extended with the following features
 
-##### Underwater robotic vehicles
-* Camera rig have configurable spotlights for lighting
-* Mow the lawn camera placement to mimic AUV mission
-* Configurable camera properties including focal length, sensor size and lens distortion
-
-#### Underwater scenes
-* Water models light scattering and light absorbtion using Volume Absorption and Volume Scattering shaders
-* Assets - Black Spiny Urchin, Kina Urchin, Pink Handfish, plastic bags, colourboard
-* Materials - more complex sand (ComplexSand)
-
-#### Other
-* Distinct colours for blender ground truth rendering of segmentation masks used for bounding box generation.
-
-
-## Demo
+#### Demo single scene
 
 ```bash
 python -m infinigen.datagen.manage_jobs -- --output_folder outputs/benthic_demo --num_scenes 1 \
 --configs coral_reef_hd.gin --pipeline_configs local_16GB.gin monocular.gin cuda_terrain.gin hd_coral_reef_datagen.gin
 ```
 
-#### Changes
+## Enhancements
+The infinigen blender framework has been extended with the following features
+
+##### Underwater robotic vehicles
+* Camera rig have configurable spotlights for lighting
+* Mow the lawn camera rig animation to mimic AUV mission
+* Configurable camera properties including focal length, sensor size and lens distortion
+* Distortion model applied based on BlenderProc
+
+#### Underwater scenes
+* Water models light scattering and light absorbtion using Volume Absorption and Volume Scattering shaders
+* Assets - Black Spiny Urchin, Kina Urchin, Handfish, plastic bags, colourboard
+* Materials - mixed underwater surface ComplexSand)
+
+#### Other
+* Distinct colours for blender ground truth rendering of segmentation masks used for bounding box generation. Based on BlenderProc
+
+
+## Change Log
 * Add lights to camera 
 * Apply distortion by calculating distortion mapping when setting up camera, changing size of photo taken then applying distortion at render.
 * Mow the lawn animation
 * Water absorption and scattering
 
 
-## todo in refactor to 4.2
-* move assets, materials from octo 
-* render_image - apply distortion, motion blur, dof
-* update water shader for scattering and absorption
+#### Outstanding Issues
 * Bug: OcMesher doesn't create vertex_attributes for 'eroded'.  Logged in github
 * Bug: SphericalMesher doesn't work with wide FOV.
-* Bug: SphericalMesher crashes
-* 
+* Enhancement: render images without water to allow evaluation of water modelling

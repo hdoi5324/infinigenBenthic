@@ -10,9 +10,6 @@ camera.spawn_camera_rigs.camera_rig_config = [
 #    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
 ]
 
-# Terrain
-####compose_nature.inview_distance = 12
-
 # Lens and resolution
 focal_mm = 15.89 # Sirius 15.89 Nimbus 13.89
 camera_utility.set_camera_parameters.focal_mm=%focal_mm
@@ -20,20 +17,15 @@ camera.camera_pose_proposal.focal_length=%focal_mm
 camera_utility.set_camera_parameters.pixel_size_in_mm=0.01035 # Sirius 0.00345 Nimbus 0.00454
 W = 1368 # Sirius 4112  Nimbus 2752 Scaled down 1250 1360
 H = 1000 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
-# execute_tasks.generate_resolution = (%W, %H) ## NO LONGER USED
 camera_utility.set_camera_parameters.image_height=%H
 camera_utility.set_camera_parameters.image_width=%W
-get_sensor_coords.H = %H
-get_sensor_coords.W = %W
-
 
 # Distortion.  Based on Blenderproc distortion approach
 distort=True
 #camera_utility.set_camera_parameters.use_distortion=%distort
 #full/render_image_benthic.apply_distortion = %distort
 #flat/render_image_benthic.apply_distortion = False
-#full/render_image_benthic.motion_blur = ("clip_gaussian", 0.00, 0.01, 0.00, 0.02)
-
+full/render_image_benthic.motion_blur = ("clip_gaussian", 0.007, 0.005, 0.00, 0.04)
 
 # Lights
 camera.configure_camera_lights.light_foreaft=False
@@ -41,11 +33,12 @@ camera.configure_camera_lights.energy = 800
 camera.configure_camera_lights.light_angle = 0 # nimbus = 10
 camera.configure_camera_lights.light_offset = 0.3 # nimbus 1.2
 
-
 # Render
 render_image.use_dof = False
 render_image.dof_aperture_fstop = 2.0 # AUV 2.0 ROV 1.4
 set_camera_parameters.focus_dist = 6.0 # AUV 1.9 # ROV 6.0 for 60 degrees, 2.8 at 45
+
+# Sensor Noise
 compositor_postprocessing.noise = 0.0001
 
 water.shader.volume_density = ("clip_gaussian", 0.6, 0.1, 0.5, 0.7)

@@ -12,6 +12,8 @@ import logging
 import os
 import time
 from pathlib import Path
+import warnings
+import shutil
 
 import bpy
 import gin
@@ -39,7 +41,7 @@ from infinigen.core.util.logging import Timer
 from infinigen.tools.datarelease_toolkit import reorganize_old_framesfolder
 from infinigen.tools.suffixes import get_suffix
 from infinigen.core.util.random import random_general
-from infinigen.core.placement.camera_utility import apply_lens_distortion, load_distortion_parameters
+from infinigen.core.placement.camera_utility import apply_lens_distortion, load_distortion_parameters, adjust_camera_sensor
 
 TRANSPARENT_SHADERS = {Nodes.TranslucentBSDF, Nodes.TransparentBSDF}
 
@@ -127,7 +129,7 @@ def compositor_postprocessing(
     distort=0,
     glare=False,
     noise=0,
-    saving_ground_truth=True
+    saving_ground_truth=False
 ):
     if distort > 0:
         source = nw.new_node(
@@ -146,7 +148,7 @@ def compositor_postprocessing(
         noise_texture_node = nw.new_node(Nodes.CompositorNodeTexture)
         noise_texture_node.texture = noise_texture
 
-        source = nw.new_node(Nodes.CompositorNodeMixRGB, [noise, source, noise_texture_node])
+        source = nw.new_node(Nodes.CompositorMixRGB, [noise, source, noise_texture_node])
         source.blend_type = "SCREEN"
 
     if glare:
@@ -418,7 +420,7 @@ def global_flat_shading():
         nw.links.remove(link)
 
 
-def postprocess_blendergt_outputs(frames_folder, output_stem):
+def postprocess_blendergt_outputs(frames_folder, output_stem, frame, tmp_dir):
     # Save flow visualization
     flow_dst_path = frames_folder / f"Vector{output_stem}.exr"
     flow_array = load_flow(flow_dst_path)
@@ -464,16 +466,13 @@ def postprocess_blendergt_outputs(frames_folder, output_stem):
     seg_dst_path.unlink()
 
     # Save unique instances visualization
+    # todo: this is changed to get clean edges on unique instances.  Maybe find better method that doesn't need frame and tmp_dir to be passed in
     uniq_inst_path = frames_folder / f"UniqueInstances{output_stem}.exr"
-    uniq_inst_array = load_uniq_inst(uniq_inst_path)
-    np.save(
-        flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"),
-        uniq_inst_array,
-    )
-    imwrite(
-        uniq_inst_path.with_name(f"InstanceSegmentation{output_stem}.png"),
-        colorize_int_array(uniq_inst_array),
-    )
+    #uniq_inst_array = load_uniq_inst(uniq_inst_path)
+    uniq_inst_tmp_path = f"{tmp_dir}/{frame:04d}.png"
+    uniq_inst_array = cv2.imread(uniq_inst_tmp_path)
+    np.save(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.npy"), uniq_inst_array)
+    shutil.copy(uniq_inst_tmp_path, str(flow_dst_path.with_name(f"InstanceSegmentation{output_stem}.png")))
     uniq_inst_path.unlink()
 
 
@@ -534,12 +533,14 @@ def configure_compositor_benthic(
 
     render_layers = nw.new_node(Nodes.RenderLayers)
     final_image_denoised = compositor_postprocessing(
-        nw, source=render_layers.outputs["Image"]
+        nw, source=render_layers.outputs["Image"],
+            saving_ground_truth=flat_shading,
     )
 
     final_image_noisy = (
         compositor_postprocessing(
-            nw, source=render_layers.outputs["Noisy Image"], show=False
+            nw, source=render_layers.outputs["Noisy Image"], show=False,
+            saving_ground_truth=flat_shading,
         )
         if bpy.context.scene.cycles.use_denoising
         else None
@@ -708,7 +709,7 @@ def render_image_benthic(
             )
             (frames_folder / f"Objects{suffix}.json").write_text(json_object)
 
-        with Timer("Flat Shading"):
+        with Timer("Flat Shading (benthic version)"):
             global_flat_shading()
     else:
         segment_materials = "material_index" in (x[0] for x in passes_to_save)
@@ -734,7 +735,7 @@ def render_image_benthic(
 
     if not bpy.context.scene.use_nodes:
         bpy.context.scene.use_nodes = True
-    file_slot_nodes = configure_compositor_benthic(frames_folder, passes_to_save, flat_shading, hide_water)
+    file_slot_nodes = configure_compositor_benthic(frames_folder, passes_to_save, flat_shading=flat_shading, hide_water=hide_water)
 
     indices = dict(cam_rig=camrig_id, resample=0, subcam=subcam_id)
 
@@ -745,7 +746,7 @@ def render_image_benthic(
 
     if use_dof == "IF_TARGET_SET":
         use_dof = camera.data.dof.focus_object is not None
-    elif use_dof is not None:
+    elif use_dof is not None and not flat_shading:
         camera.data.dof.use_dof = use_dof
         camera.data.dof.aperture_fstop = dof_aperture_fstop
 
@@ -758,7 +759,7 @@ def render_image_benthic(
     with Timer("Actual rendering"):
         bpy.ops.render.render(animation=True)
 
-    with Timer("Post Processing"):
+    with Timer("Post Processing (benthic version)"):
         for frame in range(
             bpy.context.scene.frame_start, bpy.context.scene.frame_end + 1
         ):
@@ -772,11 +773,6 @@ def render_image_benthic(
                 else:
                     postprocess_blendergt_outputs(frames_folder, suffix, frame, tmp_dir)
             else:
-                cam_util.save_camera_parameters(
-                    camera,
-                    output_folder=frames_folder,
-                    frame=frame,
-                )
                 bpy.context.scene.frame_set(frame)
                 suffix = get_suffix(dict(frame=frame, **indices))
                 if apply_distortion:
@@ -785,7 +781,11 @@ def render_image_benthic(
                     camera_dir = frames_folder.parent.resolve() / "camera_config"
                     postprocess_apply_distortion(camera, frames_folder, suffix, flat_shading,
                                                  camera_dir=camera_dir, output=output)
-
+                cam_util.save_camera_parameters(
+                    camera,
+                    output_folder=frames_folder,
+                    frame=frame,
+                )
 
     for file in tmp_dir.glob("*.png"):
         file.unlink()
@@ -864,4 +864,6 @@ def postprocess_apply_distortion(camera, frames_folder, output_stem, saving_grou
     np.save(image_dst_path.with_name(f"{output}{output_stem}.npy"), image_array)
     cv2.imwrite(str(image_dst_path.with_name(f"{output}{output_stem}.png")), image_array)
 
+    #pixel_size_in_mm = get_sensor_size(camera.data) / resolution_x
+    #adjust_camera_sensor(camera, pixel_size_in_mm * orig_res[0])
 

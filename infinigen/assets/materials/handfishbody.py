@@ -409,7 +409,7 @@ def shader_fish_body_handfish_spotted(nw: NodeWrangler):
 
     principled_bsdf = nw.new_node(Nodes.PrincipledBSDF,
                                   input_kwargs={'Base Color': color_ramp.outputs["Color"], 'Metallic': 0.4000,
-                                                'Specular': 0.2000})
+                                                'Specular IOR Level': 0.2000})
 
     material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': principled_bsdf},
                                   attrs={'is_active_output': True})
@@ -467,7 +467,7 @@ def shader_fish_body_handfish(nw: NodeWrangler):
             "Metallic": metallic,
             "Roughness": roughness,
             "Specular IOR Level": specular,
-            "Specular_Tint": specular_tint, #check this is ok
+            "Specular Tint": specular_tint, #check this is ok
             "Coat Weight": clearcoat,
         },
     )

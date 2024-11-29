@@ -1,9 +1,8 @@
 include 'infinigen_examples/configs_nature/disable_assets/no_assets.gin'
 include 'infinigen_examples/configs_nature/scene_types/under_water.gin'
-include 'infinigen_examples/configs_nature/benthic/auv_camera.gin'
-
 include 'infinigen_examples/configs_nature/performance/fast_terrain_assets.gin'
 include 'infinigen_examples/configs_nature/performance/dev.gin'
+include 'infinigen_examples/configs_nature/benthic/auv_camera.gin'
 
 run_erosion.n_iters = [1,1]
 ant_landscape_asset.snowfall = 0
@@ -14,64 +13,70 @@ configure_render_cycles.num_samples = 256
 
 #fine_terrain.mesher_backend = "OcMesher"
 
-#Terrain.bounds = (-20, 20, -20, 20, -25, 2)
-#Terrain.populated_bounds = (-8, 8, -8, 8, -25, 2)
 Terrain.bounds = (-100, 100, -100, 100, -100, 100)
-#Terrain.populated_bounds = (-20, 20, -20, 20, -25, 2)
+Terrain.populated_bounds = (-20, 20, -20, 20, -25, 2)
 
 min_terrain_distance = 0.8 # 2 in base.gin
 #keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
 #SphericalMesher.r_min = %min_terrain_distance
 
 #OcMesher.pixels_per_cube = 4 # hifi 4 default 8
-#OpaqueSphericalMesher.pixels_per_cube = 4 # hifi 0.92 lofi 4 ##### change to hifi
-#TransparentSphericalMesher.pixels_per_cube = 4 # hifi 1.38 lofi 4
+OpaqueSphericalMesher.pixels_per_cube = 2 # hifi 0.92 lofi 4 ##### change to hifi
+TransparentSphericalMesher.pixels_per_cube = 2 # hifi 1.38 lofi 4
 #target_face_size.global_multiplier = 2 # use this for dev. Not sure it gets used for my assets
 
+compose_nature.center_distance = 15  # Used for creature animation
 compose_nature.inview_distance = 15 # distance for placeholders
 placement.populate_all.dist_cull = 8
-#ompose_nature.near_distance = 8 # how far to scatter small particles eg pine needles
-compose_nature.center_distance = 10  # Used for creature animation
+compose_nature.near_distance = 8 # how far to scatter small particles eg pine needles
 placement.populate_all.dist_cull = 35
 
+fps = 2
+compose_nature.fps = %fps #24
+
 # Configure straight path with lower frequency frames. Based on AUV Nimbus
-animate_cameras.policy_registry = @cam/AnimPolicyRandomForwardWalk
+#animate_cameras.policy_registry = @cam/AnimPolicyRandomForwardWalk
 cam/AnimPolicyRandomForwardWalk.forward_vec = (0,0,-1)
 cam/AnimPolicyRandomForwardWalk.speed = 0.5
 cam/AnimPolicyRandomForwardWalk.step_range = (1, 2)
 cam/AnimPolicyRandomForwardWalk.yaw_dist = 0
 
 # Mow the Lawn path
-#animate_cameras.policy_registry = @cam/AnimPolicyMowTheLawn
-#cam/AnimPolicyMowTheLawn.speed = 1.0
-#cam/AnimPolicyMowTheLawn.fps = %fps
-#cam/AnimPolicyMowTheLawn.transect_multiple = 3
-#cam/AnimPolicyMowTheLawn.turn_frames = 2
+animate_cameras.policy_registry = @cam/AnimPolicyMowTheLawn
+cam/AnimPolicyMowTheLawn.speed = 1.0
+cam/AnimPolicyMowTheLawn.fps = %fps
+cam/AnimPolicyMowTheLawn.transect_multiple = 3
+cam/AnimPolicyMowTheLawn.turn_frames = 3
 
-render.render_image_func=@rend/render_image_benthic
-full/render_image.passes_to_save = []
+full/render_image.passes_to_save = [] # doesn't save additional images eg occlusion, normals. See base.gin for list
+full/render_image_benthic.passes_to_save = [] # doesn't save all images. See base.gin for list
+full/render_image_benthic.flat_shading = False
+flat/render_image_benthic.flat_shading = True
+flat/render_image_benthic.passes_to_save = [
+    ['z', 'Depth'],
+    ['normal', 'Normal'],
+    ['vector', 'Vector'],
+    ['object_index', 'IndexOB']
+]
 
-fps = 24
-compose_nature.fps = %fps #24
 
 # Asset probabilities
-compose_nature.urchin_chance = 0.0 #0.2
-compose_nature.urchinkina_chance = 0.0 #0.3
-compose_nature.handfish_chance = 0.0 #1.0
-compose_nature.handfish_school_chance = 0.0
-compose_nature.fish_school_chance = 0.0 #0.7
-compose_nature.colourboard_chance = 0.0 #1.0
-compose_nature.plasticbag_chance = 0.0 #0.1
+compose_nature.urchin_chance = 1.0
+compose_nature.urchinkina_chance = 0.3
+compose_nature.handfish_chance = 1.0
+compose_nature.fish_school_chance = 0.7
+compose_nature.colourboard_chance = 1.0
+compose_nature.plasticbag_chance = 0.1
 compose_nature.cocoimage_chance = 0.0
 compose_nature.seaweed_chance = 0.2
-compose_nature.lichen_chance = 0.0 # 0.3
-compose_nature.kelp_chance = 0.2
-compose_nature.corals_chance = 0.3
-compose_nature.coral_density = 0.4
-compose_nature.horizontal_coral_density = 0.3
+compose_nature.lichen_chance = 0.3
+compose_nature.kelp_chance = 0.4
+compose_nature.corals_chance = 0.4
+#compose_nature.coral_density = 0.4
+#compose_nature.horizontal_coral_density = 0.3
 compose_nature.rocks_chance = 0.3
 compose_nature.mollusk_chance = 0.5
-compose_nature.scolymia_chance = 0.0 #0.0
+compose_nature.scolymia_chance = 0.0 
 compose_nature.jellyfish_chance = 0.1
 compose_nature.marine_snow_particles_chance = 0.3
 compose_nature.boulders_chance = 0.4
@@ -81,8 +86,6 @@ compose_nature.max_handfish = 10
 populate_scene.slime_mold_chance = 0.0
 populate_scene.lichen_chance = 0.0
 populate_scene.moss_chance = 0.0
-
-compose_nature.grass_chance = 0.0
 
 # Lighting
 compose_nature.lighting_enabled = True
@@ -106,6 +109,15 @@ water.shader.anisotropy = ("clip_gaussian", 0.7, 0.2, 0.6, 0.8)
 water.shader.colored = 1 #True
 water.shader.emissive_foam = 0
 
+# Surface registry
+surface.registry.ground_collection = [
+    ('sand', 1),
+    ('sandcomplex', 1),
+    ('cracked_ground', 1),   
+    ('dirt', 1),
+    ('stone', 1),
+    ('chunkyrock', 0),
+]
 
 
 

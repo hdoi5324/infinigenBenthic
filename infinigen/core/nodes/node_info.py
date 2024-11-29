@@ -43,6 +43,8 @@ class Nodes:
     CombineRGB = "ShaderNodeCombineRGB"
     CombineColor = "ShaderNodeCombineColor"
     CompCombineColor = "CompositorNodeCombineColor"
+    CompositorMixRGB = "CompositorNodeMixRGB"
+    CompositorNodeTexture = "CompositorNodeTexture"
 
     # bl3.5 additions
     SeparateComponents = "GeometryNodeSeparateComponents"

@@ -72,12 +72,11 @@ from infinigen.assets.scatters import (
     slime_mold,
     snow_layer,
     urchin,
-#    urchin_kina, #todo: migrate from octoq
-#    plasticbag,
-#    cocoimageplane,
-
+    urchin_kina, 
+    plasticbag,
+    cocoimageplane,
 )
-#####from infinigen.assets.objects.underwater.colourboard import place_colourboard #todo: migrate from octo
+from infinigen.assets.objects.underwater.colourboard import place_colourboard 
 from infinigen.assets.scatters.utils.selection import scatter_lower, scatter_upward
 from infinigen.core import execute_tasks, init, surface
 from infinigen.core.placement import camera as cam_util
@@ -157,10 +156,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     p.run_stage("boulders", add_boulders, terrain_mesh)
 
     def camera_preprocess():
-        camera_rigs = cam_util.spawn_camera_rigs() #todo: do onboard lights later?
-
-        # Set camera lens parameters including distortion
-        set_camera_parameters(camera_rigs, parameter_dir=output_folder.parent)
+        camera_rigs = cam_util.spawn_camera_rigs()
         scene_preprocessed = cam_util.camera_selection_preprocessing(
             terrain,
             terrain_mesh,
@@ -223,67 +219,20 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     deps = bpy.context.evaluated_depsgraph_get()
     mathutils.bvhtree.BVHTree.FromObject(terrain_center, deps)
 
-    pois = []  # objects / points of interest, for the camera to look at
-
     # Crustaceans
-    def add_ground_creatures(target):
-        fac_class = creatures.CrustaceanFactory  # sample_registry(params['ground_creature_registry'])
-        fac = fac_class(int_hash((scene_seed, 0)), bvh=scene_bvh, animation_mode="idle")
-        n = params.get("max_ground_creatures", randint(1, 4))
-        selection = (
-            density.placement_mask(
-                select_thresh=0, tag="beach", altitude_range=(-0.5, 0.5)
-            )
-            if fac_class is creatures.CrabFactory
-            else 1
-        )
-        col = placement.scatter_placeholders_mesh(
-            target,
-            fac,
-            num_placeholders=n,
-            overall_density=1,
-            selection=selection,
-            altitude=0.2,
-        )
-        return list(col.objects)
-
-    pois += p.run_stage(
-        "ground_creatures", add_ground_creatures, target=terrain_center, default=[]
-    )
-
-    def add_handfish(target):
-        pois = []
-        n_handfish_species = params.get("max_handfish", 5)
-        for i in range(n_handfish_species):
-            fac = creatures.HandfishFactory(int_hash((scene_seed+i, 0)), bvh=scene_bvh, animation_mode='idle')
-            selection = density.placement_mask(
-                scale=0.05, tag=underwater_domain, select_thresh=0.4
-            )
-            col = placement.scatter_placeholders_mesh(
-                target,
-                fac,
-                altitude=uniform(0.015, 0.04),
-                overall_density=0.7 / n_handfish_species,
-                selection=selection,
-                distance_min=1,
-            )
-            pois += list(col.objects)
-        return pois
-
-    pois += p.run_stage('handfish', add_handfish, target=terrain_center, default=[])
 
     def animate_cameras():
-        cam_util.animate_cameras(camera_rigs, bbox, scene_preprocessed, pois=pois)
+        cam_util.animate_cameras(camera_rigs, bbox, scene_preprocessed)
 
         frames_folder = output_folder.parent / "frames"
         animated_cams = [cam for cam in camera_rigs if cam.animation_data is not None]
         save_imu_tum_files(frames_folder / "imu_tum", animated_cams)
 
-    p.run_stage(
-        "animate_cameras",
-        animate_cameras,
-        use_chance=False,
-    )
+    #p.run_stage(
+    #    "animate_cameras",
+    #    animate_cameras,
+    #    use_chance=False,
+    #)
 
     with logging_util.Timer("Compute coarse terrain frustrums"):
         terrain_inview, *_ = split_in_view.split_inview(
@@ -323,6 +272,58 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         deps = bpy.context.evaluated_depsgraph_get()
         terrain_inview_bvh = mathutils.bvhtree.BVHTree.FromObject(terrain_inview, deps)
 
+    def configure_camera():
+        # Set camera lens parameters including distortion
+        camera_rigs = list(bpy.data.collections["camera_rigs"].objects)
+        set_camera_parameters(camera_rigs, parameter_dir=output_folder.parent)
+        return camera_rigs
+
+    camera_rigs = p.run_stage(
+        "configure_cameras", configure_camera, use_chance=False
+    )
+
+    def add_ground_creatures(target):
+        fac_class = creatures.CrustaceanFactory  # sample_registry(params['ground_creature_registry'])
+        fac = fac_class(int_hash((scene_seed, 0)), bvh=scene_bvh, animation_mode="idle")
+        n = params.get("max_ground_creatures", randint(1, 4))
+        selection = (
+            density.placement_mask(
+                select_thresh=0, tag="beach", altitude_range=(-0.5, 0.5)
+            )
+            if fac_class is creatures.CrabFactory
+            else 1
+        )
+        col = placement.scatter_placeholders_mesh(
+            target,
+            fac,
+            num_placeholders=n,
+            overall_density=1,
+            selection=selection,
+            altitude=0.2,
+        )
+        return list(col.objects)
+
+    p.run_stage(
+        "ground_creatures", add_ground_creatures, target=terrain_center, default=[]
+    )
+
+    def add_handfish(target):
+        n_handfish_species = params.get("max_handfish", 5)
+        for i in range(n_handfish_species):
+            fac = creatures.HandfishFactory(int_hash((scene_seed+i, 0)), bvh=scene_bvh, animation_mode='idle')
+            selection = density.placement_mask(
+                scale=0.05, tag=underwater_domain, select_thresh=0.4
+            )
+            col = placement.scatter_placeholders_mesh(
+                target,
+                fac,
+                altitude=uniform(0.015, 0.04),
+                overall_density=0.7 / n_handfish_species,
+                selection=selection,
+                distance_min=1,
+            )
+
+    p.run_stage('handfish', add_handfish, target=terrain_center, default=[])
     def add_fish_school():
         n = random_general(params.get("max_fish_schools", 3))
         for i in range(n):
@@ -341,21 +342,6 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
             placement.populate_collection(fac, col)
 
     p.run_stage("fish_school", add_fish_school, default=[])
-
-    def add_handfish_school():
-        selection = density.placement_mask(scale=0.05, select_thresh=uniform(0.1, 0.3), tag=underwater_domain)
-        fac = creatures.HandfishSchoolFactory(randint(1e7 + 55), bvh=terrain_inview_bvh)
-        col = placement.scatter_placeholders_mesh(
-            terrain_near,
-            fac,
-            selection=selection,
-            overall_density=1,
-            num_placeholders=1,
-            altitude=.1
-        )
-        placement.populate_collection(fac, col)
-
-    p.run_stage('handfish_school', add_handfish_school, default=[])
 
     def add_rocks(target):
         selection = density.placement_mask(
@@ -460,7 +446,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
                                                      selection=density.placement_mask(scale=0.05, select_thresh=.5,
                                                                                       tag=underwater_domain)))
 
-    p.run_stage('colourboard', lambda: place_colourboard(cam.parent, scene_bvh, n=3, alt=0.02, dist_range=(0, 2)))
+    p.run_stage('colourboard', lambda: place_colourboard(primary_cams[0].parent, scene_bvh, n=3, alt=0.02, dist_range=(0, 2)))
 
     def add_plastic_bags(target):
         selection = density.placement_mask(scale=0.1, select_thresh=0.52, normal_thresh=0.7,
