@@ -163,7 +163,6 @@ class SeaweedFactory(AssetFactory):
                 "Base Color": cr,
                 "Subsurface Weight": subsurface_ratio,
                 "Subsurface Radius": (0.01, 0.01, 0.01),
-                "Subsurface Color": map_perturb(base_hue, 0.6, 0.2),
                 "Roughness": roughness,
                 "Specular IOR Level": specular,
             },

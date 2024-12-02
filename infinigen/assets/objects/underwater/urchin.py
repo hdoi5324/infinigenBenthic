@@ -128,7 +128,6 @@ class UrchinFactory(AssetFactory):
                 "Base Color": color,
                 "Roughness": roughness,
                 "Subsurface Weight": subsurface,
-                "Subsurface Color": color,
                 "Transmission Weight": transmission,
             },
         )

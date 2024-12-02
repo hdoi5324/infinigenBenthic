@@ -324,8 +324,13 @@ class AnimPolicyFollowObject:
 
 @gin.configurable
 class AnimPolicyMowTheLawn:
-
-    def __init__(self, speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), fps=2, percent_var=0.1, turn_frames=4, transect_multiple=5):
+    def __init__(
+            self, 
+            speed=("clip_gaussian", 0.5, 0.1, 0.4, 0.6), 
+            fps=2.0, 
+            percent_var=0.15, 
+            turn_frames=4,
+            transect_multiple=5):
         self.speed = speed
         self.fps = fps
         self.percent_var = percent_var
@@ -346,20 +351,18 @@ class AnimPolicyMowTheLawn:
         else:
             z_offset = 0
 
-        yaw = obj.rotation_euler[2] + np.pi/2
-        x = speed/self.fps*np.cos(yaw) #* -1
-        y = speed/self.fps*np.sin(yaw) #* -1
+        yaw = obj.rotation_euler[2] + np.pi / 2
+        x = speed / self.fps * np.cos(yaw)  #* -1
+        y = speed / self.fps * np.sin(yaw)  #* -1
         var_x = np.abs(x * self.percent_var)
         var_y = np.abs(y * self.percent_var)
 
-        #sampler = lambda: [0.0, speed/self.fps, 0.5]
-        sampler = lambda: [N(x, var_x), N(y, var_y), N(0, 0.2)]
+        sampler = lambda: [N(x, var_x), N(y, var_y), N(0, 0.5)]
         pos = walk_same_altitude(obj.location, sampler, bvh)
-        time = 1 / self.fps - 0.001 # Make the time slightly less than one frame so that it always moves forward one frame.
-
         rot = np.array(obj.rotation_euler) + np.array([0, 0, z_offset])
+        time = 1 / self.fps * 0.99  # Make the time slightly less than one frame so that it moves forward only one frame.
 
-        return Vector(pos), Vector(rot), time, "LINEAR"
+        return Vector(pos), Vector(rot), time, "BEZIER"
 
 
 def validate_keyframe_range(
@@ -752,3 +755,87 @@ def policy_create_bezier_path(
     res = Curve(points=positions).to_curve_obj(name="policy_path", to_mesh=to_mesh)
     butil.delete(temp)
     return res
+
+@gin.configurable
+def adjust_animated_path_altitude(obj, altitude, z_move_up=1):
+    # Gather current animation data
+    kf_locs = []
+    kf_rots = []
+    kf_ts = []
+    for j in range(
+            len(obj.animation_data.action.fcurves[0].keyframe_points)
+    ):
+        kf_ts.append(
+            obj.animation_data.action.fcurves[0].keyframe_points[j].co.x
+        )
+        kf_locs.append(
+            (
+                obj.animation_data.action.fcurves[0]
+                .keyframe_points[j]
+                .co.y,
+                obj.animation_data.action.fcurves[1]
+                .keyframe_points[j]
+                .co.y,
+                obj.animation_data.action.fcurves[2]
+                .keyframe_points[j]
+                .co.y,
+            )
+        )
+        kf_rots.append(
+            (
+                obj.animation_data.action.fcurves[3]
+                .keyframe_points[j]
+                .co.y,
+                obj.animation_data.action.fcurves[4]
+                .keyframe_points[j]
+                .co.y,
+                obj.animation_data.action.fcurves[5]
+                .keyframe_points[j]
+                .co.y,
+            )
+        )
+
+    obj.animation_data_clear()
+    for i, t in enumerate(kf_ts):
+        pos = kf_locs[i]
+
+        hit, hit_location, _, _, hit_object, _ = scene_ray_cast(pos)
+        pos_altitude = pos[-1] - hit_location[-1]
+        target_altitude = random_general(altitude)
+
+        if hit and pos_altitude < target_altitude:
+            old_pos = pos
+            pos = (pos[0], pos[1], hit_location[-1] + target_altitude)
+            logger.debug(
+                f"Moving from old position {old_pos}, old_altitude {pos_altitude} to new position {pos}, new_altitude {target_altitude}. Hit object {hit_object}"
+            )
+        keyframe(
+            obj,
+            pos,
+            kf_rots[i],
+            t,
+            interp="BEZIER",
+        )
+
+
+def scene_ray_cast(origin, direction=Vector((0.0, 0.0, -1.0)), max_distance=100000):
+    """ 
+    From BlenderProc https://github.com/DLR-RM/BlenderProc
+
+    Cast a ray onto all geometry from the scene, in world space.
+
+   :param origin: Origin of the ray, in world space.
+   :param direction: Direction of the ray, in world space.
+   :param max_distance: Maximum distance.
+   :return: Whether the ray successfully hit any geometry
+            The hit location of this ray cast, float array of 3 items in [-inf, inf]
+            The face normal at the ray cast hit location, float array of 3 items in [-inf, inf]
+            The face index, -1 when original data isn’t available, int in [-inf, inf]
+            If any object has been hit, the MeshObject otherwise None.
+            Some 4x4 matrix.
+   """
+    hit, location, normal, index, hit_object, matrix = bpy.context.scene.ray_cast(bpy.context.evaluated_depsgraph_get(),
+                                                                                  Vector(origin), Vector(direction),
+                                                                                  distance=max_distance)
+
+    return hit, np.array(location), np.array(normal), index, hit_object, np.array(matrix)

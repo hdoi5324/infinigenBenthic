@@ -1,5 +1,10 @@
 # Camera rig
-camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 2.3)
+altitude=("clip_gaussian", 2.2, .1, 1.8, 2.3)
+camera.camera_pose_proposal.altitude = %altitude
+min_terrain_distance = 1.7
+keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
+SphericalMesher.r_min = %min_terrain_distance
+animation_policy.adjust_animated_path_altitude.altitude = %altitude
 camera.camera_pose_proposal.pitch = 0 # 0 for downward looking
 camera_offset = 0.05 # Half baseline for stereo
 camera_pitch = 0 # euler
@@ -7,14 +12,14 @@ camera_yaw=0
 camera.spawn_camera_rigs.n_camera_rigs = 1
 camera.spawn_camera_rigs.camera_rig_config = [
     {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
-#    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
+#    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # stereo camera
 ]
 
 # Lens and resolution
 W = 1376 # Sirius 4112  Nimbus 2752 Scaled down 1250 1360
 H = 1100 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
 execute_tasks.generate_resolution = (%W, %H) 
-# These are needed if using distortion.
+# These need to be set if using distortion.
 camera_utility.set_camera_parameters.image_height=%H
 camera_utility.set_camera_parameters.image_width=%W
 #camera_utility.set_camera_parameters.focal_mm=13.89 # Sirius 15.89 Nimbus 13.89

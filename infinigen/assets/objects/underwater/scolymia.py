@@ -112,7 +112,6 @@ def shader_scolymia(nw: NodeWrangler, base_hue=0.345):
         'Base Color': color,
         'Roughness': roughness,
         'Subsurface': subsurface,
-        'Subsurface Color': color,
         'Transmission': transmission
     })
 

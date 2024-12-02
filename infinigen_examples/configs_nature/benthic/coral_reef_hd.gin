@@ -13,23 +13,23 @@ configure_render_cycles.num_samples = 256
 
 #fine_terrain.mesher_backend = "OcMesher"
 
-Terrain.bounds = (-100, 100, -100, 100, -100, 100)
-Terrain.populated_bounds = (-20, 20, -20, 20, -25, 2)
-
-min_terrain_distance = 0.8 # 2 in base.gin
-#keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
-#SphericalMesher.r_min = %min_terrain_distance
-
 #OcMesher.pixels_per_cube = 4 # hifi 4 default 8
-OpaqueSphericalMesher.pixels_per_cube = 2 # hifi 0.92 lofi 4 ##### change to hifi
-TransparentSphericalMesher.pixels_per_cube = 2 # hifi 1.38 lofi 4
+OpaqueSphericalMesher.pixels_per_cube = 0.92 # hifi 0.92 lofi 4 ##### change to hifi
+TransparentSphericalMesher.pixels_per_cube = 4 # hifi 1.38 lofi 4
 #target_face_size.global_multiplier = 2 # use this for dev. Not sure it gets used for my assets
 
+Terrain.bounds = (-60, 60, -60, 60, -60, 60)
+Terrain.populated_bounds = (-20, 20, -20, 20, -25, 2)
+
 compose_nature.center_distance = 15  # Used for creature animation
-compose_nature.inview_distance = 15 # distance for placeholders
+compose_nature.inview_distance = 20 # distance for placeholders
 placement.populate_all.dist_cull = 8
-compose_nature.near_distance = 8 # how far to scatter small particles eg pine needles
+compose_nature.near_distance = 15 # how far to scatter small particles eg pine needles
 placement.populate_all.dist_cull = 35
+
+#min_terrain_distance = 0.8 # 2 in base.gin
+#keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
+#SphericalMesher.r_min = %min_terrain_distance
 
 fps = 2
 compose_nature.fps = %fps #24
@@ -45,8 +45,11 @@ cam/AnimPolicyRandomForwardWalk.yaw_dist = 0
 animate_cameras.policy_registry = @cam/AnimPolicyMowTheLawn
 cam/AnimPolicyMowTheLawn.speed = 1.0
 cam/AnimPolicyMowTheLawn.fps = %fps
-cam/AnimPolicyMowTheLawn.transect_multiple = 3
+cam/AnimPolicyMowTheLawn.transect_multiple = 4
 cam/AnimPolicyMowTheLawn.turn_frames = 3
+
+# Adjust camera altitude after populating scene so the minimum altitude is the same as target altitude.
+populate_scene.adjust_cameras_chance = 0.0
 
 full/render_image.passes_to_save = [] # doesn't save additional images eg occlusion, normals. See base.gin for list
 full/render_image_benthic.passes_to_save = [] # doesn't save all images. See base.gin for list
@@ -62,18 +65,18 @@ flat/render_image_benthic.passes_to_save = [
 
 # Asset probabilities
 compose_nature.urchin_chance = 1.0
-compose_nature.urchinkina_chance = 0.3
-compose_nature.handfish_chance = 1.0
+compose_nature.urchinkina_chance = 0.0
+compose_nature.handfish_chance = 0.3
 compose_nature.fish_school_chance = 0.7
 compose_nature.colourboard_chance = 1.0
 compose_nature.plasticbag_chance = 0.1
 compose_nature.cocoimage_chance = 0.0
-compose_nature.seaweed_chance = 0.2
+compose_nature.seaweed_chance = 0.7
 compose_nature.lichen_chance = 0.3
-compose_nature.kelp_chance = 0.4
-compose_nature.corals_chance = 0.4
-#compose_nature.coral_density = 0.4
-#compose_nature.horizontal_coral_density = 0.3
+compose_nature.kelp_chance = 0.2
+compose_nature.corals_chance = 1.0
+#compose_nature.coral_density = 0.2
+#compose_nature.horizontal_coral_density = 0.2
 compose_nature.rocks_chance = 0.3
 compose_nature.mollusk_chance = 0.5
 compose_nature.scolymia_chance = 0.0 
@@ -113,11 +116,15 @@ water.shader.emissive_foam = 0
 surface.registry.ground_collection = [
     ('sand', 1),
     ('sandcomplex', 1),
-    ('cracked_ground', 1),   
     ('dirt', 1),
     ('stone', 1),
     ('chunkyrock', 0),
 ]
 
+
+surface.registry.mountain_collection = [
+    ('sand', 1),
+    ("sandstone", 2),
+]
 
 

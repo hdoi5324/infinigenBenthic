@@ -91,6 +91,7 @@ from infinigen.core.util.organization import Tags, Task
 from infinigen.core.util.pipeline import RandomStageExecutor
 from infinigen.core.util.random import random_general, sample_registry
 from infinigen.terrain import Terrain
+from infinigen.core.placement import animation_policy
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +155,40 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
             )
 
     p.run_stage("boulders", add_boulders, terrain_mesh)
+
+    def add_corals(target):
+        vertical_faces = density.placement_mask(
+            scale=0.15, select_thresh=uniform(0.44, 0.48)
+        )
+        coral_reef.apply(
+            target,
+            n=3,
+            selection=vertical_faces,
+            tag=underwater_domain,
+            density=params.get("coral_density", 1.5),
+        )
+        horizontal_faces = density.placement_mask(
+            scale=0.15, normal_thresh=-0.4, normal_thresh_high=0.4
+        )
+        coral_reef.apply(
+            target,
+            selection=horizontal_faces,
+            n=3,
+            horizontal=True,
+            tag=underwater_domain,
+            density=params.get("horizontal_coral_density", 1.5),
+        )
+
+    p.run_stage("corals", add_corals, terrain_mesh)
+
+    def add_kelp(terrain_mesh):
+        fac = monocot.KelpMonocotFactory(int_hash((scene_seed, 0)), coarse=True)
+        selection = density.placement_mask(scale=0.01, tag=underwater_domain, select_thresh=.4)
+        placement.scatter_placeholders_mesh(terrain_mesh, fac, altitude=-0.05,
+                                            overall_density=params.get('kelp_density', uniform(.05, .2)),
+                                            selection=selection, distance_min=5)
+
+    p.run_stage('kelp', add_kelp, terrain_mesh)
 
     def camera_preprocess():
         camera_rigs = cam_util.spawn_camera_rigs()
@@ -228,11 +263,11 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         animated_cams = [cam for cam in camera_rigs if cam.animation_data is not None]
         save_imu_tum_files(frames_folder / "imu_tum", animated_cams)
 
-    #p.run_stage(
-    #    "animate_cameras",
-    #    animate_cameras,
-    #    use_chance=False,
-    #)
+    p.run_stage(
+        "animate_cameras",
+        animate_cameras,
+        use_chance=False,
+    )
 
     with logging_util.Timer("Compute coarse terrain frustrums"):
         terrain_inview, *_ = split_in_view.split_inview(
@@ -324,6 +359,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
             )
 
     p.run_stage('handfish', add_handfish, target=terrain_center, default=[])
+
     def add_fish_school():
         n = random_general(params.get("max_fish_schools", 3))
         for i in range(n):
@@ -355,47 +391,6 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         return rock_col
 
     p.run_stage("rocks", add_rocks, terrain_inview)
-
-    def add_corals(target):
-        vertical_faces = density.placement_mask(
-            scale=0.15, select_thresh=uniform(0.44, 0.48)
-        )
-        coral_reef.apply(
-            target,
-            n=3,
-            selection=vertical_faces,
-            tag=underwater_domain,
-            density=params.get("coral_density", 1.5),
-        )
-        horizontal_faces = density.placement_mask(
-            scale=0.15, normal_thresh=-0.4, normal_thresh_high=0.4
-        )
-        coral_reef.apply(
-            target,
-            selection=horizontal_faces,
-            n=3,
-            horizontal=True,
-            tag=underwater_domain,
-            density=params.get("horizontal_coral_density", 1.5),
-        )
-
-    p.run_stage("corals", add_corals, terrain_inview)
-
-    def add_kelp(terrain_mesh):
-        fac = monocot.KelpMonocotFactory(int_hash((scene_seed, 0)), coarse=True)
-        selection = density.placement_mask(scale=0.01, tag=underwater_domain, select_thresh=.4)
-        placement.scatter_placeholders_mesh(terrain_mesh, fac, altitude=-0.05,
-                                            overall_density=params.get('kelp_density', uniform(.05, .2)),
-                                            selection=selection, distance_min=5)
-
-    p.run_stage('kelp', add_kelp, terrain_inview)
-
-    p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
-                                               selection=density.placement_mask(scale=0.05, select_thresh=.5,
-                                                                                normal_thresh=0.0,
-                                                                                tag=underwater_domain),
-                                               density=random_general(('uniform', 20, 100))))
-
     def add_coco_images(terrain_inview, classes=[1]):
         for c in classes:
             cocoimageplane.apply(terrain_inview,
@@ -417,13 +412,19 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     p.run_stage('seaweed', lambda: seaweed.apply(terrain_inview,
                                                  scale=random_general(('clip_gaussian', 0.3, 0.2, 0.1, 0.8)),
                                                  brown_prob=1.0,
-                                                 n=20,
+                                                 n=5,
                                                  selection=density.placement_mask(scale=0.05, select_thresh=0.3,
                                                                                   normal_thresh=0.4,
                                                                                   tag=underwater_domain)))
 
     urchin_density = random_general(('uniform', .5, 1))  # no per square metre
     urchin_select_threshold = uniform(0.5, 0.7)  # Lower covers more of the terrain_inview
+
+    p.run_stage('lichen', lambda: lichen.apply(terrain_inview,
+                                               selection=density.placement_mask(scale=0.05, select_thresh=.5,
+                                                                                normal_thresh=0.0,
+                                                                                tag=underwater_domain),
+                                               density=random_general(('uniform', 20, 100))))
 
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
                                                selection=density.placement_mask(scale=0.05,
@@ -520,6 +521,20 @@ def populate_scene(
             use_chance=False,
             fn=lambda: placement.populate_all(fac, cameras=None),
         )
+
+    def adjust_cameras():
+        for rig in camera_rigs:
+            animation_policy.adjust_animated_path_altitude(rig)
+
+        frames_folder = output_folder.parent / "frames"
+        animated_cams = [cam for cam in camera_rigs if cam.animation_data is not None]
+        save_imu_tum_files(frames_folder / "imu_tum", animated_cams)
+
+    p.run_stage(
+        "adjust_cameras",
+        adjust_cameras,
+        use_chance=True,
+    )
 
     p.save_results(output_folder / "pipeline_fine.csv")
 
