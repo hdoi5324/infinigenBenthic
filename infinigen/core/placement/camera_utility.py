@@ -22,6 +22,66 @@ def adjust_camera_sensor(cam, sensor_height=18., W=None, H=None):
     # assert sensor_width.is_integer(), (18, W, H)
     cam.data.sensor_height = sensor_height
     cam.data.sensor_width = sensor_width
+    bpy.context.view_layer.update()
+
+
+@gin.configurable
+def set_camera_parameters(cam_rigs,
+                          focal_mm=50.00,
+                          pixel_size_in_mm=0.01875,
+                          image_width=1920,
+                          image_height=1080,
+                          use_distortion=False,
+                          parameter_dir="/tmp",
+                          k1_k2_p1_p2_k3=[0.0013,
+                                          -0.03,
+                                          0.0,
+                                          0.0,
+                                          0.0],
+                          #f=4633,
+                          cx=None,
+                          cy=None,
+                          focus_dist=None,
+                          ):
+    scene = bpy.context.scene
+    scene.render.resolution_x = image_width
+    scene.render.resolution_y = image_height
+
+    [k1, k2, p1, p2, k3] = k1_k2_p1_p2_k3
+    f = int(focal_mm / pixel_size_in_mm)
+    #K = np.array([
+    #    [f, 0, cx],
+    #    [0, f, cy],
+    #    [0, 0, 1]
+    #])
+
+    for rig in cam_rigs:
+        for cam in rig.children:
+            if not cam.type == 'CAMERA': continue
+
+            cam_ob = cam
+            cam_data = cam_ob.data
+            cam_data.lens = focal_mm
+            cam_data.sensor_fit = "HORIZONTAL"
+            #todo: update adjust_camera_sensor to take sensor_fit as well.
+            adjust_camera_sensor(cam, pixel_size_in_mm * image_height)
+            #cam_data.sensor_width = pixel_size_in_mm * image_width
+
+            # Set intrinsics
+            set_intrinsics_from_blender_params(cam_ob, lens=focal_mm, lens_unit="MILLIMETERS",
+                                                            shift_x=cx,
+                                                            shift_y=cy)
+            if use_distortion:
+                mapping_coords = set_lens_distortion(
+                    cam_ob, image_height, image_width, k1, k2, k3, p1, p2)
+                save_distortion_parameters(cam_ob, mapping_coords, 
+                                           np.array([image_height, image_width]),
+                                           parameter_dir=parameter_dir)
+
+            if focus_dist is not None:
+                # Note: aperture and use_dof is set in render_image
+                cam_data.dof.focus_distance = focus_dist  # this should come before view_layer.update()
+            bpy.context.view_layer.update()
 
 
 def set_intrinsics_from_blender_params(cam_ob, lens: float = None, image_width: int = None, image_height: int = None,
@@ -83,6 +143,7 @@ def set_intrinsics_from_blender_params(cam_ob, lens: float = None, image_width: 
         cam.shift_x = shift_x
     if shift_y is not None:
         cam.shift_y = shift_y
+    bpy.context.view_layer.update()
 
 
 def set_intrinsics_from_K_matrix(cam_ob, K: Union[np.ndarray, Matrix], image_width: int, image_height: int,
@@ -347,7 +408,7 @@ def set_lens_distortion(cam: bpy.types.Camera, resolution_y, resolution_x,
 
     # Update sensor size using new resolution but keeping same px size.
     pixel_size_in_mm = get_sensor_size(cam.data) / resolution_x
-    adjust_camera_sensor(cam, sensor_height=pixel_size_in_mm * columns_needed, W=columns_needed, H=rows_needed)
+    adjust_camera_sensor(cam, sensor_height=pixel_size_in_mm * rows_needed, W=columns_needed, H=rows_needed)
 
     # Adapt/shift the mapping function coordinates to the new_image_resolution resolution
     # (if we didn't, the mapping would only be valid for same resolution mapping)

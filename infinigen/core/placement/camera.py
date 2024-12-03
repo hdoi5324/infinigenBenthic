@@ -10,9 +10,7 @@
 import logging
 import typing
 from copy import deepcopy
-import os
 from dataclasses import dataclass
-from functools import partial
 from itertools import chain
 from pathlib import Path
 
@@ -35,15 +33,14 @@ from infinigen.core.util.blender import SelectObjects, delete
 from infinigen.core.util.logging import Timer
 from infinigen.core.util.organization import SelectionCriterions
 from infinigen.core.util.random import random_general
+from infinigen.terrain.core import Terrain
 from infinigen.tools.suffixes import get_suffix
 
 from . import animation_policy
 
-from infinigen.core.placement.camera_utility import set_intrinsics_from_blender_params, set_lens_distortion, save_distortion_parameters, adjust_camera_sensor
+from infinigen.core.placement.camera_utility import adjust_camera_sensor
 
 logger = logging.getLogger(__name__)
-
-CAMERA_RIGS_DIRNAME = "CameraRigs"
 
 
 @gin.configurable
@@ -57,7 +54,7 @@ def get_sensor_coords(cam, H, W, sparse=False):
     scale = scene.render.resolution_percentage / 100
     sensor_width_in_m = camd.sensor_width / 1000
     sensor_height_in_m = camd.sensor_height / 1000
-    assert abs(sensor_width_in_m / sensor_height_in_m - W / H) < 0.1, (
+    assert abs(sensor_width_in_m / sensor_height_in_m - W / H) < 1e-4, (
         sensor_width_in_m,
         sensor_height_in_m,
         W,
@@ -112,86 +109,55 @@ def spawn_camera():
     return cam
 
 
-
-@gin.configurable
-def spawn_camera_light():
-    bpy.ops.object.light_add(type='SPOT')
-    spot = bpy.context.active_object
-    return spot
+def cam_name(cam_rig, subcam):
+    return f"camera_{cam_rig}_{subcam}"
 
 
-def camera_name(rig_id, cam_id):
-    return f"{CAMERA_RIGS_DIRNAME}/{rig_id}/{cam_id}"
+def get_id(camera: bpy.types.Object):
+    _, rig, subcam = camera.name.split("_")
+    return int(rig), int(subcam)
 
 
 @gin.configurable
 def spawn_camera_rigs(
     camera_rig_config,
     n_camera_rigs,
-    light_angle=10,
-    light_offset=1.2,
-    light_foreaft=True
-):
+) -> list[bpy.types.Object]:
+    rigs_col = butil.get_collection("camera_rigs")
+    cams_col = butil.get_collection("cameras")
+
     def spawn_rig(i):
-        # todo: use light configuration for addition of camera lights
-        rig_parent = butil.spawn_empty(f"{CAMERA_RIGS_DIRNAME}/{i}")
+        rig_parent = butil.spawn_empty(f"camrig.{i}")
+        butil.put_in_collection(rig_parent, rigs_col)
+
         for j, config in enumerate(camera_rig_config):
             cam = spawn_camera()
-            cam.name = camera_name(i, j)
+            cam.name = cam_name(i, j)
             cam.parent = rig_parent
-
             cam.location = config["loc"]
-            cam.rotation_euler = np.deg2rad(config["rot_euler"])
+            cam.rotation_euler = config["rot_euler"]
 
-        camera_pitch = camera_rig_config[0]['rot_euler'][0]
-        light_z = light_offset*np.sin(np.deg2rad(camera_pitch))
-        light_y = light_offset*np.cos(np.deg2rad(camera_pitch))
-        spot_offset = np.array([0, light_y, light_z] if light_foreaft else [light_offset, 0, 0])
-        for j in range(2):
-            # Add camera lights - first aft then fore
-            spot = spawn_camera_light()
-            spot.name = "Spot_" + camera_name(i, j)
-            spot.parent = rig_parent
+            butil.put_in_collection(cam, cams_col)
 
-            spot_location = spot_offset if j == 0 else spot_offset * -1
-            spot.location = spot_location
-
-            spot_angle = (light_angle if j == 1 else -light_angle) + camera_pitch if light_foreaft else 0
-            spot.rotation_euler = [np.deg2rad(spot_angle), 0, 0]
         return rig_parent
 
-    camera_rigs = [spawn_rig(i) for i in range(n_camera_rigs)]
-    butil.group_in_collection(camera_rigs, CAMERA_RIGS_DIRNAME)
-
-    return camera_rigs
+    return [spawn_rig(i) for i in range(n_camera_rigs)]
 
 
-def get_cameras_ids() -> list[tuple]:
-    res = []
-    col = bpy.data.collections[CAMERA_RIGS_DIRNAME]
-    rigs = [o for o in col.objects if o.name.count("/") == 1]
-    for i, root in enumerate(rigs):
-        for j, subcam in enumerate(root.children):
-            # Updated to allow for lights being in camera rig collection too.  Use name to get i, j
-            if subcam.type == 'CAMERA':
-                split_name = subcam.name.split('/')
-                i_split = split_name[-2]
-                j_split = split_name[-1]
-                assert subcam.name == camera_name(i_split, j_split)
-                res.append((i_split, j_split))
-    return res
+def get_camera_rigs() -> list[bpy.types.Object]:
+    if "camera_rigs" not in bpy.data.collections:
+        raise ValueError("No camera rigs found")
 
+    result = list(bpy.data.collections["camera_rigs"].objects)
 
-def get_camera(rig_id, subcam_id, checkonly=False):
-    col = bpy.data.collections[CAMERA_RIGS_DIRNAME]
-    name = camera_name(rig_id, subcam_id)
-    if name in col.objects.keys():
-        return col.objects[name]
-    if checkonly:
-        return None
-    raise ValueError(
-        f"Could not get_camera({rig_id=}, {subcam_id=}). {list(col.objects.keys())=}"
-    )
+    for i, rig in enumerate(result):
+        for j, child in enumerate(rig.children):
+            if not child.type == "CAMERA": continue
+            expected = cam_name(i, j)
+            if child.name != expected:
+                raise ValueError(f"child {i=} {j}  was {child.name=}, {expected=}")
+
+    return result
 
 
 @node_utils.to_nodegroup(
@@ -205,8 +171,7 @@ def nodegroup_active_cam_info(nw: NodeWrangler):
     )
 
 
-def set_active_camera(rig_id, subcam_id):
-    camera = get_camera(rig_id, subcam_id)
+def set_active_camera(camera: bpy.types.Object):
     bpy.context.scene.camera = camera
 
     ng = (
@@ -217,36 +182,12 @@ def set_active_camera(rig_id, subcam_id):
     return bpy.context.scene.camera
 
 
-def positive_gaussian(mean, std):
-    while True:
-        val = np.random.normal(mean, std)
-        if val > 0:
-            return val
-
-
-def set_camera(
-    camera,
-    location,
-    rotation,
-    focus_dist,
-    frame,
-):
-    camera.location = location
-    camera.rotation_euler = rotation
-    if focus_dist is not None:
-        camera.data.dof.focus_distance = (
-            focus_dist  # this should come before view_layer.update()
-        )
-    bpy.context.view_layer.update()
-
-    camera.keyframe_insert(data_path="location", frame=frame)
-    camera.keyframe_insert(data_path="rotation_euler", frame=frame)
-    if focus_dist is not None:
-        camera.data.dof.keyframe_insert(data_path="focus_distance", frame=frame)
-
-
 def terrain_camera_query(
-    cam, scene_bvh, terrain_tags_queries, vertexwise_min_dist, min_dist=0
+    cam: bpy.types.Object,
+    scene_bvh: BVHTree,
+    terrain_tags_queries,
+    vertexwise_min_dist,
+    min_dist=0,
 ):
     dists = []
     sensor_coords, pix_it = get_sensor_coords(cam, sparse=True)
@@ -278,16 +219,23 @@ class CameraProposal:
     rot: np.array
     focal_length: float
 
-    def apply(self, cam):
-        cam.location = self.loc
-        cam.rotation_euler = self.rot
-        cam.data.lens = self.focal_length
+    def apply(self, cam_rig):
+        cam_rig.location = self.loc
+        cam_rig.rotation_euler = self.rot
+
+        if self.focal_length is not None:
+            for cam in cam_rig.children:
+                if not cam.type == "CAMERA": continue
+                cam.data.lens = self.focal_length
 
 
 @gin.configurable
 def camera_pose_proposal(
     scene_bvh,
     location_sample: typing.Callable | tuple,
+    center_coordinate=None,
+    radius=None,
+    bbox=None,
     altitude=("uniform", 1.5, 2.5),
     roll=0,
     yaw=("uniform", -180, 180),
@@ -303,6 +251,32 @@ def camera_pose_proposal(
 
     if override_loc is not None:
         loc = Vector(random_general(override_loc))
+    elif center_coordinate:
+        while True:
+            # Define the radius of the circle
+            random_angle = np.random.uniform(2 * np.math.pi)
+            xoff = np.random.uniform(-radius / 10, radius / 10)
+            yoff = np.random.uniform(-radius / 10, radius / 10)
+            zoff = random_general(altitude)
+            loc = Vector([0, 0, 0])
+            loc[0] = center_coordinate[0] + radius * np.math.cos(random_angle) + xoff
+            loc[1] = center_coordinate[1] + radius * np.math.sin(random_angle) + yoff
+            loc[2] = center_coordinate[2] + zoff
+            if bbox is not None:
+                out_of_bbox = False
+                for i in range(3):
+                    if loc[i] < bbox[0][i] or loc[i] > bbox[1][i]:
+                        out_of_bbox = True
+                        break
+                if out_of_bbox:
+                    continue
+            hit, *_ = scene_bvh.ray_cast(
+                loc,
+                Vector(center_coordinate) - loc,
+                (Vector(center_coordinate) - loc).length,
+            )
+            if hit is None:
+                break
     elif altitude is None:
         loc = location_sample()
     else:
@@ -315,16 +289,31 @@ def camera_pose_proposal(
         desired_alt = random_general(altitude)
         loc[2] = loc[2] + desired_alt - curr_alt
 
-    rot = np.deg2rad([random_general(pitch), random_general(roll), random_general(yaw)])
+    if center_coordinate:
+        direction = loc - Vector(center_coordinate)
+        direction = Vector(direction)
+        rotation_matrix = direction.to_track_quat("Z", "Y").to_matrix()
+        rotation_euler = rotation_matrix.to_euler("XYZ")
+        roll, pitch, yaw = rotation_euler
+        noise_range = np.deg2rad(5.0)  # 5 degrees of noise in radians
+        # Add random noise to roll, pitch, and yaw
+        roll += np.random.uniform(-noise_range, noise_range)
+        pitch += np.random.uniform(-noise_range, noise_range)
+        yaw += np.random.uniform(-noise_range, noise_range)
+        rot = np.array([roll, pitch, yaw])
+    else:
+        rot = np.deg2rad(
+            [random_general(pitch), random_general(roll), random_general(yaw)]
+        )
     focal_length = random_general(focal_length)
     return CameraProposal(loc, rot, focal_length)
 
 
 @gin.configurable
 def keep_cam_pose_proposal(
-    cam,
-    terrain,
-    scene_bvh,
+    cam: bpy.types.Object,
+    terrain: Terrain,
+    scene_bvh: BVHTree,
     placeholders_kd,
     camera_selection_answers,
     vertexwise_min_dist,
@@ -335,11 +324,9 @@ def keep_cam_pose_proposal(
 ):
     if terrain is not None:  # TODO refactor
         terrain_sdf = terrain.compute_camera_space_sdf(
-            np.array(cam.location).reshape((1, 3))
+            np.array(cam.matrix_world.translation).reshape((1, 3))
         )
 
-    if not cam.type == "CAMERA":
-        cam = cam.children[0]
     if not cam.type == "CAMERA":
         raise ValueError(f"{cam.name=} had {cam.type=}")
 
@@ -364,14 +351,20 @@ def keep_cam_pose_proposal(
         return None
 
     coverage = len(dists) / n_pix
-    if coverage < terrain_coverage_range[0] or coverage > terrain_coverage_range[1]:
+    if terrain_coverage_range is not None and (
+        coverage < terrain_coverage_range[0]
+        or coverage > terrain_coverage_range[1]
+        or coverage == 0
+    ):
         logger.debug(
             f"keep_cam_pose_proposal rejects {coverage=} for {terrain_coverage_range=}"
         )
         return None
 
     if terrain is not None and terrain_sdf <= 0:
-        logger.debug(f"keep_cam_pose_proposal rejects {terrain_sdf=}")
+        logger.debug(
+            f"keep_cam_pose_proposal rejects {terrain_sdf=} for {cam.matrix_world.translation=}"
+        )
         return None
 
     if rparams := camera_selection_ratio:
@@ -409,7 +402,7 @@ class AnimPolicyGoToProposals:
         bbox = (camera_rig.location - margin, camera_rig.location + margin)
 
         for _ in range(self.retries):
-            res = camera_pose_proposal(bvh, bbox)
+            res = camera_pose_proposal(bvh, bbox)  # !
             if res is None:
                 continue
             dist = np.linalg.norm(np.array(res.loc) - np.array(camera_rig.location))
@@ -427,26 +420,37 @@ class AnimPolicyGoToProposals:
 
 @gin.configurable
 def compute_base_views(
-    cam,
-    n_views,
+    camera_rig: bpy.types.Object,
+    n_views: int,
     terrain,
-    scene_bvh,
+    scene_bvh: BVHTree,
     location_sample: typing.Callable,
+    center_coordinate=None,
+    radius=None,
+    bbox=None,
     placeholders_kd=None,
-    camera_selection_answers={},
-    vertexwise_min_dist=None,
-    camera_selection_ratio=None,
     min_candidates_ratio=20,
     max_tries=30000,
     visualize=False,
+    **kwargs,
 ):
     potential_views = []
     n_min_candidates = int(min_candidates_ratio * n_views)
+
     with tqdm(total=n_min_candidates, desc="Searching for camera viewpoints") as pbar:
         for it in range(1, max_tries):
-            props = camera_pose_proposal(
-                scene_bvh=scene_bvh, location_sample=location_sample
-            )
+            if center_coordinate:
+                props = camera_pose_proposal(
+                    scene_bvh=scene_bvh,
+                    location_sample=location_sample,
+                    center_coordinate=center_coordinate,
+                    radius=random_general(radius),
+                    bbox=bbox,
+                )
+            else:
+                props = camera_pose_proposal(
+                    scene_bvh=scene_bvh, location_sample=location_sample
+                )
 
             if props is None:
                 logger.debug(
@@ -454,23 +458,29 @@ def compute_base_views(
                 )
                 continue
 
-            props.apply(cam)
+            props.apply(camera_rig)
 
-            criterion = keep_cam_pose_proposal(
-                cam,
-                terrain,
-                scene_bvh,
-                placeholders_kd,
-                camera_selection_answers=camera_selection_answers,
-                vertexwise_min_dist=vertexwise_min_dist,
-                camera_selection_ratio=camera_selection_ratio,
-            )
+            all_scores = []
+            for cam in camera_rig.children:
+                score = keep_cam_pose_proposal(
+                    cam,
+                    terrain,
+                    scene_bvh,
+                    placeholders_kd,
+                    **kwargs,
+                )
+                all_scores.append(score)
+
+            if any(score is None for score in all_scores):
+                criterion = None
+            else:
+                criterion = np.mean(all_scores)
 
             if visualize:
                 criterion_str = f"{criterion:.2f}" if criterion is not None else "None"
                 marker = butil.spawn_empty(f"attempt_{it}_{criterion_str}")
-                marker.location = cam.location
-                marker.rotation_euler = cam.rotation_euler
+                marker.location = camera_rig.location
+                marker.rotation_euler = camera_rig.rotation_euler
 
             if criterion is None:
                 logger.debug(f"{it=} {criterion=}")
@@ -514,6 +524,7 @@ def build_bvh_and_attrs(objs, tags_queries):
             obj.select_set(True)
         bpy.ops.object.join()
         obj = bpy.context.view_layer.objects.active
+
     bvh = BVHTree.FromObject(obj, bpy.context.evaluated_depsgraph_get())
     from infinigen.terrain.utils import Mesh
 
@@ -635,9 +646,13 @@ def configure_cameras(
     scene_preprocessed: dict,
     init_bounding_box: tuple[np.array, np.array] = None,
     init_surfaces: list[bpy.types.Object] = None,
+    terrain_mesh=None,
+    nonroom_objs=None,
+    mvs_setting=False,
+    mvs_radius=("uniform", 12, 18),
+    **kwargs,
 ):
     bpy.context.view_layer.update()
-    dummy_camera = spawn_camera()
 
     if init_bounding_box is not None:
 
@@ -653,104 +668,61 @@ def configure_cameras(
     else:
         raise ValueError("Either init_bounding_box or init_surfaces must be provided")
 
-    base_views = compute_base_views(
-        dummy_camera,
-        n_views=len(cam_rigs),
-        location_sample=location_sample,
-        **scene_preprocessed,
-    )
+    if mvs_setting:
+        if terrain_mesh:
+            vertices = np.array([np.array(v.co) for v in terrain_mesh.data.vertices])
+            sdfs = scene_preprocessed["terrain"].compute_camera_space_sdf(vertices)
+            vertices = vertices[sdfs >= -1e-5]
+            center_coordinate = list(
+                vertices[np.random.choice(list(range(len(vertices))))]
+            )
+        elif nonroom_objs:
 
-    for view, cam_rig in zip(base_views, cam_rigs):
-        score, props, focus_dist = view
+            def contain_keywords(name, keywords):
+                for keyword in keywords:
+                    if name == keyword or name.startswith(f"{keyword}."):
+                        return True
+                return False
+
+            inside_objs = [
+                x
+                for x in nonroom_objs
+                if not contain_keywords(x.name, ["window", "door", "entrance"])
+            ]
+            assert inside_objs != []
+            obj = np.random.choice(inside_objs)
+            vertices = [v.co for v in obj.data.vertices]
+            center_coordinate = vertices[np.random.choice(list(range(len(vertices))))]
+            center_coordinate = obj.matrix_world @ center_coordinate
+            center_coordinate = list(np.array(center_coordinate))
+    else:
+        center_coordinate = None
+
+    for cam_rig in cam_rigs:
+        views = compute_base_views(
+            cam_rig,
+            n_views=1,
+            location_sample=location_sample,
+            center_coordinate=center_coordinate,
+            radius=mvs_radius,
+            bbox=init_bounding_box,
+            **scene_preprocessed,
+            **kwargs,
+        )
+
+        score, props, focus_dist = views[0]
         cam_rig.location = props.loc
         cam_rig.rotation_euler = props.rot
 
-        for r in cam_rig.children:
-            for c in r.children:
-                if not c.type =='CAMERA': continue
-                c.data.lens = props.focal_length
+        for cam in cam_rig.children:
+            if not cam.type =='CAMERA': continue
+            cam.data.lens = props.focal_length
 
         if focus_dist is not None:
-            for r in cam_rig.children:
-                for c in r.children:
-                    if not c.type =='CAMERA': continue
-                    c.data.dof.focus_distance = focus_dist
-
-    butil.delete(dummy_camera)
-
-@gin.configurable
-def configure_camera_lights(
-        camera_rigs,
-        energy = 70,
-        spot_size=2.6,
-        spot_blend=.2):
-    for i, rig in enumerate(camera_rigs):
-        rig.location = camera_rigs[i].location
-        rig.rotation_euler = camera_rigs[i].rotation_euler
-        for light in [c for c in rig.children if c.type == "LIGHT"]:
-            light.data.energy = energy
-            light.data.spot_size = spot_size
-            light.data.spot_blend = spot_blend
-
-#todo: put distortion in gin config
-@gin.configurable
-def set_camera_parameters(cam_rigs,
-                          focal_mm=15.89,
-                          pixel_size_in_mm=0.00343,
-                          image_width=1920,
-                          image_height=1080,
-                          use_distortion=False,
-                          parameter_dir="/tmp",
-                          k1_k2_p1_p2_k3=[0.08294964878778682,
-                                          0.3280632761758799,
-                                          -0.004615317367818974,
-                                          0.001986514143891786,
-                                          0.007061125986068614],
-                          #f=4633,
-                          cx=None,
-                          cy=None,
-                          focus_dist=None,
-                          ):
-    scene = bpy.context.scene
-    scene.render.resolution_x = image_width
-    scene.render.resolution_y = image_height
-
-    [k1, k2, p1, p2, k3] = k1_k2_p1_p2_k3
-    f = int(focal_mm / pixel_size_in_mm)
-    #K = np.array([
-    #    [f, 0, cx],
-    #    [0, f, cy],
-    #    [0, 0, 1]
-    #])
-
-    for rig in cam_rigs:
-        for cam in rig.children:
-            if not cam.type == 'CAMERA': continue
-
-            cam_ob = cam
-            cam_data = cam_ob.data
-            cam_data.lens = focal_mm
-            cam_data.sensor_fit = "HORIZONTAL"
-            #todo: update adjust_camera_sensor to take sensor_fit as well.
-            adjust_camera_sensor(cam, pixel_size_in_mm * image_height)
-            #cam_data.sensor_width = pixel_size_in_mm * image_width
-
-            # Set intrinsics
-            set_intrinsics_from_blender_params(cam_ob, lens=focal_mm, lens_unit="MILLIMETERS",
-                                                            shift_x=cx,
-                                                            shift_y=cy)
-            if use_distortion:
-                mapping_coords = set_lens_distortion(
-                    cam_ob, image_height, image_width, k1, k2, k3, p1, p2)
-                save_distortion_parameters(cam_ob, mapping_coords, 
-                                           np.array([image_height, image_width]),
-                                           parameter_dir=parameter_dir)
-
-            if focus_dist is not None:
-                # Note: aperture and use_dof is set in render_image
-                cam_data.dof.focus_distance = focus_dist  # this should come before view_layer.update()
-            bpy.context.view_layer.update()
-
+            for cam in cam_rig.children:
+                if not cam.type == "CAMERA":
+                    continue
+                cam.data.dof.focus_distance = focus_dist
 
 
 @gin.configurable
@@ -761,6 +733,7 @@ def animate_cameras(
     pois=None,
     follow_poi_chance=0.0,
     policy_registry=None,
+    **kwargs,
 ):
     animation_ratio = {}
     animation_answers = {}
@@ -769,15 +742,26 @@ def animate_cameras(
             animation_ratio[k] = scene_preprocessed["camera_selection_ratio"][k]
             animation_answers[k] = scene_preprocessed["camera_selection_answers"][k]
 
-    anim_valid_pose_func = partial(
-        keep_cam_pose_proposal,
-        placeholders_kd=scene_preprocessed["placeholders_kd"],
-        scene_bvh=scene_preprocessed["scene_bvh"],
-        terrain=scene_preprocessed["terrain"],
-        vertexwise_min_dist=scene_preprocessed["vertexwise_min_dist"],
-        camera_selection_answers=animation_answers,
-        camera_selection_ratio=animation_ratio,
-    )
+    def anim_valid_camrig_pose_func(cam_rig: bpy.types.Object):
+        assert len(cam_rig.children) > 0
+
+        for cam in cam_rig.children:
+            if not cam.type =='CAMERA': continue
+            score = keep_cam_pose_proposal(
+                cam,
+                placeholders_kd=scene_preprocessed["placeholders_kd"],
+                scene_bvh=scene_preprocessed["scene_bvh"],
+                terrain=scene_preprocessed["terrain"],
+                vertexwise_min_dist=scene_preprocessed["vertexwise_min_dist"],
+                camera_selection_answers=animation_answers,
+                camera_selection_ratio=animation_ratio,
+                **kwargs,
+            )
+
+            if score is None:
+                return False
+
+        return True
 
     for cam_rig in cam_rigs:
         if policy_registry is None:
@@ -796,7 +780,7 @@ def animate_cameras(
             cam_rig,
             scene_preprocessed["scene_bvh"],
             policy_func=policy,
-            validate_pose_func=anim_valid_pose_func,
+            validate_pose_func=anim_valid_camrig_pose_func,
             verbose=True,
             fatal=True,
             bounding_box=bounding_box,
@@ -804,37 +788,42 @@ def animate_cameras(
 
 
 @gin.configurable
-def save_camera_parameters(camera_ids, output_folder, frame, use_dof=False):
+def save_camera_parameters(
+    camera_obj: bpy.types.Object, output_folder: Path, frame: int, use_dof=False
+):
     output_folder = Path(output_folder)
     output_folder.mkdir(exist_ok=True, parents=True)
+
     if frame is not None:
         bpy.context.scene.frame_set(frame)
-    for camera_pair_id, camera_id in camera_ids:
-        camera_obj = get_camera(camera_pair_id, camera_id)
-        if use_dof is not None:
-            camera_obj.data.dof.use_dof = use_dof
-        # Saving camera parameters
-        K = camera.get_calibration_matrix_K_from_blender(camera_obj.data)
-        suffix = get_suffix(
-            dict(cam_rig=camera_pair_id, resample=0, frame=frame, subcam=camera_id)
-        )
-        output_file = output_folder / f"camview{suffix}.npz"
 
-        height_width = np.array(
-            (
-                bpy.context.scene.render.resolution_y,
-                bpy.context.scene.render.resolution_x,
-            )
+    camrig_id, subcam_id = get_id(camera_obj)
+
+    if use_dof is not None:
+        camera_obj.data.dof.use_dof = use_dof
+
+    # Saving camera parameters
+    K = camera.get_calibration_matrix_K_from_blender(camera_obj.data)
+    suffix = get_suffix(
+        dict(cam_rig=camrig_id, resample=0, frame=frame, subcam=subcam_id)
+    )
+    output_file = output_folder / f"camview{suffix}.npz"
+
+    height_width = np.array(
+        (
+            bpy.context.scene.render.resolution_y,
+            bpy.context.scene.render.resolution_x,
         )
-        T = np.asarray(camera_obj.matrix_world, dtype=np.float64) @ np.diag(
-            (1.0, -1.0, -1.0, 1.0)
-        )  # Y down Z forward (aka opencv)
-        np.savez(output_file, K=np.asarray(K, dtype=np.float64), T=T, HW=height_width)
+    )
+    T = np.asarray(camera_obj.matrix_world, dtype=np.float64) @ np.diag(
+        (1.0, -1.0, -1.0, 1.0)
+    )  # Y down Z forward (aka opencv)
+    np.savez(output_file, K=np.asarray(K, dtype=np.float64), T=T, HW=height_width)
 
 
 if __name__ == "__main__":
     """
-    This interactive section generates a depth map by raycasting through each pixel. 
+    This interactive section generates a depth map by raycasting through each pixel.
     It is very useful for debugging camera.py.
     """
     cam = bpy.context.scene.camera
@@ -870,3 +859,43 @@ if __name__ == "__main__":
 
     color_depth = colorize_depth(depth_output)
     imageio.imwrite("color_depth.png", color_depth)
+
+
+@gin.configurable
+def spawn_camera_light():
+    bpy.ops.object.light_add(type='SPOT')
+    spot = bpy.context.active_object
+    return spot
+
+
+@gin.configurable
+def configure_camera_lights(
+        camera_rigs,
+        light_angle=10, # degrees
+        light_offset=1.2,
+        light_foreaft=True,
+        energy = 70,
+        spot_size=2.6,
+        spot_blend=.2):
+    for i, rig in enumerate(camera_rigs):
+        rig.location = camera_rigs[i].location
+        rig.rotation_euler = camera_rigs[i].rotation_euler
+        camera_pitch = rig.rotation_euler[0]
+        light_z = light_offset*np.sin(camera_pitch)
+        light_y = light_offset*np.cos(camera_pitch)
+        spot_offset = np.array([0, light_y, light_z] if light_foreaft else [light_offset, 0, 0])
+        for j in range(2):
+            # Add camera lights - first aft then fore
+            spot = spawn_camera_light()
+            spot.name = "Spot_" + cam_name(i, j)
+            spot.parent = rig
+
+            spot_location = spot_offset if j == 0 else spot_offset * -1
+            spot.location = spot_location
+
+            spot_angle = (np.deg2rad(light_angle) if j == 1 else -np.deg2rad(light_angle)) + camera_pitch if light_foreaft else 0
+            spot.rotation_euler = [spot_angle, 0, 0]
+
+            spot.data.energy = energy
+            spot.data.spot_size = spot_size
+            spot.data.spot_blend = spot_blend

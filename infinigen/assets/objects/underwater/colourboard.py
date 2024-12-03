@@ -207,7 +207,8 @@ def geometry_nodes(nw: NodeWrangler):
 
     id = nw.new_node(Nodes.InputID)
 
-    capture_attribute = nw.new_node(Nodes.CaptureAttribute, input_kwargs={'Geometry': grid.outputs["Mesh"], 2: id})
+    capture_attribute = nw.new_node(Nodes.CaptureAttribute, input_kwargs={'Geometry': grid.outputs["Mesh"], 2: id},
+                                    attrs={"data_type": "FLOAT",})
 
     cube = nw.new_node(Nodes.MeshCube, input_kwargs={'Size': (0.0500, 0.0400, 0.0100)})
 
@@ -216,124 +217,124 @@ def geometry_nodes(nw: NodeWrangler):
 
     realize_instances = nw.new_node(Nodes.RealizeInstances, input_kwargs={'Geometry': instance_on_points})
 
-    compare = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 0.0000}, attrs={'operation': 'COMPARE'})
+    compare = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 0.0000}, attrs={'operation': 'COMPARE'})
 
     set_material = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': realize_instances, 'Selection': compare, 'Material': surface.shaderfunc_to_material(shader_black)})
 
-    compare_1 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 1.0000}, attrs={'operation': 'COMPARE'})
+    compare_1 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 1.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_3 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material, 'Selection': compare_1, 'Material': surface.shaderfunc_to_material(shader_grey02)})
 
-    compare_2 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 2.0000}, attrs={'operation': 'COMPARE'})
+    compare_2 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 2.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_4 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_3, 'Selection': compare_2, 'Material': surface.shaderfunc_to_material(shader_grey04)})
 
-    compare_3 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 3.0000}, attrs={'operation': 'COMPARE'})
+    compare_3 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 3.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_6 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_4, 'Selection': compare_3, 'Material': surface.shaderfunc_to_material(shader_grey06)})
 
-    compare_4 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 4.0000}, attrs={'operation': 'COMPARE'})
+    compare_4 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 4.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_5 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_6, 'Selection': compare_4, 'Material': surface.shaderfunc_to_material(shader_grey08)})
 
-    compare_5 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 5.0000}, attrs={'operation': 'COMPARE'})
+    compare_5 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 5.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_2 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_5, 'Selection': compare_5, 'Material': surface.shaderfunc_to_material(shader_white)})
 
-    compare_6 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 6.0000}, attrs={'operation': 'COMPARE'})
+    compare_6 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 6.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_1 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_2, 'Selection': compare_6, 'Material': surface.shaderfunc_to_material(shader_cb_36)})
 
-    compare_7 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 7.0000}, attrs={'operation': 'COMPARE'})
+    compare_7 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 7.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_7 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_1, 'Selection': compare_7, 'Material': surface.shaderfunc_to_material(shader_cb_35)})
 
-    compare_8 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 8.0000}, attrs={'operation': 'COMPARE'})
+    compare_8 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 8.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_8 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_7, 'Selection': compare_8, 'Material': surface.shaderfunc_to_material(shader_cb_34)})
 
-    compare_9 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 9.0000}, attrs={'operation': 'COMPARE'})
+    compare_9 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 9.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_9 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_8, 'Selection': compare_9, 'Material': surface.shaderfunc_to_material(shader_cb_33)})
 
-    compare_10 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 10.0000}, attrs={'operation': 'COMPARE'})
+    compare_10 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 10.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_11 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_9, 'Selection': compare_10, 'Material': surface.shaderfunc_to_material(shader_cb_32)})
 
-    compare_11 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 11.0000}, attrs={'operation': 'COMPARE'})
+    compare_11 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 11.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_10 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_11, 'Selection': compare_11, 'Material': surface.shaderfunc_to_material(shader_cb_31)})
 
-    compare_12 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 12.0000}, attrs={'operation': 'COMPARE'})
+    compare_12 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 12.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_12 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_10, 'Selection': compare_12, 'Material': surface.shaderfunc_to_material(shader_cb_26)})
 
-    compare_13 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 13.0000}, attrs={'operation': 'COMPARE'})
+    compare_13 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 13.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_13 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_12, 'Selection': compare_13, 'Material': surface.shaderfunc_to_material(shader_cb_25)})
 
-    compare_14 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 14.0000}, attrs={'operation': 'COMPARE'})
+    compare_14 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 14.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_15 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_13, 'Selection': compare_14, 'Material': surface.shaderfunc_to_material(shader_cb_24)})
 
-    compare_15 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 15.0000}, attrs={'operation': 'COMPARE'})
+    compare_15 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 15.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_16 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_15, 'Selection': compare_15, 'Material': surface.shaderfunc_to_material(shader_cb_23)})
 
-    compare_16 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 16.0000}, attrs={'operation': 'COMPARE'})
+    compare_16 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 16.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_17 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_16, 'Selection': compare_16, 'Material': surface.shaderfunc_to_material(shader_cb_22)})
 
-    compare_17 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 17.0000}, attrs={'operation': 'COMPARE'})
+    compare_17 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 17.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_14 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_17, 'Selection': compare_17, 'Material': surface.shaderfunc_to_material(shader_cb_21)})
 
-    compare_18 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 18.0000}, attrs={'operation': 'COMPARE'})
+    compare_18 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 18.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_18 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_14, 'Selection': compare_18, 'Material': surface.shaderfunc_to_material(shader_cb_16)})
 
     compare_19 = nw.new_node(Nodes.Math,
-        input_kwargs={0: capture_attribute.outputs[2], 1: 19.0000},
+        input_kwargs={0: capture_attribute.outputs[1], 1: 19.0000},
         attrs={'operation': 'COMPARE', 'use_clamp': True})
 
     set_material_19 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_18, 'Selection': compare_19, 'Material': surface.shaderfunc_to_material(shader_cb_15)})
 
-    compare_20 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 20.0000}, attrs={'operation': 'COMPARE'})
+    compare_20 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 20.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_20 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_19, 'Selection': compare_20, 'Material': surface.shaderfunc_to_material(shader_cb_14)})
 
-    compare_21 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 21.0000}, attrs={'operation': 'COMPARE'})
+    compare_21 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 21.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_21 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_20, 'Selection': compare_21, 'Material': surface.shaderfunc_to_material(shader_cb_13)})
 
-    compare_22 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 22.0000}, attrs={'operation': 'COMPARE'})
+    compare_22 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 22.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_22 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_21, 'Selection': compare_22, 'Material': surface.shaderfunc_to_material(shader_cb_12)})
 
-    compare_23 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[2], 1: 23.0000}, attrs={'operation': 'COMPARE'})
+    compare_23 = nw.new_node(Nodes.Math, input_kwargs={0: capture_attribute.outputs[1], 1: 23.0000}, attrs={'operation': 'COMPARE'})
 
     set_material_23 = nw.new_node(Nodes.SetMaterial,
         input_kwargs={'Geometry': set_material_22, 'Selection': compare_23, 'Material': surface.shaderfunc_to_material(shader_cb_11)})

@@ -1,9 +1,9 @@
 # Rendering - Hide Water
-queue_render_hidewater.cpus = 4
-queue_render_hidewater.submit_cmd = @local_submit_cmd
-queue_render_hidewater.hours = 24
-queue_render_hidewater.render_type = "full"
-queue_render_hidewater.gpus = 1
+####queue_render_hidewater.cpus = 4
+####queue_render_hidewater.submit_cmd = @local_submit_cmd
+####queue_render_hidewater.hours = 24
+####queue_render_hidewater.render_type = "full"
+####queue_render_hidewater.gpus = 1
 
 iterate_scene_tasks.global_tasks = [
     {'name': 'coarse', 'func': @queue_coarse},
@@ -12,22 +12,25 @@ iterate_scene_tasks.global_tasks = [
     {'name': 'backuppopulate', 'func': @renderbackup/queue_populate, 'condition': 'prev_failed'}
 ]
 
+# For rendering use queue_render for original infingen rendering; queue_render_benthic for distortion, noise, better segmentation etc.
 iterate_scene_tasks.view_dependent_tasks = []
 iterate_scene_tasks.camera_dependent_tasks = [
-    {'name': 'rendershort', 'func': @rendershort/queue_render},
-    {'name': 'renderbackup', 'func': @renderbackup/queue_render, 'condition': 'prev_failed'},
-    {'name': 'blendergt', 'func': @ground_truth/queue_render},
-    {'name': 'renderhidewater', 'func': @renderhidewater/queue_render_hidewater},
+    {'name': 'rendershort', 'func': @rendershort/queue_render_benthic},
+    {'name': 'renderbackup', 'func': @renderbackup/queue_render_benthic, 'condition': 'prev_failed'},
+    {'name': 'blendergt', 'func': @ground_truth/queue_render_benthic},
+####    {'name': 'renderhidewater', 'func': @renderhidewater/queue_render_hidewater},
 ]
 
-frames = 96
-sub_frames = 24
+frames = 12
+sub_frames = 12
 iterate_scene_tasks.frame_range=[1,%frames]
 iterate_scene_tasks.render_frame_range=[1,%frames]
 iterate_scene_tasks.view_block_size=%sub_frames
 iterate_scene_tasks.cam_block_size = %sub_frames
-iterate_scene_tasks.cam_id_ranges =(1, 1)
+iterate_scene_tasks.n_camera_rigs = 1
+iterate_scene_tasks.n_subcams = 1
 
+# Scene generation command based on generate_nature
 get_cmd.driver_script='infinigen_examples.generate_auv_mission'
 
 sample_scene_spec.config_distribution = [

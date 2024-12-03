@@ -16,7 +16,6 @@ os.environ["OPENCV_IO_ENABLE_OPENEXR"] = "1"  # This must be done BEFORE import 
 
 import bpy
 import gin
-from frozendict import frozendict
 
 import infinigen.assets.scatters
 from infinigen.core import init, surface
@@ -47,54 +46,105 @@ def get_scene_tag(name):
 def render(
     scene_seed,
     output_folder,
-    camera_id,
+    camera,
     render_image_func=render_image,
     resample_idx=None,
     hide_water=False,
 ):
-    if hide_water and "liquid_fine" in bpy.data.objects:
-        logger.info("Hiding water fine (liquid_fine)")
-        bpy.data.objects["liquid_fine"].hide_render = True
-        bpy.data.objects["liquid_fine"].hide_viewport = True
+    if hide_water and "water_fine" in bpy.data.objects:
+        logger.info("Hiding water fine")
+        bpy.data.objects["water_fine"].hide_render = True
+        bpy.data.objects["water_fine"].hide_viewport = True
     if resample_idx is not None and resample_idx != 0:
         resample_scene(int_hash((scene_seed, resample_idx)))
     with Timer("Render Frames"):
-        render_image_func(frames_folder=Path(output_folder), camera_id=camera_id, hide_water=hide_water)
+        render_image_func(frames_folder=Path(output_folder), camera=camera)
+
+
+def is_static(obj):
+    while True:
+        if obj.name.startswith("scatter:"):
+            return False
+        if obj.users_collection[0].name.startswith("assets:"):
+            return False
+        if obj.constraints is not None and len(obj.constraints) > 0:
+            return False
+        if obj.animation_data is not None:
+            return False
+        for modifier in obj.modifiers:
+            if modifier.type == "NODES":
+                if modifier.node_group.animation_data is not None:
+                    return False
+            elif modifier.type == "ARMATURE":
+                return False
+
+        if obj.parent is None:
+            break
+        obj = obj.parent
+    return True
 
 
 @gin.configurable
-def save_meshes(scene_seed, output_folder, frame_range, resample_idx=False):
+def save_meshes(
+    scene_seed: int,
+    output_folder: Path,
+    cameras: list[bpy.types.Object],
+    frame_range,
+    resample_idx=False,
+    point_trajectory_src_frame=1,
+):
     if resample_idx is not None and resample_idx > 0:
         resample_scene(int_hash((scene_seed, resample_idx)))
 
     triangulate_meshes()
 
-    for obj in bpy.data.objects:
-        obj.hide_viewport = obj.hide_render
-
     for col in bpy.data.collections:
         col.hide_viewport = col.hide_render
 
-    previous_frame_mesh_id_mapping = frozendict()
+    previous_frame_mesh_id_mapping = dict()
     current_frame_mesh_id_mapping = defaultdict(dict)
-    for frame_idx in range(int(frame_range[0]), int(frame_range[1] + 2)):
+
+    # save static meshes
+    for obj in bpy.data.objects:
+        obj.hide_viewport = not (not obj.hide_render and is_static(obj))
+    frame_idx = point_trajectory_src_frame
+    frame_info_folder = output_folder / f"frame_{frame_idx:04d}"
+    frame_info_folder.mkdir(parents=True, exist_ok=True)
+
+    logger.info("Working on static objects")
+    exporting.save_obj_and_instances(
+        frame_info_folder / "static_mesh",
+        previous_frame_mesh_id_mapping,
+        current_frame_mesh_id_mapping,
+    )
+    previous_frame_mesh_id_mapping = dict(current_frame_mesh_id_mapping)
+    current_frame_mesh_id_mapping.clear()
+
+    for obj in bpy.data.objects:
+        obj.hide_viewport = not (not obj.hide_render and not is_static(obj))
+
+    for frame_idx in set(
+        [point_trajectory_src_frame]
+        + list(range(int(frame_range[0]), int(frame_range[1] + 2)))
+    ):
         bpy.context.scene.frame_set(frame_idx)
         bpy.context.view_layer.update()
-        frame_info_folder = Path(output_folder) / f"frame_{frame_idx:04d}"
+        frame_info_folder = output_folder / f"frame_{frame_idx:04d}"
         frame_info_folder.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Working on frame {frame_idx}")
+        logger.info(f"save_meshes processing {frame_idx=}")
 
         exporting.save_obj_and_instances(
             frame_info_folder / "mesh",
             previous_frame_mesh_id_mapping,
             current_frame_mesh_id_mapping,
         )
-        cam_util.save_camera_parameters(
-            camera_ids=cam_util.get_cameras_ids(),
-            output_folder=frame_info_folder / "cameras",
-            frame=frame_idx,
-        )
-        previous_frame_mesh_id_mapping = frozendict(current_frame_mesh_id_mapping)
+        for cam in cameras:
+            cam_util.save_camera_parameters(
+                camera_obj=cam,
+                output_folder=frame_info_folder / "cameras",
+                frame=frame_idx,
+            )
+        previous_frame_mesh_id_mapping = dict(current_frame_mesh_id_mapping)
         current_frame_mesh_id_mapping.clear()
 
 
@@ -143,6 +193,7 @@ def execute_tasks(
     reset_assets=True,
     dryrun=False,
     optimize_terrain_diskusage=False,
+    point_trajectory_src_frame=1,
 ):
     if input_folder != output_folder:
         if reset_assets:
@@ -181,7 +232,7 @@ def execute_tasks(
     bpy.context.scene.frame_end = int(frame_range[1])
     bpy.context.scene.frame_set(int(frame_range[0]))
     bpy.context.scene.render.fps = fps
-    # This gets set in set_camera_parameters so not needed. Used in set_lens_distortion
+    # Set this with camera.get_sensor_coords in config instead to allow distortion to work.
     #bpy.context.scene.render.resolution_x = generate_resolution[0]
     #bpy.context.scene.render.resolution_y = generate_resolution[1]
     bpy.context.view_layer.update()
@@ -198,14 +249,17 @@ def execute_tasks(
         with open(outpath / "info.pickle", "wb") as f:
             pickle.dump(info, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    cam_util.set_active_camera(*camera_id)
+    camera_rigs = cam_util.get_camera_rigs()
+    camrig_id, subcam_id = camera_id
+    active_camera = camera_rigs[camrig_id].children[subcam_id]
+    cam_util.set_active_camera(active_camera)
 
     group_collections()
 
     if Task.Populate in task and populate_scene_func is not None:
-        populate_scene_func(output_folder, scene_seed)
+        populate_scene_func(output_folder, scene_seed, camera_rigs)
 
-    need_terrain_processing = "OpaqueTerrain" in bpy.data.objects
+    need_terrain_processing = "atmosphere" in bpy.data.objects
 
     if Task.FineTerrain in task and need_terrain_processing:
         with open(output_folder / "assets" / "info.pickle", "rb") as f:
@@ -219,10 +273,9 @@ def execute_tasks(
             whole_bbox=info["whole_bbox"],
         )
 
-        cameras = [cam_util.get_camera(i, j) for i, j in cam_util.get_cameras_ids()]
         terrain.fine_terrain(
             output_folder,
-            cameras=cameras,
+            cameras=[c for rig in camera_rigs for c in rig.children if c.type == "CAMERA"],
             optimize_terrain_diskusage=optimize_terrain_diskusage,
         )
 
@@ -260,7 +313,10 @@ def execute_tasks(
         col.hide_viewport = False
 
     if need_terrain_processing and (
-        Task.Render in task or Task.GroundTruth in task or Task.MeshSave in task
+        Task.Render in task
+        or Task.GroundTruth in task
+        or Task.MeshSave in task
+        or Task.Export in task
     ):
         terrain = Terrain(
             scene_seed,
@@ -271,11 +327,11 @@ def execute_tasks(
         if optimize_terrain_diskusage:
             terrain.load_glb(output_folder)
 
-    if Task.Render in task or Task.GroundTruth in task or Task.RenderHideWater in task:
+    if Task.Render in task or Task.GroundTruth in task:
         render(
             scene_seed,
             output_folder=output_folder,
-            camera_id=camera_id,
+            camera=active_camera,
             resample_idx=resample_idx,
         )
 
@@ -286,12 +342,14 @@ def execute_tasks(
         save_meshes(
             scene_seed,
             output_folder=output_folder,
+            cameras=[c for rig in camera_rigs for c in rig.children],
             frame_range=frame_range,
+            point_trajectory_src_frame=point_trajectory_src_frame,
         )
 
 
 def main(input_folder, output_folder, scene_seed, task, task_uniqname, **kwargs):
-    version_req = ["3.6.0"]
+    version_req = ["4.3.0"]
     assert bpy.app.version_string in version_req, (
         f"You are using blender={bpy.app.version_string} which is "
         f"not supported. Please use {version_req}"

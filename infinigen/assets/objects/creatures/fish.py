@@ -357,6 +357,7 @@ class FishFactory(AssetFactory):
 
         return root
 
+
 class FishSchoolFactory(BoidSwarmFactory):
     @gin.configurable
     def fish_school_params(self):

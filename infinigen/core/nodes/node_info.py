@@ -43,6 +43,8 @@ class Nodes:
     CombineRGB = "ShaderNodeCombineRGB"
     CombineColor = "ShaderNodeCombineColor"
     CompCombineColor = "CompositorNodeCombineColor"
+    CompositorMixRGB = "CompositorNodeMixRGB"
+    CompositorNodeTexture = "CompositorNodeTexture"
 
     # bl3.5 additions
     SeparateComponents = "GeometryNodeSeparateComponents"
@@ -419,3 +421,11 @@ DATATYPE_FIELDS = {
     "FLOAT_COLOR": "color",
     "BOOLEAN": "value",
 }
+
+
+def map_socket(socket):
+    match socket:
+        case "NodeSocketVectorEuler":
+            return "NodeSocketVector"
+        case _:
+            return socket

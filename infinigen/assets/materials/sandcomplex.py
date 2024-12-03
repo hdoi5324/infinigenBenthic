@@ -1,4 +1,4 @@
-# Copyright (c) Princeton University.
+# Copyright (C) 2023, Princeton University.
 # This source code is licensed under the BSD 3-Clause license found in the LICENSE file in the root directory of this source tree.
 
 # Authors: Zeyu Ma
@@ -6,16 +6,14 @@
 
 
 import gin
-gin.enter_interactive_mode()
-from mathutils import Vector
 from numpy.random import uniform
 
-from infinigen.core.nodes.node_wrangler import Nodes
 from infinigen.core import surface
-from infinigen.core.util.organization import SurfaceTypes
-from infinigen.core.util.math import FixedSeed
-from infinigen.core.util.random import random_general as rg
 from infinigen.core.nodes import node_utils
+from infinigen.core.nodes.node_wrangler import Nodes
+from infinigen.core.util.math import FixedSeed
+from infinigen.core.util.organization import SurfaceTypes
+from infinigen.core.util.random import random_color_neighbour
 
 type = SurfaceTypes.SDFPerturb
 mod_name = "geometry_soil"
@@ -119,6 +117,7 @@ def nodegroup_pebble(nw):
 def nodegroup_pebble_geo(nw):
     nw.force_input_consistency()
     nodegroup_pebble(nw)
+
 
 @node_utils.to_nodegroup("nodegroup_pebble", singleton=False, type="ShaderNodeTree")
 def nodegroup_pebble_shader(nw):
@@ -265,9 +264,9 @@ def shader_rocky_ground(nw, random_seed=0
     # Code generated using version 2.6.5 of the node_transpiler
 
     texture_coordinate = nw.new_node(Nodes.TextureCoord)
-    
+
     noise_texture_2 = nw.new_node(Nodes.NoiseTexture, input_kwargs={'Vector': texture_coordinate.outputs["Object"], 'Scale': 15.0000})
-    
+
     color_ramp_3 = nw.new_node(Nodes.ColorRamp, input_kwargs={'Fac': noise_texture_2.outputs["Fac"]})
     color_ramp_3.color_ramp.interpolation = "EASE"
     color_ramp_3.color_ramp.elements[0].position = 0.3527

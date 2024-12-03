@@ -274,7 +274,7 @@ def shader(
                 "Base Color": color_of_transparent_bsdf_principled_bsdf,
                 "Roughness": 0.0,
                 "IOR": 1.33,
-                "Transmission": 1.0,
+                "Transmission Weight": 1.0,
             },
         )
         if mix_surface:
@@ -362,6 +362,8 @@ def shader(
             'Density': scatter_density,
             'Anisotropy': scatter_anisotropy,
         })
+        volume_scatter.phase = "FOURNIER_FORAND"
+
         volume_shader = nw.new_node(Nodes.AddShader, [volume_absorption, volume_scatter])
         #material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Surface': surface_shader, 'Volume': volume_shader})
         material_output = nw.new_node(Nodes.MaterialOutput, input_kwargs={'Volume': volume_shader})

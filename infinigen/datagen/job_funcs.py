@@ -11,7 +11,6 @@
 import logging
 import re
 import sys
-from functools import partial
 from pathlib import Path
 from shutil import copytree
 from uuid import uuid4
@@ -19,14 +18,24 @@ from uuid import uuid4
 import gin
 
 import infinigen
-from infinigen.datagen.util import upload_util
 from infinigen.datagen.util.show_gpu_table import nodes_with_gpus
-from infinigen.datagen.util.upload_util import upload_job_folder
+from infinigen.datagen.util.upload_util import get_commit_hash
 from infinigen.tools.suffixes import get_suffix
 
 from . import states
 
 logger = logging.getLogger(__name__)
+
+UPLOAD_UTIL_PATH = (
+    infinigen.repo_root() / "infinigen" / "datagen" / "util" / "upload_util.py"
+)
+assert UPLOAD_UTIL_PATH.exists(), f"{UPLOAD_UTIL_PATH=} does not exist"
+
+CUSTOMGT_PATH = Path(__file__).parent / "customgt" / "build" / "customgt"
+if not CUSTOMGT_PATH.exists():
+    logger.warning(
+        f"{CUSTOMGT_PATH=} does not exist, if opengl_gt is enabled it will fail"
+    )
 
 
 @gin.configurable
@@ -82,8 +91,19 @@ def queue_upload(
     seed=None,
     **kwargs,
 ):
-    func = partial(upload_job_folder, dir_prefix_len=dir_prefix_len, method=method)
-    res = submit_cmd((func, folder, taskname), folder, name, **kwargs)
+    modulepath = str(
+        UPLOAD_UTIL_PATH.with_suffix("").relative_to(infinigen.repo_root())
+    ).replace("/", ".")
+
+    cmd = (
+        f"{sys.executable} -m {modulepath} "
+        "--parent_folder " + str(folder) + " "
+        "--task_uniqname " + taskname + " "
+        f"--dir_prefix_len {dir_prefix_len} "
+        f"--method {method}"
+    ).split()
+
+    res = submit_cmd(cmd, folder, name, **kwargs)
     return res, None
 
 
@@ -102,7 +122,21 @@ def queue_export(
     **kwargs,
 ):
     input_suffix = get_suffix(input_indices)
-    input_folder = f"{folder}/coarse{input_suffix}"
+    input_folder_priority_options = [
+        f"fine{input_suffix}",
+        "fine",
+        f"coarse{input_suffix}",
+        "coarse",
+    ]
+
+    for option in input_folder_priority_options:
+        input_folder = f"{folder}/{option}"
+        if (Path(input_folder) / "scene.blend").exists():
+            break
+    else:
+        logger.warning(
+            f"No scene.blend found in {input_folder} for any of {input_folder_priority_options}"
+        )
 
     cmd = (
         get_cmd(
@@ -157,8 +191,7 @@ def queue_coarse(
         + overrides
     )
 
-    commit = upload_util.get_commit_hash()
-
+    commit = get_commit_hash()
     with (folder / "run_pipeline.sh").open("w") as f:
         f.write(f"# git checkout {commit}\n\n")
         f.write(f"{' '.join(' '.join(cmd).split())}\n\n")
@@ -184,6 +217,7 @@ def queue_populate(
     configs,
     taskname=None,
     input_prefix="fine",
+    exclude_gpus=[],
     overrides=[],
     input_indices=None,
     output_indices=None,
@@ -217,7 +251,14 @@ def queue_populate(
     with (folder / "run_pipeline.sh").open("a") as f:
         f.write(f"{' '.join(' '.join(cmd).split())}\n\n")
 
-    res = submit_cmd(cmd, folder=folder, name=name, gpus=0, **kwargs)
+    res = submit_cmd(
+        cmd,
+        folder=folder,
+        name=name,
+        gpus=0,
+        slurm_exclude=nodes_with_gpus(*exclude_gpus),
+        **kwargs,
+    )
     return res, output_folder
 
 
@@ -401,74 +442,6 @@ def queue_render(
 
 
 @gin.configurable
-def queue_render_hidewater(
-    submit_cmd,
-    folder,
-    name,
-    seed,
-    render_type,
-    configs,
-    taskname=None,
-    overrides=[],
-    exclude_gpus=[],
-    input_indices=None,
-    output_indices=None,
-    **submit_kwargs,
-):
-
-    input_suffix = get_suffix(input_indices)
-    output_suffix = get_suffix(output_indices)
-
-    output_folder = Path(f"{folder}/frames_{output_suffix}")
-
-    input_folder_priority_options = [
-        f"fine{input_suffix}",
-        "fine",
-        f"coarse{input_suffix}",
-        "coarse",
-    ]
-
-    for option in input_folder_priority_options:
-        input_folder = f"{folder}/{option}"
-        if (Path(input_folder) / "scene.blend").exists():
-            break
-    else:
-        logger.warning(
-            f"No scene.blend found in {input_folder} for any of {input_folder_priority_options}"
-        )
-
-    overrides.append("render.hide_water=True")
-
-    cmd = (
-        get_cmd(
-            seed,
-            "render",
-            configs,
-            taskname,
-            input_folder=input_folder,
-            output_folder=f"{output_folder}",
-        )
-        + f"""
-        render.render_image_func=@{render_type}/render_image
-        LOG_DIR='{folder / "logs"}'
-    """.split("\n")
-        + overrides
-    )
-
-    with (folder / "run_pipeline.sh").open("a") as f:
-        f.write(f"{' '.join(' '.join(cmd).split())}\n\n")
-
-    res = submit_cmd(
-        cmd,
-        folder=folder,
-        name=name,
-        slurm_exclude=nodes_with_gpus(*exclude_gpus),
-        **submit_kwargs,
-    )
-    return res, output_folder
-
-
-@gin.configurable
 def queue_mesh_save(
     submit_cmd,
     folder,
@@ -537,13 +510,6 @@ def queue_mesh_save(
     return res, output_folder
 
 
-process_mesh_path = Path(__file__).parent / "customgt" / "build" / "customgt"
-if not process_mesh_path.exists():
-    logger.warning(
-        f"{process_mesh_path=} does not exist, if opengl_gt is enabled it will fail"
-    )
-
-
 @gin.configurable
 def queue_opengl(
     submit_cmd,
@@ -568,6 +534,16 @@ def queue_opengl(
     input_folder = (
         Path(folder) / f"savemesh{output_suffix}"
     )  # OUTPUT SUFFIX IS CORRECT HERE. I know its weird. But input suffix really means 'prev tier of the pipeline
+    # dst_output_indices = dict(output_indices)
+    start_frame, end_frame = output_indices["frame"], output_indices["last_cam_frame"]
+
+    key = "execute_tasks.point_trajectory_src_frame="
+    point_trajectory_src_frame = None
+    for item in overrides:
+        if item.startswith(key):
+            point_trajectory_src_frame = int(item[len(key) :])
+    assert point_trajectory_src_frame is not None
+
     if gt_testing:
         copy_folder = Path(folder) / f"frames{output_suffix}"
         output_folder = Path(folder) / f"opengl_frames{output_suffix}"
@@ -576,20 +552,51 @@ def queue_opengl(
         output_folder = Path(folder) / f"frames{output_suffix}"
         output_folder.mkdir(exist_ok=True)
 
-    assert input_folder.exists(), input_folder
     assert isinstance(overrides, list) and ("\n" not in " ".join(overrides))
 
     tmp_script = Path(folder) / "tmp" / f"opengl_{uuid4().hex}.sh"
     tmp_script.parent.mkdir(exist_ok=True)
-    start_frame, end_frame = output_indices["frame"], output_indices["last_cam_frame"]
     with tmp_script.open("w") as f:
-        lines = ["set -e"]
-
+        lines = [
+            "set -e",
+            f"""
+                if [ ! -d "{str(input_folder)}" ]; then
+                exit 1
+                fi
+            """,
+        ]
+        lines.append(
+            f"{sys.executable} {infinigen.repo_root()/'infinigen/tools/process_static_meshes.py'} {input_folder} {point_trajectory_src_frame}"
+        )
         lines += [
-            f"{process_mesh_path} -in {input_folder} "
-            f"--frame {frame_idx} -out {output_folder}"
+            f"{CUSTOMGT_PATH} --input_dir {input_folder} --dst_input_dir {input_folder} "
+            f"--frame {frame_idx} --dst_frame {frame_idx+1} --output_dir {output_folder} "
             for frame_idx in range(start_frame, end_frame + 1)
         ]
+        # point trajectory
+        lines += [
+            f"{CUSTOMGT_PATH} --input_dir {input_folder} --dst_input_dir {input_folder} "
+            f"--frame {point_trajectory_src_frame} --dst_frame {frame_idx} --flow_only 1 --flow_type 2 --output_dir {output_folder} "
+            for frame_idx in range(start_frame, end_frame + 1)
+        ]
+
+        # depth of block end frame
+        lines += [
+            f"{CUSTOMGT_PATH} --input_dir {input_folder} --dst_input_dir {input_folder} "
+            f"--frame {end_frame+1} --dst_frame {end_frame+1} --depth_only 1 --output_dir {output_folder} "
+        ]
+        # depth of point trajectory source frame
+        lines += [
+            f"{CUSTOMGT_PATH} --input_dir {input_folder} --dst_input_dir {input_folder} "
+            f"--frame {point_trajectory_src_frame} --dst_frame {point_trajectory_src_frame} --depth_only 1 --output_dir {output_folder} "
+        ]
+
+        lines.append(
+            f"{sys.executable} {infinigen.repo_root()/'infinigen/tools/compress_masks.py'} {output_folder}"
+        )
+        lines.append(
+            f"{sys.executable} {infinigen.repo_root()/'infinigen/tools/compute_occlusion_masks.py'} {output_folder} {point_trajectory_src_frame}"
+        )
 
         lines.append(
             f"{sys.executable} {infinigen.repo_root()/'infinigen/tools/compress_masks.py'} {output_folder}"
@@ -606,6 +613,71 @@ def queue_opengl(
             f.write(line + "\n")
 
     cmd = f"bash {tmp_script}".split()
+
+    with (folder / "run_pipeline.sh").open("a") as f:
+        f.write(f"{' '.join(' '.join(cmd).split())}\n\n")
+
+    res = submit_cmd(
+        cmd,
+        folder=folder,
+        name=name,
+        slurm_exclude=nodes_with_gpus(*exclude_gpus),
+        **submit_kwargs,
+    )
+    return res, output_folder
+
+
+@gin.configurable
+def queue_render_benthic(
+    submit_cmd,
+    folder,
+    name,
+    seed,
+    render_type,
+    configs,
+    taskname=None,
+    overrides=[],
+    exclude_gpus=[],
+    input_indices=None,
+    output_indices=None,
+    **submit_kwargs,
+):
+    input_suffix = get_suffix(input_indices)
+    output_suffix = get_suffix(output_indices)
+
+    output_folder = Path(f"{folder}/frames{output_suffix}")
+
+    input_folder_priority_options = [
+        f"fine{input_suffix}",
+        "fine",
+        f"coarse{input_suffix}",
+        "coarse",
+    ]
+
+    for option in input_folder_priority_options:
+        input_folder = f"{folder}/{option}"
+        if (Path(input_folder) / "scene.blend").exists():
+            break
+    else:
+        logger.warning(
+            f"No scene.blend found in {input_folder} for any of {input_folder_priority_options}"
+        )
+
+    cmd = (
+        get_cmd(
+            seed,
+            "render",
+            configs,
+            taskname,
+            input_folder=input_folder,
+            output_folder=f"{output_folder}",
+        )
+        + f"""
+        render.render_image_func=@{render_type}/render_image_benthic
+        LOG_DIR='{folder / "logs"}'
+    """.split("\n")
+        + overrides
+    )
 
     with (folder / "run_pipeline.sh").open("a") as f:
         f.write(f"{' '.join(' '.join(cmd).split())}\n\n")

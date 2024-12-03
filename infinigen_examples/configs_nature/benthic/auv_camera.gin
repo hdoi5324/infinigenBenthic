@@ -1,45 +1,51 @@
 # Camera rig
-camera.camera_pose_proposal.altitude = ("clip_gaussian", 2.2, .1, 1.8, 2.3)
+altitude=("clip_gaussian", 2.2, .1, 1.8, 2.3)
+camera.camera_pose_proposal.altitude = %altitude
+min_terrain_distance = 1.7
+keep_cam_pose_proposal.min_terrain_distance = %min_terrain_distance
+SphericalMesher.r_min = %min_terrain_distance
+animation_policy.adjust_animated_path_altitude.altitude = %altitude
 camera.camera_pose_proposal.pitch = 0 # 0 for downward looking
 camera_offset = 0.05 # Half baseline for stereo
-camera_pitch = 0
+camera_pitch = 0 # euler
 camera_yaw=0
+camera.spawn_camera_rigs.n_camera_rigs = 1
 camera.spawn_camera_rigs.camera_rig_config = [
     {'loc': (-%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
-#    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)},
+#    {'loc': (%camera_offset, 0, 0), 'rot_euler': (%camera_pitch, 0, %camera_yaw)}, # stereo camera
 ]
 
 # Lens and resolution
-camera.set_camera_parameters.focal_mm=13.89 # Sirius 15.89 Nimbus 13.89
-camera.set_camera_parameters.pixel_size_in_mm=.00908 # Sirius 0.00345 Nimbus 0.00454 at full resolution.
 W = 1376 # Sirius 4112  Nimbus 2752 Scaled down 1250 1360
 H = 1100 # Sirius 3008 Nimbus 2200 Scaled down 1000 1000
-# execute_tasks.generate_resolution = (%W, %H) ## NO LONGER USED
-camera.set_camera_parameters.image_height=%H
-camera.set_camera_parameters.image_width=%W
-#camera.set_camera_parameters.k1_k2_p1_p2_k3=[0.0013905747881166105,-0.0028716137582161317,-0.0008590010061810562,0.00025306998011800837,0.00]
-get_sensor_coords.H = %H
-get_sensor_coords.W = %W
+execute_tasks.generate_resolution = (%W, %H) 
+# These need to be set if using distortion.
+camera_utility.set_camera_parameters.image_height=%H
+camera_utility.set_camera_parameters.image_width=%W
+#camera_utility.set_camera_parameters.focal_mm=13.89 # Sirius 15.89 Nimbus 13.89
+#camera_utility.set_camera_parameters.pixel_size_in_mm=0.018 #.00908 # Sirius 0.00345 Nimbus 0.00454 at full resolution.
 
+#camera_utility.set_camera_parameters.k1_k2_p1_p2_k3=[0.0013905747881166105,-0.0028716137582161317,-0.0008590010061810562,0.00025306998011800837,0.00]
 
 # Distortion.  Based on Blenderproc distortion approach
 distort=True
-camera.set_camera_parameters.use_distortion=%distort
-full/render_image.apply_distortion = %distort
-flat/render_image.apply_distortion = %distort
-render_image.motion_blur = ("clip_gaussian", 0.007, 0.005, 0.00, 0.04)
+camera_utility.set_camera_parameters.use_distortion=%distort
+render_image_benthic.apply_distortion = %distort
 
+# Motion blur
+full/render_image_benthic.motion_blur = ("clip_gaussian", 0.007, 0.005, 0.00, 0.04)
 
 # Lights
 camera.configure_camera_lights.energy = 250
-spawn_camera_rigs.light_angle = 10 # nimbus = 10
-spawn_camera_rigs.light_offset = 1.2 # nimbus 1.2
+camera.configure_camera_lights.light_angle = 10 # nimbus = 10
+camera.configure_camera_lights.light_offset = 1.2 # nimbus 1.2
 
-
-# Render
-render_image.use_dof = True
-render_image.dof_aperture_fstop = 2.0 # AUV 2.0 ROV 1.4
+# Render - DoF
+render_image_benthic.use_dof = True
+render_image_benthic.dof_aperture_fstop = 2.0 # AUV 2.0 ROV 1.4
 set_camera_parameters.focus_dist = 1.9 # AUV 1.9 # ROV 3.0
+
+# Sensor Noise
 compositor_postprocessing.noise = 0.00001
 
 

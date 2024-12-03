@@ -4,8 +4,6 @@
 # Authors: Lingjie Mei
 
 
-from functools import reduce
-
 import numpy as np
 from numpy.random import normal as N
 
@@ -17,7 +15,6 @@ from numpy.random import uniform, normal as N
 
 
 class Lichen:
-
     def __init__(self):
         self.fac = LichenFactory(np.random.randint(1e5))
         self.col = make_asset_collection(self.fac, name="lichen", n=5)
@@ -39,11 +36,11 @@ def apply(obj, selection=None, density=5e3):
     fac = LichenFactory(np.random.randint(1e5))
     col = make_asset_collection(fac, name="lichen", n=5)
     scatter_obj = scatter_instances(
-        base_obj=obj, 
+        base_obj=obj,
         collection=col,
-        density=density,  
+        density=density,
         min_spacing=.08,
-        scale=.5, 
+        scale=.5,
         scale_rand=N(0.5, 0.2),
         selection=selection
     )

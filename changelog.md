@@ -48,11 +48,10 @@ Scene
 * Improved handfish animation, material and shape
 * Added task Render Hide Water - saves image without water effects
 * 
-### To Do
-* handfish - Update nurb body to be more realistic.  More realistic 'hand/arms'. variations in skin. Test schools
-* Assets - place assets along camera path
-* Assets - add other assets to cause some difficulty eg lichen.  pebbles?
 
-### Issues
-* Blender GT - flat shading not saving distinct colours for each instance making bbox generation difficult.
-* 
+November
+* Updated handfish nurb data, animation and shading
+* Migrated to Blender 4.3
+* Refactor: Moved render_image enhancements to render_image_benthic function
+* Adjust_camera after populate to increase altitude if the camera is too close to assets.
+* Minor updates for compatibility
