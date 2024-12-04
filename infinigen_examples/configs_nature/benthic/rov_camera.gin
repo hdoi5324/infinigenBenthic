@@ -21,7 +21,7 @@ camera_utility.set_camera_parameters.image_height=%H
 camera_utility.set_camera_parameters.image_width=%W
 
 # Distortion.  Based on Blenderproc distortion approach
-distort=True
+distort=False
 #camera_utility.set_camera_parameters.use_distortion=%distort
 #full/render_image_benthic.apply_distortion = %distort
 #flat/render_image_benthic.apply_distortion = False
