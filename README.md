@@ -17,7 +17,7 @@ This repository builds on the infinigen framework for generating natural scenes 
 
 Installation is described below and requires installation of the infinigen framework then copying the files from this repository to the infinigen directory.
 
-This code base is completely dependent on infinigen and also uses code based on BlenderProc (distortion model, instance segmentation for generating bounding boxes).  BlenderProc
+This code base is completely dependent on infinigen and also uses code based on BlenderProc (distortion model, instance segmentation for generating bounding boxes).  
 
 ## Installation
 Installation requires installing ([infinigen](https://infinigen.org)) so please follow it's instructions for installation and basic usage then copy the code from this repository if you are interested in the features described above.  Several files are replaced.
