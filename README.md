@@ -35,7 +35,7 @@ Test the installation by running the 'Hello World' steps. Replace `desert.gin` w
 'infinigenBenthic' overwrites some of the infinigen code to give some updated features.  See Enhancements below.
 
 After installing infinigen, infinigenBenthic can be downloaded and copied to the infinigen directory.  
-Starting directory where you installed infinigen...
+Start in the directory where you installed infinigen...
 ```bash
 cd ..
 git clone https://github.com/hdoi5324/infinigenBenthic.git
