@@ -28,7 +28,7 @@ camera_utility.set_camera_parameters.image_width=%W
 #camera_utility.set_camera_parameters.k1_k2_p1_p2_k3=[0.0013905747881166105,-0.0028716137582161317,-0.0008590010061810562,0.00025306998011800837,0.00]
 
 # Distortion.  Based on Blenderproc distortion approach
-distort=True
+distort=False
 camera_utility.set_camera_parameters.use_distortion=%distort
 render_image_benthic.apply_distortion = %distort
 
