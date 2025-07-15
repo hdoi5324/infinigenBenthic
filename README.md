@@ -1,6 +1,8 @@
 
 ## [Synthetic image generation for benthic object detection training](https://infinigen.org)
 
+Synthetic data generation for the paper [Training marine species object detectors with synthetic images and unsupervised domain adaptation](https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2025.1581778) published in 'Frontiers in Marine Science'.
+
 <p align="center">
   <img src="docs/images/benthic/Image_0_0_0048_1.png" width="300" />
   <img src="docs/images/benthic/Image_0_0_0048_1_viz.jpg" width="300" />
@@ -123,6 +125,20 @@ December 2024
 * Issue: SphericalMesher doesn't seem to work with wide FOV used in AUVs.
 * Enhancement: hidewater - render images without water to allow evaluation of water modelling
 
+## Citation
+If you would like to cite this work please use the following citation.
+
+```
+@article{Doig2025,
+  title={Training marine species object detectors with synthetic images and unsupervised domain adaptation},
+  author={Doig, Heather and Pizarro, Oscar and Williams, Stefan Bernard},
+  journal={Frontiers in Marine Science},
+  volume={12},
+  pages={1581778},
+  doi={10.3389/fmars.2025.1581778},
+  publisher={Frontiers}
+}
+```
 ## Acknowledgements
 Infinigen is an excellent framework for generating natural scenes leveraging procedural generation in Blender.  This is the foundation for this repository.  
 
