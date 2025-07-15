@@ -1,4 +1,7 @@
+
 ## [Synthetic image generation for benthic object detection training](https://infinigen.org)
+
+Synthetic data generation for the paper [Training marine species object detectors with synthetic images and unsupervised domain adaptation](https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2025.1581778) published in 'Frontiers in Marine Science', Volume 12, 2025.
 
 <p align="center">
   <img src="docs/images/benthic/Image_0_0_0048_1.png" width="300" />
@@ -11,12 +14,12 @@ This repository builds on the infinigen framework for generating natural scenes 
 * More realistic water including absorption and scattering using Blender 4.3 scattering phase for water 'FOURNIER_FORAND'
 * Updates to underwater assets (urchins, kelp, seaweed) and new assets (handfish, colourboard, plastic bag)
 * Mow the lawn animation path similar to automated survey paths.
-* Improved instance segmentation masks to allow generaation of bounding boxes for object detection training.
+* Improved instance segmentation masks to allow generation of bounding boxes for object detection training.
 
 
 Installation is described below and requires installation of the infinigen framework then copying the files from this repository to the infinigen directory.
 
-This code base is completely dependent on infinigen and also uses code based on BlenderProc (distortion model, instance segmentation for generating bounding boxes).  BlenderProc
+This code base is built on infinigen and also uses code based on BlenderProc (distortion model, instance segmentation for generating bounding boxes).  BlenderProc
 
 ## Installation
 Installation requires installing ([infinigen](https://infinigen.org)) so please follow it's instructions for installation and basic usage then copy the code from this repository if you are interested in the features described above.  Several files are replaced.
@@ -26,6 +29,10 @@ Please install version 1.11.x of infinigen following the installation process fo
 
 Follow the installation instructions for "Installing Infinigen as a Python Module".  Use the full install.
 
+```commandline
+git clone --branch v1.11.1 --recurse-submodules https://github.com/princeton-vl/infinigen.git
+```
+
 If you want to use the Blender interface as well, also run the "Installing Infinigen as a Blender Python script" so that it installs the same version of blender.
 
 Test the installation by running the 'Hello World' steps. Replace `desert.gin` with `coral_reef.gin` for underwater scene.
@@ -34,7 +41,7 @@ Test the installation by running the 'Hello World' steps. Replace `desert.gin` w
 'infinigenBenthic' overwrites some of the infinigen code to give some updated features.  See Enhancements below.
 
 After installing infinigen, infinigenBenthic can be downloaded and copied to the infinigen directory.  
-Starting directory where you installed infinigen...
+Start in the directory where you installed infinigen...
 ```bash
 cd ..
 git clone https://github.com/hdoi5324/infinigenBenthic.git
@@ -122,6 +129,20 @@ December 2024
 * Issue: SphericalMesher doesn't seem to work with wide FOV used in AUVs.
 * Enhancement: hidewater - render images without water to allow evaluation of water modelling
 
+## Citation
+If you would like to cite this work please use the following citation.
+
+```
+@article{Doig2025,
+  title={Training marine species object detectors with synthetic images and unsupervised domain adaptation},
+  author={Doig, Heather and Pizarro, Oscar and Williams, Stefan Bernard},
+  journal={Frontiers in Marine Science},
+  volume={12},
+  pages={1581778},
+  doi={10.3389/fmars.2025.1581778},
+  publisher={Frontiers}
+}
+```
 ## Acknowledgements
 Infinigen is an excellent framework for generating natural scenes leveraging procedural generation in Blender.  This is the foundation for this repository.  
 
