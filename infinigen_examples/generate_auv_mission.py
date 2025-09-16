@@ -231,8 +231,8 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
             col = placement.scatter_placeholders_mesh(
                 target,
                 fac,
-                altitude=0.05,
-                overall_density=0.5 / n_handfish_species,
+                altitude=uniform(0.015, 0.04),
+                overall_density=0.7 / n_handfish_species,
                 selection=selection,
                 distance_min=1,
             )
@@ -244,7 +244,7 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
     p.run_stage(
         "animate_cameras",
         lambda: cam_util.animate_cameras(
-            camera_rigs, bbox, scene_preprocessed, pois=pois, 
+            camera_rigs, bbox, scene_preprocessed, pois=None, 
             policy_registry=animation_policy.AnimPolicyMowTheLawn
         ),
         use_chance=False,
@@ -275,12 +275,21 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
         n = random_general(params.get("max_fish_schools", 3))
         for i in range(n):
             selection = density.placement_mask(0.1, select_thresh=0, tag=underwater_domain)
-            fac = creatures.FishSchoolFactory(randint(1e7), bvh=terrain_inview_bvh, n=2)
+            fac = creatures.FishSchoolFactory(randint(1e7), bvh=terrain_inview_bvh)
             col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
-                                                      overall_density=1, num_placeholders=1, altitude=1.8)
+                                                      overall_density=1, num_placeholders=1, altitude=uniform(0.3, 1.5))
             placement.populate_collection(fac, col)
 
     p.run_stage('fish_school', add_fish_school, default=[])
+
+    def add_handfish_school():
+        selection = density.placement_mask(scale=0.05, select_thresh=uniform(0.1, 0.3), tag=underwater_domain)
+        fac = creatures.HandfishSchoolFactory(randint(1e7 + 55), bvh=terrain_inview_bvh)
+        col = placement.scatter_placeholders_mesh(terrain_near, fac, selection=selection,
+                                                  overall_density=1, num_placeholders=1, altitude=.1)
+        placement.populate_collection(fac, col)
+
+    p.run_stage('handfish_school', add_handfish_school, default=[])
 
     def add_rocks(target):
         selection = density.placement_mask(scale=0.15, select_thresh=0.4,
@@ -302,9 +311,9 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
 
     def add_kelp(terrain_mesh):
         fac = monocot.KelpMonocotFactory(int_hash((scene_seed, 0)), coarse=True)
-        selection = density.placement_mask(scale=0.01, tag=underwater_domain, select_thresh=.3)
+        selection = density.placement_mask(scale=0.01, tag=underwater_domain, select_thresh=.4)
         placement.scatter_placeholders_mesh(terrain_mesh, fac, altitude=-0.05,
-                                            overall_density=params.get('kelp_density', uniform(.1, .3)),
+                                            overall_density=params.get('kelp_density', uniform(.05, .2)),
                                             selection=selection, distance_min=5)
 
     p.run_stage('kelp', add_kelp, terrain_inview)
@@ -337,12 +346,12 @@ def compose_nature(output_folder, scene_seed, fps=24, **params):
                                                  scale=random_general(('clip_gaussian', 0.3, 0.2, 0.1, 0.8)),
                                                  brown_prob=1.0,
                                                  n=20,
-                                                 selection=density.placement_mask(scale=0.05, select_thresh=.0,
+                                                 selection=density.placement_mask(scale=0.05, select_thresh=0.3,
                                                                                   normal_thresh=0.4,
                                                                                   tag=underwater_domain)))
 
     urchin_density = random_general(('uniform', .5, 1))  # no per square metre
-    urchin_select_threshold = uniform(0.0, 0.1)  # Lower covers more of the terrain_inview
+    urchin_select_threshold = uniform(0.5, 0.7)  # Lower covers more of the terrain_inview
 
     p.run_stage('urchin', lambda: urchin.apply(terrain_inview,
                                                selection=density.placement_mask(scale=0.05,

@@ -32,7 +32,6 @@ import submitit
 import submitit.core.utils
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-
 # ruff: noqa: E402
 ORIG_SYS_PATH = list(sys.path)  # Make a new instance of sys.path
 import infinigen.core.init

@@ -3,8 +3,8 @@
 
 overwrite="--overwrite" #--overwrite
 cleanfiles="" #"--cleanup big_files"
-outputfolder="nudi_handfish_auv_v1"
-num_scenes=25
+outputfolder="nudi_handfish_rov_v4"
+num_scenes=100
 pipeline_overrides="" # "--pipeline_overrides manage_datagen_jobs.num_concurrent=2"
 
 options=("" )

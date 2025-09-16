@@ -643,7 +643,7 @@ def make_args():
         help="Whether the background is transparent",
     )
     parser.add_argument(
-        "-E", "--frame_end", type=int, default=48, help="End of frame in videos"
+        "-E", "--frame_end", type=int, default=120, help="End of frame in videos"
     )
     parser.add_argument(
         "-g", "--gpu", action="store_true", help="Whether to use gpu in rendering"

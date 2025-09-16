@@ -27,8 +27,8 @@ def apply(obj, scale=1, density=1.0, brown_prob=0.5, n=5, selection=None, **kwar
     scatter_obj = scatter_instances(
         base_obj=obj,
         collection=seaweeds,
-        vol_density=U(2, 10),
-        min_spacing=0.2,
+        vol_density=U(2, 8),
+        min_spacing=0.4,
         scale=scale,
         scale_rand=U(0.1, 0.3),
         scale_rand_axi=U(0, 0.2),

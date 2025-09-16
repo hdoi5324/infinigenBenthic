@@ -568,27 +568,35 @@ class InsectLeg(PartFactory):
 @node_utils.to_nodegroup('nodegroup_fish_hand', singleton=False, type='GeometryNodeTree')
 def nodegroup_fish_hand(nw: NodeWrangler):
     # Code generated using version 2.4.3 of the node_transpiler
+    #import numpy as np
+    #from numpy.random import normal as N
+    #from numpy.random import uniform as U
+    #from infinigen.assets.utils.nodegroups.attach import nodegroup_surface_muscle
+    #from infinigen.assets.utils.nodegroups.curve import nodegroup_simple_tube_v2
+    #from infinigen.core.nodes.node_wrangler import Nodes, NodeWrangler
+    #ng = bpy.data.node_groups.new("leg", "GeometryNodeTree")
+    #nw = NodeWrangler(ng)
 
     group_input = nw.new_node(Nodes.GroupInput,
-        expose_input=[('NodeSocketVector', 'length_rad1_rad2', (.6, 0.07, 0.04)),
-            ('NodeSocketVector', 'angles_deg', (0, 70, 100)),
-            ('NodeSocketFloat', 'aspect', 0.7),
-            ('NodeSocketFloat', 'fullness', 2.6),
-            ('NodeSocketVector', 'Thigh Rad1 Rad2 Fullness', (0.07, 0.07, 2.26)),
-            ('NodeSocketVector', 'Shin Rad1 Rad2 Fullness', (0.06, 0.04, 1.0))])
-
+        expose_input=[('NodeSocketVector', 'length_rad1_rad2', (.6, 0.02, 0.02)),
+            ('NodeSocketVector', 'angles_deg', (0, 80, 80)),
+            ('NodeSocketFloat', 'aspect', 1.0),
+            ('NodeSocketFloat', 'fullness', 3.0),
+            ('NodeSocketVector', 'Thigh Rad1 Rad2 Fullness', (0.04, 0.05, 4.9)),
+            ('NodeSocketVector', 'Shin Rad1 Rad2 Fullness', (0.04, 0.04, 5.0))])
+    
     simple_tube_v2 = nw.new_node(nodegroup_simple_tube_v2().name,
         input_kwargs={'length_rad1_rad2': group_input.outputs["length_rad1_rad2"], 'angles_deg': group_input.outputs["angles_deg"], 'aspect': group_input.outputs["aspect"], 'fullness': group_input.outputs["fullness"]})
-
+    
     surface_muscle = nw.new_node(nodegroup_surface_muscle().name,
-        input_kwargs={'Skin Mesh': simple_tube_v2.outputs["Geometry"], 'Skeleton Curve': simple_tube_v2.outputs["Skeleton Curve"], 'Coord 0': (0.0, 0.0, 0.0), 'Coord 1': (0.4, 4.2, 0.3), 'Coord 2': (0.4, 1.4678, 0.8), 'StartRad, EndRad, Fullness': group_input.outputs["Thigh Rad1 Rad2 Fullness"], 'ProfileHeight, StartTilt, EndTilt': (0.52, 0.0, 0.0)})
-
+        input_kwargs={'Skin Mesh': simple_tube_v2.outputs["Geometry"], 'Skeleton Curve': simple_tube_v2.outputs["Skeleton Curve"], 'Coord 0': (0.0, 0.0, 0.0), 'Coord 1': (0.4, 0, 0.0), 'Coord 2': (0.5, 0, 0.0), 'StartRad, EndRad, Fullness': group_input.outputs["Thigh Rad1 Rad2 Fullness"], 'ProfileHeight, StartTilt, EndTilt': (0.7, 0.0, 0.0)})
+    
     surface_muscle_1 = nw.new_node(nodegroup_surface_muscle().name,
-        input_kwargs={'Skin Mesh': simple_tube_v2.outputs["Geometry"], 'Skeleton Curve': simple_tube_v2.outputs["Skeleton Curve"], 'Coord 0': (0.6, 1.0, 1.0), 'Coord 1': (0.5, 1.5, 0.6), 'Coord 2': (1.04, 0.0, 0.0), 'StartRad, EndRad, Fullness': group_input.outputs["Shin Rad1 Rad2 Fullness"], 'ProfileHeight, StartTilt, EndTilt': (0.6, 40, 20)})
-
+        input_kwargs={'Skin Mesh': simple_tube_v2.outputs["Geometry"], 'Skeleton Curve': simple_tube_v2.outputs["Skeleton Curve"], 'Coord 0': (0.45, 0.0, 0.0), 'Coord 1': (0.6, 2, 1), 'Coord 2': (.97, 0.0, 0.0), 'StartRad, EndRad, Fullness': group_input.outputs["Shin Rad1 Rad2 Fullness"], 'ProfileHeight, StartTilt, EndTilt': (0.6, 0, 0)})
+    
     join_geometry = nw.new_node(Nodes.JoinGeometry,
         input_kwargs={'Geometry': [surface_muscle, surface_muscle_1, simple_tube_v2.outputs["Geometry"]]})
-
+    
     group_output = nw.new_node(Nodes.GroupOutput,
         input_kwargs={'Geometry': join_geometry, 'Skeleton Curve': simple_tube_v2.outputs["Skeleton Curve"]})
 
@@ -600,18 +608,18 @@ class FishHand(PartFactory):
 
     def sample_params(self):
         return {
-            'length_rad1_rad2': np.array((.6, 0.07, 0.04)) * np.array((clip_gaussian(1, 0.3, 0.2, 1.5), *N(1, 0.1, 2))),
-            'angles_deg': np.array((0, 70, 100)),
-            'aspect': N(0.7, 0.05),
-            'fullness': 2.6 * N(1, 0.1),
-            'Thigh Rad1 Rad2 Fullness': np.array((0.07, 0.07, 2.26)) * N(1, 0.1, 3),
-            'Shin Rad1 Rad2 Fullness': np.array((0.06, 0.04, 1.0)) * N(1, 0.1, 3)
+            'length_rad1_rad2': np.array((.7, 0.02, 0.02)) * np.array((clip_gaussian(1, 0.2, 0.9, 1.2), *N(1, 0.1, 2))),
+            'angles_deg': np.array((0, clip_gaussian(90, 20, 70, 100), clip_gaussian(90, 20, 70, 100))),
+            'aspect': N(1.0, 0.05),
+            'fullness': 3.0 * N(1, 0.1),
+            'Thigh Rad1 Rad2 Fullness': np.array((0.08, 0.05, 4.9)) * N(1, 0.1, 3),
+            'Shin Rad1 Rad2 Fullness': np.array((0.05, 0.04, 3.0)) * N(1, 0.1, 3)
         }
     
     
     def make_part(self, params):
         part = nodegroup_to_part(nodegroup_fish_hand, params)
-        angle_bound = 40
+        angle_bound = 35
         part.joints = {
             0: Joint(rest=(0,0,0), bounds=np.array([[-angle_bound, 0, -angle_bound*2], [angle_bound, 0, angle_bound*2]])), # shoulder
             0.5: Joint(rest=(0,0,0), bounds=np.array([[-angle_bound, 0, -angle_bound*2], [angle_bound, 0, angle_bound*2]])), # elbow
@@ -622,3 +630,14 @@ class FishHand(PartFactory):
         tag_object(part.obj, 'fish_hand')
         part.settings['rig_extras'] = True
         return part
+
+if __name__ == "__main__":
+    params = FishHand().sample_params()
+    fin = FishHand().make_part(params)
+    fin.obj.location = [ 0,0,0]
+
+    import os
+    import bpy
+
+    fn = os.path.join(os.path.abspath(os.curdir), "dev_scene_test_handarm.blend")
+    bpy.ops.wm.save_as_mainfile(filepath=fn)

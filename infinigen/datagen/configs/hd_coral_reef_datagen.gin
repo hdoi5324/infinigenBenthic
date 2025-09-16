@@ -20,7 +20,7 @@ iterate_scene_tasks.camera_dependent_tasks = [
     {'name': 'renderhidewater', 'func': @renderhidewater/queue_render_hidewater},
 ]
 
-frames = 48
+frames = 96
 sub_frames = 24
 iterate_scene_tasks.frame_range=[1,%frames]
 iterate_scene_tasks.render_frame_range=[1,%frames]
